@@ -49,6 +49,8 @@ npx get-shit-done-cc@latest
 
 ## 🚀 What's New in GSDM (Multi-Model Fork)
 
+> **Note:** This is an **independent fork** of GSD with multi-model support and enhanced reliability features. Not affiliated with the original GSD project.
+
 **GSDM** is an enhanced fork of GSD with **multi-model support** and **enterprise-grade reliability**.
 
 ### New Features
