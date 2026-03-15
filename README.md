@@ -124,9 +124,9 @@ Configure different AI providers per agent:
     }
   },
   "agent_overrides": {
-    "gsd-planner": { "provider": "alibaba", "model": "qwen-max" },
-    "gsd-executor": { "provider": "anthropic", "model": "sonnet" },
-    "gsd-verifier": { "provider": "moonshot", "model": "balanced" }
+    "ez-planner": { "provider": "alibaba", "model": "qwen-max" },
+    "ez-executor": { "provider": "anthropic", "model": "sonnet" },
+    "ez-verifier": { "provider": "moonshot", "model": "balanced" }
   }
 }
 ```
@@ -189,7 +189,7 @@ I'm a solo developer. I don't write code — Claude Code does.
 
 Other spec-driven development tools exist; BMAD, Speckit... But they all seem to make things way more complicated than they need to be (sprint ceremonies, story points, stakeholder syncs, retrospectives, Jira workflows) or lack real big picture understanding of what you're building. I'm not a 50-person software company. I don't want to play enterprise theater. I'm just a creative person trying to build great things that work.
 
-So I built GSD. The complexity is in the system, not in your workflow. Behind the scenes: context engineering, XML prompt formatting, subagent orchestration, state management. What you see: a few commands that just work.
+So I built EZ Agents. The complexity is in the system, not in your workflow. Behind the scenes: context engineering, XML prompt formatting, subagent orchestration, state management. What you see: a few commands that just work.
 
 The system gives Claude everything it needs to do the work *and* verify it. I trust the workflow. It just does a good job.
 
@@ -201,7 +201,7 @@ That's what this is. No enterprise roleplay bullshit. Just an incredibly effecti
 
 Vibecoding has a bad reputation. You describe what you want, AI generates code, and you get inconsistent garbage that falls apart at scale.
 
-GSD fixes that. It's the context engineering layer that makes Claude Code reliable. Describe your idea, let the system extract everything it needs to know, and let Claude Code get to work.
+EZ Agents fixes that. It's the context engineering layer that makes Claude Code reliable. Describe your idea, let the system extract everything it needs to know, and let Claude Code get to work.
 
 ---
 
@@ -281,14 +281,14 @@ Installs to `./.claude/` for testing modifications before contributing.
 
 ### Recommended: Skip Permissions Mode
 
-GSD is designed for frictionless automation. Run Claude Code with:
+EZ Agents is designed for frictionless automation. Run Claude Code with:
 
 ```bash
 claude --dangerously-skip-permissions
 ```
 
 > [!TIP]
-> This is how GSD is intended to be used — stopping to approve `date` and `git commit` 50 times defeats the purpose.
+> This is how EZ Agents is intended to be used — stopping to approve `date` and `git commit` 50 times defeats the purpose.
 
 <details>
 <summary><strong>Alternative: Granular Permissions</strong></summary>
@@ -327,12 +327,12 @@ If you prefer not to use that flag, add this to your project's `.claude/settings
 
 ## How It Works
 
-> **Already have code?** Run `/gsd:map-codebase` first. It spawns parallel agents to analyze your stack, architecture, conventions, and concerns. Then `/gsd:new-project` knows your codebase — questions focus on what you're adding, and planning automatically loads your patterns.
+> **Already have code?** Run `/ez:map-codebase` first. It spawns parallel agents to analyze your stack, architecture, conventions, and concerns. Then `/ez:new-project` knows your codebase — questions focus on what you're adding, and planning automatically loads your patterns.
 
 ### 1. Initialize Project
 
 ```
-/gsd:new-project
+/ez:new-project
 ```
 
 One command, one flow. The system:
@@ -351,7 +351,7 @@ You approve the roadmap. Now you're ready to build.
 ### 2. Discuss Phase
 
 ```
-/gsd:discuss-phase 1
+/ez:discuss-phase 1
 ```
 
 **This is where you shape the implementation.**
@@ -379,7 +379,7 @@ The deeper you go here, the more the system builds what you actually want. Skip 
 ### 3. Plan Phase
 
 ```
-/gsd:plan-phase 1
+/ez:plan-phase 1
 ```
 
 The system:
@@ -397,7 +397,7 @@ Each plan is small enough to execute in a fresh context window. No degradation, 
 ### 4. Execute Phase
 
 ```
-/gsd:execute-phase 1
+/ez:execute-phase 1
 ```
 
 The system:
@@ -448,7 +448,7 @@ This is why "vertical slices" (Plan 01: User feature end-to-end) parallelize bet
 ### 5. Verify Work
 
 ```
-/gsd:verify-work 1
+/ez:verify-work 1
 ```
 
 **This is where you confirm it actually works.**
@@ -462,7 +462,7 @@ The system:
 3. **Diagnoses failures automatically** — Spawns debug agents to find root causes
 4. **Creates verified fix plans** — Ready for immediate re-execution
 
-If everything passes, you move on. If something's broken, you don't manually debug — you just run `/gsd:execute-phase` again with the fix plans it created.
+If everything passes, you move on. If something's broken, you don't manually debug — you just run `/ez:execute-phase` again with the fix plans it created.
 
 **Creates:** `{phase_num}-UAT.md`, fix plans if issues found
 
@@ -471,36 +471,36 @@ If everything passes, you move on. If something's broken, you don't manually deb
 ### 6. Repeat → Complete → Next Milestone
 
 ```
-/gsd:discuss-phase 2
-/gsd:plan-phase 2
-/gsd:execute-phase 2
-/gsd:verify-work 2
+/ez:discuss-phase 2
+/ez:plan-phase 2
+/ez:execute-phase 2
+/ez:verify-work 2
 ...
-/gsd:complete-milestone
-/gsd:new-milestone
+/ez:complete-milestone
+/ez:new-milestone
 ```
 
 Loop **discuss → plan → execute → verify** until milestone complete.
 
-If you want faster intake during discussion, use `/gsd:discuss-phase <n> --batch` to answer a small grouped set of questions at once instead of one-by-one.
+If you want faster intake during discussion, use `/ez:discuss-phase <n> --batch` to answer a small grouped set of questions at once instead of one-by-one.
 
 Each phase gets your input (discuss), proper research (plan), clean execution (execute), and human verification (verify). Context stays fresh. Quality stays high.
 
-When all phases are done, `/gsd:complete-milestone` archives the milestone and tags the release.
+When all phases are done, `/ez:complete-milestone` archives the milestone and tags the release.
 
-Then `/gsd:new-milestone` starts the next version — same flow as `new-project` but for your existing codebase. You describe what you want to build next, the system researches the domain, you scope requirements, and it creates a fresh roadmap. Each milestone is a clean cycle: define → build → ship.
+Then `/ez:new-milestone` starts the next version — same flow as `new-project` but for your existing codebase. You describe what you want to build next, the system researches the domain, you scope requirements, and it creates a fresh roadmap. Each milestone is a clean cycle: define → build → ship.
 
 ---
 
 ### Quick Mode
 
 ```
-/gsd:quick
+/ez:quick
 ```
 
 **For ad-hoc tasks that don't need full planning.**
 
-Quick mode gives you GSD guarantees (atomic commits, state tracking) with a faster path:
+Quick mode gives you EZ Agents guarantees (atomic commits, state tracking) with a faster path:
 
 - **Same agents** — Planner + executor, same quality
 - **Skips optional steps** — No research, no plan checker, no verifier
@@ -509,7 +509,7 @@ Quick mode gives you GSD guarantees (atomic commits, state tracking) with a fast
 Use for: bug fixes, small features, config changes, one-off tasks.
 
 ```
-/gsd:quick
+/ez:quick
 > What do you want to do? "Add dark mode toggle to settings"
 ```
 
@@ -523,7 +523,7 @@ Use for: bug fixes, small features, config changes, one-off tasks.
 
 Claude Code is incredibly powerful *if* you give it the context it needs. Most people don't.
 
-GSD handles it for you:
+EZ Agents handles it for you:
 
 | File | What it does |
 |------|--------------|
@@ -606,58 +606,58 @@ You're never locked in. The system adapts.
 
 | Command | What it does |
 |---------|--------------|
-| `/gsd:new-project [--auto]` | Full initialization: questions → research → requirements → roadmap |
-| `/gsd:discuss-phase [N] [--auto]` | Capture implementation decisions before planning |
-| `/gsd:plan-phase [N] [--auto]` | Research + plan + verify for a phase |
-| `/gsd:execute-phase <N>` | Execute all plans in parallel waves, verify when complete |
-| `/gsd:verify-work [N]` | Manual user acceptance testing ¹ |
-| `/gsd:audit-milestone` | Verify milestone achieved its definition of done |
-| `/gsd:complete-milestone` | Archive milestone, tag release |
-| `/gsd:new-milestone [name]` | Start next version: questions → research → requirements → roadmap |
+| `/ez:new-project [--auto]` | Full initialization: questions → research → requirements → roadmap |
+| `/ez:discuss-phase [N] [--auto]` | Capture implementation decisions before planning |
+| `/ez:plan-phase [N] [--auto]` | Research + plan + verify for a phase |
+| `/ez:execute-phase <N>` | Execute all plans in parallel waves, verify when complete |
+| `/ez:verify-work [N]` | Manual user acceptance testing ¹ |
+| `/ez:audit-milestone` | Verify milestone achieved its definition of done |
+| `/ez:complete-milestone` | Archive milestone, tag release |
+| `/ez:new-milestone [name]` | Start next version: questions → research → requirements → roadmap |
 
 ### Navigation
 
 | Command | What it does |
 |---------|--------------|
-| `/gsd:progress` | Where am I? What's next? |
-| `/gsd:help` | Show all commands and usage guide |
-| `/gsd:update` | Update GSD with changelog preview |
-| `/gsd:join-discord` | Join the GSD Discord community |
+| `/ez:progress` | Where am I? What's next? |
+| `/ez:help` | Show all commands and usage guide |
+| `/ez:update` | Update EZ Agents with changelog preview |
+| `/ez:join-discord` | Join the EZ Agents Discord community |
 
 ### Brownfield
 
 | Command | What it does |
 |---------|--------------|
-| `/gsd:map-codebase [area]` | Analyze existing codebase before new-project |
+| `/ez:map-codebase [area]` | Analyze existing codebase before new-project |
 
 ### Phase Management
 
 | Command | What it does |
 |---------|--------------|
-| `/gsd:add-phase` | Append phase to roadmap |
-| `/gsd:insert-phase [N]` | Insert urgent work between phases |
-| `/gsd:remove-phase [N]` | Remove future phase, renumber |
-| `/gsd:list-phase-assumptions [N]` | See Claude's intended approach before planning |
-| `/gsd:plan-milestone-gaps` | Create phases to close gaps from audit |
+| `/ez:add-phase` | Append phase to roadmap |
+| `/ez:insert-phase [N]` | Insert urgent work between phases |
+| `/ez:remove-phase [N]` | Remove future phase, renumber |
+| `/ez:list-phase-assumptions [N]` | See Claude's intended approach before planning |
+| `/ez:plan-milestone-gaps` | Create phases to close gaps from audit |
 
 ### Session
 
 | Command | What it does |
 |---------|--------------|
-| `/gsd:pause-work` | Create handoff when stopping mid-phase |
-| `/gsd:resume-work` | Restore from last session |
+| `/ez:pause-work` | Create handoff when stopping mid-phase |
+| `/ez:resume-work` | Restore from last session |
 
 ### Utilities
 
 | Command | What it does |
 |---------|--------------|
-| `/gsd:settings` | Configure model profile and workflow agents |
-| `/gsd:set-profile <profile>` | Switch model profile (quality/balanced/budget) |
-| `/gsd:add-todo [desc]` | Capture idea for later |
-| `/gsd:check-todos` | List pending todos |
-| `/gsd:debug [desc]` | Systematic debugging with persistent state |
-| `/gsd:quick [--full] [--discuss]` | Execute ad-hoc task with GSD guarantees (`--full` adds plan-checking and verification, `--discuss` gathers context first) |
-| `/gsd:health [--repair]` | Validate `.planning/` directory integrity, auto-repair with `--repair` |
+| `/ez:settings` | Configure model profile and workflow agents |
+| `/ez:set-profile <profile>` | Switch model profile (quality/balanced/budget) |
+| `/ez:add-todo [desc]` | Capture idea for later |
+| `/ez:check-todos` | List pending todos |
+| `/ez:debug [desc]` | Systematic debugging with persistent state |
+| `/ez:quick [--full] [--discuss]` | Execute ad-hoc task with EZ Agents guarantees (`--full` adds plan-checking and verification, `--discuss` gathers context first) |
+| `/ez:health [--repair]` | Validate `.planning/` directory integrity, auto-repair with `--repair` |
 
 <sup>¹ Contributed by reddit user OracleGreyBeard</sup>
 
@@ -665,7 +665,7 @@ You're never locked in. The system adapts.
 
 ## Configuration
 
-GSD stores project settings in `.planning/config.json`. Configure during `/gsd:new-project` or update later with `/gsd:settings`. For the full config schema, workflow toggles, git branching options, and per-agent model breakdown, see the [User Guide](docs/USER-GUIDE.md#configuration-reference).
+EZ Agents stores project settings in `.planning/config.json`. Configure during `/ez:new-project` or update later with `/ez:settings`. For the full config schema, workflow toggles, git branching options, and per-agent model breakdown, see the [User Guide](docs/USER-GUIDE.md#configuration-reference).
 
 ### Core Settings
 
@@ -686,10 +686,10 @@ Control which Claude model each agent uses. Balance quality vs token spend.
 
 Switch profiles:
 ```
-/gsd:set-profile budget
+/ez:set-profile budget
 ```
 
-Or configure via `/gsd:settings`.
+Or configure via `/ez:settings`.
 
 ### Workflow Agents
 
@@ -702,9 +702,9 @@ These spawn additional agents during planning/execution. They improve quality bu
 | `workflow.verifier` | `true` | Confirms must-haves were delivered after execution |
 | `workflow.auto_advance` | `false` | Auto-chain discuss → plan → execute without stopping |
 
-Use `/gsd:settings` to toggle these, or override per-invocation:
-- `/gsd:plan-phase --skip-research`
-- `/gsd:plan-phase --skip-verify`
+Use `/ez:settings` to toggle these, or override per-invocation:
+- `/ez:plan-phase --skip-research`
+- `/ez:plan-phase --skip-verify`
 
 ### Execution
 
@@ -715,20 +715,20 @@ Use `/gsd:settings` to toggle these, or override per-invocation:
 
 ### Git Branching
 
-Control how GSD handles branches during execution.
+Control how EZ Agents handles branches during execution.
 
 | Setting | Options | Default | What it does |
 |---------|---------|---------|--------------|
 | `git.branching_strategy` | `none`, `phase`, `milestone` | `none` | Branch creation strategy |
-| `git.phase_branch_template` | string | `gsd/phase-{phase}-{slug}` | Template for phase branches |
-| `git.milestone_branch_template` | string | `gsd/{milestone}-{slug}` | Template for milestone branches |
+| `git.phase_branch_template` | string | `ez/phase-{phase}-{slug}` | Template for phase branches |
+| `git.milestone_branch_template` | string | `ez/{milestone}-{slug}` | Template for milestone branches |
 
 **Strategies:**
-- **`none`** — Commits to current branch (default GSD behavior)
+- **`none`** — Commits to current branch (default EZ Agents behavior)
 - **`phase`** — Creates a branch per phase, merges at phase completion
 - **`milestone`** — Creates one branch for entire milestone, merges at completion
 
-At milestone completion, GSD offers squash merge (recommended) or merge with history.
+At milestone completion, EZ Agents offers squash merge (recommended) or merge with history.
 
 ---
 
@@ -736,7 +736,7 @@ At milestone completion, GSD offers squash merge (recommended) or merge with his
 
 ### Protecting Sensitive Files
 
-GSD's codebase mapping and analysis commands read files to understand your project. **Protect files containing secrets** by adding them to Claude Code's deny list:
+EZ Agents' codebase mapping and analysis commands read files to understand your project. **Protect files containing secrets** by adding them to Claude Code's deny list:
 
 1. Open Claude Code settings (`.claude/settings.json` or global)
 2. Add sensitive file patterns to the deny list:
@@ -759,7 +759,7 @@ GSD's codebase mapping and analysis commands read files to understand your proje
 This prevents Claude from reading these files entirely, regardless of what commands you run.
 
 > [!IMPORTANT]
-> GSD includes built-in protections against committing secrets, but defense-in-depth is best practice. Deny read access to sensitive files as a first line of defense.
+> EZ Agents includes built-in protections against committing secrets, but defense-in-depth is best practice. Deny read access to sensitive files as a first line of defense.
 
 ---
 
@@ -767,49 +767,49 @@ This prevents Claude from reading these files entirely, regardless of what comma
 
 **Commands not found after install?**
 - Restart your runtime to reload commands/skills
-- Verify files exist in `~/.claude/commands/gsd/` (global) or `./.claude/commands/gsd/` (local)
-- For Codex, verify skills exist in `~/.codex/skills/gsd-*/SKILL.md` (global) or `./.codex/skills/gsd-*/SKILL.md` (local)
+- Verify files exist in `~/.claude/commands/ez/` (global) or `./.claude/commands/ez/` (local)
+- For Codex, verify skills exist in `~/.codex/skills/ez-*/SKILL.md` (global) or `./.codex/skills/ez-*/SKILL.md` (local)
 
 **Commands not working as expected?**
-- Run `/gsd:help` to verify installation
-- Re-run `gsdm` to reinstall
+- Run `/ez:help` to verify installation
+- Re-run `ez-agents` to reinstall
 
 **Updating to the latest version?**
 ```bash
-gsdm-update
+ez-agents-update
 ```
 
 **Using Docker or containerized environments?**
 
 If file reads fail with tilde paths (`~/.claude/...`), set `CLAUDE_CONFIG_DIR` before installing:
 ```bash
-CLAUDE_CONFIG_DIR=/home/youruser/.claude gsdm --global
+CLAUDE_CONFIG_DIR=/home/youruser/.claude ez-agents --global
 ```
 This ensures absolute paths are used instead of `~` which may not expand correctly in containers.
 
 ### Uninstalling
 
-To remove GSD completely:
+To remove EZ Agents completely:
 
 ```bash
 # Global installs
-gsdm --claude --global --uninstall
-gsdm --opencode --global --uninstall
-gsdm --codex --global --uninstall
+ez-agents --claude --global --uninstall
+ez-agents --opencode --global --uninstall
+ez-agents --codex --global --uninstall
 
 # Local installs (current project)
-gsdm --claude --local --uninstall
-gsdm --opencode --local --uninstall
-gsdm --codex --local --uninstall
+ez-agents --claude --local --uninstall
+ez-agents --opencode --local --uninstall
+ez-agents --codex --local --uninstall
 ```
 
-This removes all GSD commands, agents, hooks, and settings while preserving your other configurations.
+This removes all EZ Agents commands, agents, hooks, and settings while preserving your other configurations.
 
 ---
 
 ## Community Ports
 
-OpenCode, Gemini CLI, and Codex are now natively supported via `gsdm`.
+OpenCode, Gemini CLI, and Codex are now natively supported via `ez-agents`.
 
 These community ports pioneered multi-runtime support:
 
@@ -840,6 +840,6 @@ MIT License. See [LICENSE](LICENSE) for details.
 
 <div align="center">
 
-**Claude Code is powerful. GSD makes it reliable.**
+**Claude Code is powerful. EZ Agents makes it reliable.**
 
 </div>
