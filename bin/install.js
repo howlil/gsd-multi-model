@@ -257,8 +257,11 @@ const banner = '\n' +
   '   ╚═════╝ ╚══════╝╚═════╝' + reset + '\n' +
   '\n' +
   '  Get Shit Done ' + dim + 'v' + pkg.version + reset + '\n' +
+  '  ' + dim + 'Multi-Model Edition' + reset + '\n' +
   '  A meta-prompting, context engineering and spec-driven\n' +
-  '  development system for Claude Code, OpenCode, Gemini, Codex, and Copilot by TÂCHES.\n';
+  '  development system for Claude Code, OpenCode, Gemini, Codex, Copilot,\n' +
+  '  with multi-model support (Qwen, Kimi, OpenAI, Anthropic).\n' +
+  '  Original by TÂCHES | Multi-Model Fork by @howlil.\n';
 
 // Parse --config-dir argument
 function parseConfigDirArg() {
