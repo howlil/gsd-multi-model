@@ -1,10 +1,9 @@
 {
-  "name": "get-shit-done-cc-multi",
+  "name": "gsdm",
   "version": "2.0.0",
-  "description": "GSD Multi-Model Fork — Support for Qwen, Kimi, OpenAI + enhanced security & error handling",
+  "description": "GSD Multi-Model — GSD fork with Qwen, Kimi, OpenAI support",
   "bin": {
-    "get-shit-done-cc-multi": "bin/install.js",
-    "gsd-multi": "bin/install.js"
+    "gsdm": "bin/install.js"
   },
   "files": [
     "bin",
