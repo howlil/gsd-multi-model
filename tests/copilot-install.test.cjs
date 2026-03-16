@@ -302,30 +302,30 @@ describe('convertClaudeToCopilotContent', () => {
     );
   });
 
-  test('converts gsd: to gsd- in command names', () => {
+  test('converts ez: to ez- in command names', () => {
     assert.strictEqual(
-      convertClaudeToCopilotContent('run /gsd:health or gsd:progress'),
-      'run /gsd-health or gsd-progress'
+      convertClaudeToCopilotContent('run /ez:health or ez:progress'),
+      'run /ez-health or ez-progress'
     );
   });
 
   test('handles mixed content in local mode', () => {
     const input = 'Config at ~/.claude/settings and $HOME/.claude/config.\n' +
       'Local at ./.claude/data and .claude/commands.\n' +
-      'Run gsd:health and /gsd:progress.';
+      'Run ez:health and /ez:progress.';
     const result = convertClaudeToCopilotContent(input);
     assert.ok(result.includes('.github/settings'), 'tilde path converted to local');
     assert.ok(!result.includes('$HOME/.claude/'), '$HOME path converted');
     assert.ok(result.includes('./.github/data'), 'dot-slash path converted');
     assert.ok(result.includes('.github/commands'), 'bare path converted');
-    assert.ok(result.includes('gsd-health'), 'command name converted');
-    assert.ok(result.includes('/gsd-progress'), 'slash command converted');
+    assert.ok(result.includes('ez-health'), 'command name converted');
+    assert.ok(result.includes('/ez-progress'), 'slash command converted');
   });
 
   test('handles mixed content in global mode', () => {
     const input = 'Config at ~/.claude/settings and $HOME/.claude/config.\n' +
       'Local at ./.claude/data and .claude/commands.\n' +
-      'Run gsd:health and /gsd:progress.';
+      'Run ez:health and /ez:progress.';
     const result = convertClaudeToCopilotContent(input, true);
     assert.ok(result.includes('~/.copilot/settings'), 'tilde path converted to global');
     assert.ok(result.includes('$HOME/.copilot/config'), '$HOME path converted to global');
@@ -360,7 +360,7 @@ describe('convertClaudeToCopilotContent', () => {
 describe('convertClaudeCommandToCopilotSkill', () => {
   test('converts frontmatter with all fields', () => {
     const input = `---
-name: gsd:health
+name: ez:health
 description: Diagnose planning directory health
 argument-hint: [--repair]
 allowed-tools:
@@ -370,7 +370,7 @@ allowed-tools:
   - AskUserQuestion
 ---
 
-Body content here referencing ~/.claude/foo and gsd:health.`;
+Body content here referencing ~/.claude/foo and ez:health.`;
 
     const result = convertClaudeCommandToCopilotSkill(input, 'gsd-health');
     assert.ok(result.startsWith('---\nname: gsd-health\n'), 'name uses param');
@@ -379,12 +379,12 @@ Body content here referencing ~/.claude/foo and gsd:health.`;
     assert.ok(result.includes('allowed-tools: Read, Bash, Write, AskUserQuestion'), 'tools comma-separated');
     assert.ok(result.includes('.github/foo'), 'CONV-06 applied to body (local mode default)');
     assert.ok(result.includes('gsd-health'), 'CONV-07 applied to body');
-    assert.ok(!result.includes('gsd:health'), 'no gsd: references remain');
+    assert.ok(!result.includes('ez:health'), 'no ez: references remain');
   });
 
   test('handles skill without allowed-tools', () => {
     const input = `---
-name: gsd:help
+name: ez:help
 description: Show available GSD commands
 ---
 
@@ -398,7 +398,7 @@ Help content.`;
 
   test('handles skill without argument-hint', () => {
     const input = `---
-name: gsd:progress
+name: ez:progress
 description: Show project progress
 allowed-tools:
   - Read
@@ -414,7 +414,7 @@ Progress body.`;
 
   test('argument-hint with inner single quotes uses double-quote YAML delimiter', () => {
     const input = `---
-name: gsd:new-milestone
+name: ez:new-milestone
 description: Start milestone
 argument-hint: "[milestone name, e.g., 'v1.1 Notifications']"
 allowed-tools:
@@ -429,7 +429,7 @@ Body.`;
 
   test('applies CONV-06 path conversion to body (local mode)', () => {
     const input = `---
-name: gsd:test
+name: ez:test
 description: Test skill
 ---
 
@@ -443,7 +443,7 @@ Check ~/.claude/settings and ./.claude/local and $HOME/.claude/global.`;
 
   test('applies CONV-06 path conversion to body (global mode)', () => {
     const input = `---
-name: gsd:test
+name: ez:test
 description: Test skill
 ---
 
@@ -457,20 +457,20 @@ Check ~/.claude/settings and ./.claude/local and $HOME/.claude/global.`;
 
   test('applies CONV-07 command name conversion to body', () => {
     const input = `---
-name: gsd:test
+name: ez:test
 description: Test skill
 ---
 
-Run gsd:health and /gsd:progress for diagnostics.`;
+Run ez:health and /ez:progress for diagnostics.`;
 
     const result = convertClaudeCommandToCopilotSkill(input, 'gsd-test');
-    assert.ok(result.includes('gsd-health'), 'gsd:health converted');
-    assert.ok(result.includes('/gsd-progress'), '/gsd:progress converted');
-    assert.ok(!result.match(/gsd:[a-z]/), 'no gsd: command refs remain');
+    assert.ok(result.includes('gsd-health'), 'ez:health converted');
+    assert.ok(result.includes('/gsd-progress'), '/ez:progress converted');
+    assert.ok(!result.match(/ez:[a-z]/), 'no ez: command refs remain');
   });
 
   test('handles content without frontmatter (local mode)', () => {
-    const input = 'Just some markdown with ~/.claude/path and gsd:health.';
+    const input = 'Just some markdown with ~/.claude/path and ez:health.';
     const result = convertClaudeCommandToCopilotSkill(input, 'gsd-test');
     assert.ok(result.includes('.github/path'), 'CONV-06 applied (local)');
     assert.ok(result.includes('gsd-health'), 'CONV-07 applied');
@@ -479,7 +479,7 @@ Run gsd:health and /gsd:progress for diagnostics.`;
 
   test('preserves agent field in frontmatter', () => {
     const input = `---
-name: gsd:execute-phase
+name: ez:execute-phase
 description: Execute a phase
 agent: gsd-planner
 allowed-tools:
@@ -575,13 +575,13 @@ description: Test
 tools: Read
 ---
 
-Check ~/.claude/settings and run gsd:health.`;
+Check ~/.claude/settings and run ez:health.`;
 
     const result = convertClaudeAgentToCopilotAgent(input);
     assert.ok(result.includes('.github/settings'), 'CONV-06 applied (local)');
     assert.ok(result.includes('gsd-health'), 'CONV-07 applied');
     assert.ok(!result.includes('~/.claude/'), 'no ~/.claude/ remains');
-    assert.ok(!result.match(/gsd:[a-z]/), 'no gsd: command refs remain');
+    assert.ok(!result.match(/ez:[a-z]/), 'no ez: command refs remain');
   });
 
   test('applies CONV-06 and CONV-07 to body (global mode)', () => {
@@ -591,7 +591,7 @@ description: Test
 tools: Read
 ---
 
-Check ~/.claude/settings and run gsd:health.`;
+Check ~/.claude/settings and run ez:health.`;
 
     const result = convertClaudeAgentToCopilotAgent(input, true);
     assert.ok(result.includes('~/.copilot/settings'), 'CONV-06 applied (global)');
@@ -599,7 +599,7 @@ Check ~/.claude/settings and run gsd:health.`;
   });
 
   test('handles content without frontmatter (local mode)', () => {
-    const input = 'Just markdown with ~/.claude/path and gsd:test.';
+    const input = 'Just markdown with ~/.claude/path and ez:test.';
     const result = convertClaudeAgentToCopilotAgent(input);
     assert.ok(result.includes('.github/path'), 'CONV-06 applied (local)');
     assert.ok(result.includes('gsd-test'), 'CONV-07 applied');
@@ -610,22 +610,22 @@ Check ~/.claude/settings and run gsd:health.`;
 // ─── copyCommandsAsCopilotSkills (integration) ─────────────────────────────────
 
 describe('copyCommandsAsCopilotSkills', () => {
-  const srcDir = path.join(__dirname, '..', 'commands', 'gsd');
+  const srcDir = path.join(__dirname, '..', 'commands', 'ez');
 
   test('creates skill folders from source commands', () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-copilot-skills-'));
     try {
-      copyCommandsAsCopilotSkills(srcDir, tempDir, 'gsd');
+      copyCommandsAsCopilotSkills(srcDir, tempDir, 'ez');
 
       // Check specific folders exist
-      assert.ok(fs.existsSync(path.join(tempDir, 'gsd-health')), 'gsd-health folder exists');
-      assert.ok(fs.existsSync(path.join(tempDir, 'gsd-health', 'SKILL.md')), 'gsd-health/SKILL.md exists');
-      assert.ok(fs.existsSync(path.join(tempDir, 'gsd-help')), 'gsd-help folder exists');
-      assert.ok(fs.existsSync(path.join(tempDir, 'gsd-progress')), 'gsd-progress folder exists');
+      assert.ok(fs.existsSync(path.join(tempDir, 'ez-health')), 'ez-health folder exists');
+      assert.ok(fs.existsSync(path.join(tempDir, 'ez-health', 'SKILL.md')), 'ez-health/SKILL.md exists');
+      assert.ok(fs.existsSync(path.join(tempDir, 'ez-help')), 'ez-help folder exists');
+      assert.ok(fs.existsSync(path.join(tempDir, 'ez-progress')), 'ez-progress folder exists');
 
-      // Count gsd-* directories — should be 31
+      // Count ez-* directories — should be 31
       const dirs = fs.readdirSync(tempDir, { withFileTypes: true })
-        .filter(e => e.isDirectory() && e.name.startsWith('gsd-'));
+        .filter(e => e.isDirectory() && e.name.startsWith('ez-'));
       assert.strictEqual(dirs.length, 33, `expected 33 skill folders, got ${dirs.length}`);
     } finally {
       fs.rmSync(tempDir, { recursive: true });
@@ -635,17 +635,17 @@ describe('copyCommandsAsCopilotSkills', () => {
   test('skill content has Copilot frontmatter format', () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-copilot-skills-'));
     try {
-      copyCommandsAsCopilotSkills(srcDir, tempDir, 'gsd');
+      copyCommandsAsCopilotSkills(srcDir, tempDir, 'ez');
 
-      const skillContent = fs.readFileSync(path.join(tempDir, 'gsd-health', 'SKILL.md'), 'utf8');
+      const skillContent = fs.readFileSync(path.join(tempDir, 'ez-health', 'SKILL.md'), 'utf8');
       // Frontmatter format checks
-      assert.ok(skillContent.startsWith('---\nname: gsd-health\n'), 'starts with name: gsd-health');
+      assert.ok(skillContent.startsWith('---\nname: ez-health\n'), 'starts with name: ez-health');
       assert.ok(skillContent.includes('allowed-tools: Read, Bash, Write, AskUserQuestion'),
         'allowed-tools is comma-separated');
       assert.ok(!skillContent.includes('allowed-tools:\n  -'), 'NOT YAML multiline format');
       // CONV-06/07 applied
       assert.ok(!skillContent.includes('~/.claude/'), 'no ~/.claude/ references');
-      assert.ok(!skillContent.match(/gsd:[a-z]/), 'no gsd: command references');
+      assert.ok(!skillContent.match(/ez:[a-z]/), 'no ez: command references');
     } finally {
       fs.rmSync(tempDir, { recursive: true });
     }
@@ -654,20 +654,20 @@ describe('copyCommandsAsCopilotSkills', () => {
   test('generates gsd-autonomous skill from autonomous.md command', () => {
     // Fail-fast: source command must exist
     const srcFile = path.join(srcDir, 'autonomous.md');
-    assert.ok(fs.existsSync(srcFile), 'commands/gsd/autonomous.md must exist as source');
+    assert.ok(fs.existsSync(srcFile), 'commands/ez/autonomous.md must exist as source');
 
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-copilot-skills-'));
     try {
-      copyCommandsAsCopilotSkills(srcDir, tempDir, 'gsd');
+      copyCommandsAsCopilotSkills(srcDir, tempDir, 'ez');
 
       // Skill folder and file created
-      assert.ok(fs.existsSync(path.join(tempDir, 'gsd-autonomous')), 'gsd-autonomous folder exists');
-      assert.ok(fs.existsSync(path.join(tempDir, 'gsd-autonomous', 'SKILL.md')), 'gsd-autonomous/SKILL.md exists');
+      assert.ok(fs.existsSync(path.join(tempDir, 'ez-autonomous')), 'ez-autonomous folder exists');
+      assert.ok(fs.existsSync(path.join(tempDir, 'ez-autonomous', 'SKILL.md')), 'ez-autonomous/SKILL.md exists');
 
-      const skillContent = fs.readFileSync(path.join(tempDir, 'gsd-autonomous', 'SKILL.md'), 'utf8');
+      const skillContent = fs.readFileSync(path.join(tempDir, 'ez-autonomous', 'SKILL.md'), 'utf8');
 
-      // Frontmatter: name converted from gsd:autonomous to gsd-autonomous
-      assert.ok(skillContent.startsWith('---\nname: gsd-autonomous\n'), 'name is gsd-autonomous');
+      // Frontmatter: name converted from ez:autonomous to ez-autonomous
+      assert.ok(skillContent.startsWith('---\nname: ez-autonomous\n'), 'name is ez-autonomous');
       assert.ok(skillContent.includes('description: Run all remaining phases autonomously'),
         'description preserved');
       // argument-hint present and double-quoted
@@ -683,18 +683,18 @@ describe('copyCommandsAsCopilotSkills', () => {
     }
   });
 
-  test('autonomous skill body converts gsd: to gsd- (CONV-07)', () => {
+  test('autonomous skill body converts ez: to gsd- (CONV-07)', () => {
     // Use convertClaudeToCopilotContent directly on the command body content
     const srcContent = fs.readFileSync(path.join(srcDir, 'autonomous.md'), 'utf8');
     const result = convertClaudeToCopilotContent(srcContent);
 
-    // gsd:autonomous references should be converted to gsd-autonomous
-    assert.ok(!result.match(/gsd:[a-z]/), 'no gsd: command references remain after conversion');
-    // Specific: gsd:discuss-phase, gsd:plan-phase, gsd:execute-phase mentioned in body
-    // The body references gsd-tools.cjs (not a gsd: command) — those should be unaffected
-    // But /gsd:autonomous → /gsd-autonomous, gsd:discuss-phase → gsd-discuss-phase etc.
-    if (srcContent.includes('gsd:autonomous')) {
-      assert.ok(result.includes('gsd-autonomous'), 'gsd:autonomous converted to gsd-autonomous');
+    // ez:autonomous references should be converted to gsd-autonomous
+    assert.ok(!result.match(/ez:[a-z]/), 'no ez: command references remain after conversion');
+    // Specific: ez:discuss-phase, ez:plan-phase, ez:execute-phase mentioned in body
+    // The body references gsd-tools.cjs (not a ez: command) — those should be unaffected
+    // But /ez:autonomous → /gsd-autonomous, ez:discuss-phase → gsd-discuss-phase etc.
+    if (srcContent.includes('ez:autonomous')) {
+      assert.ok(result.includes('gsd-autonomous'), 'ez:autonomous converted to gsd-autonomous');
     }
     // Path conversion: ~/.claude/ → .github/
     assert.ok(!result.includes('~/.claude/'), 'no ~/.claude/ paths remain');
@@ -709,7 +709,7 @@ describe('copyCommandsAsCopilotSkills', () => {
       assert.ok(fs.existsSync(path.join(tempDir, 'gsd-fake-old')), 'fake old dir exists before');
 
       // Run copy — should clean up old dirs
-      copyCommandsAsCopilotSkills(srcDir, tempDir, 'gsd');
+      copyCommandsAsCopilotSkills(srcDir, tempDir, 'ez');
 
       assert.ok(!fs.existsSync(path.join(tempDir, 'gsd-fake-old')), 'fake old dir removed');
       assert.ok(fs.existsSync(path.join(tempDir, 'gsd-health')), 'real dirs still exist');
@@ -725,7 +725,7 @@ describe('Copilot agent conversion - real files', () => {
   const agentsSrc = path.join(__dirname, '..', 'agents');
 
   test('converts gsd-executor agent correctly', () => {
-    const content = fs.readFileSync(path.join(agentsSrc, 'gsd-executor.md'), 'utf8');
+    const content = fs.readFileSync(path.join(agentsSrc, 'ez-executor.md'), 'utf8');
     const result = convertClaudeAgentToCopilotAgent(content);
 
     assert.ok(result.startsWith('---\nname: gsd-executor\n'), 'starts with correct name');
@@ -737,7 +737,7 @@ describe('Copilot agent conversion - real files', () => {
   });
 
   test('converts agent with mcp wildcard tools correctly', () => {
-    const content = fs.readFileSync(path.join(agentsSrc, 'gsd-phase-researcher.md'), 'utf8');
+    const content = fs.readFileSync(path.join(agentsSrc, 'ez-phase-researcher.md'), 'utf8');
     const result = convertClaudeAgentToCopilotAgent(content);
 
     const toolsLine = result.split('\n').find(l => l.startsWith('tools:'));
@@ -773,8 +773,8 @@ describe('Copilot content conversion - engine files', () => {
 
     assert.ok(!result.includes('~/.claude/'), 'no ~/.claude/ references remain');
     assert.ok(!result.includes('$HOME/.claude/'), 'no $HOME/.claude/ references remain');
-    assert.ok(!result.match(/\/gsd:[a-z]/), 'no /gsd: command references remain');
-    assert.ok(!result.match(/(?<!\/)gsd:[a-z]/), 'no bare gsd: command references remain');
+    assert.ok(!result.match(/\/ez:[a-z]/), 'no /ez: command references remain');
+    assert.ok(!result.match(/(?<!\/)ez:[a-z]/), 'no bare ez: command references remain');
     // Local mode: ~ and $HOME resolve to .github (repo-relative, no ./ prefix)
     assert.ok(result.includes('.github/'), 'paths converted to .github for local');
     assert.ok(result.includes('gsd-health'), 'command name converted');
@@ -801,9 +801,9 @@ describe('Copilot content conversion - engine files', () => {
     );
     const result = convertClaudeToCopilotContent(verifyCjs);
 
-    assert.ok(!result.match(/gsd:[a-z]/), 'no gsd: references remain');
-    assert.ok(result.includes('gsd-new-project'), 'gsd:new-project converted');
-    assert.ok(result.includes('gsd-health'), 'gsd:health converted');
+    assert.ok(!result.match(/ez:[a-z]/), 'no ez: references remain');
+    assert.ok(result.includes('gsd-new-project'), 'ez:new-project converted');
+    assert.ok(result.includes('gsd-health'), 'ez:health converted');
   });
 });
 
@@ -1080,13 +1080,13 @@ describe('Copilot manifest and patches fixes', () => {
       assert.ok(result.length > 0, 'returns patched files list');
       const output = logs.join('\n');
       assert.ok(output.includes('/gsd-reapply-patches'), 'uses dash format for Copilot');
-      assert.ok(!output.includes('/gsd:reapply-patches'), 'does not use colon format');
+      assert.ok(!output.includes('/ez:reapply-patches'), 'does not use colon format');
     } finally {
       console.log = originalLog;
     }
   });
 
-  test('reportLocalPatches shows /gsd:reapply-patches for Claude (unchanged)', () => {
+  test('reportLocalPatches shows /ez:reapply-patches for Claude (unchanged)', () => {
     // Create patches directory with metadata
     const patchesDir = path.join(tmpDir, 'gsd-local-patches');
     fs.mkdirSync(patchesDir, { recursive: true });
@@ -1105,7 +1105,7 @@ describe('Copilot manifest and patches fixes', () => {
 
       assert.ok(result.length > 0, 'returns patched files list');
       const output = logs.join('\n');
-      assert.ok(output.includes('/gsd:reapply-patches'), 'uses colon format for Claude');
+      assert.ok(output.includes('/ez:reapply-patches'), 'uses colon format for Claude');
     } finally {
       console.log = originalLog;
     }

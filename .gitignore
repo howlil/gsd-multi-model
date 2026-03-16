@@ -29,8 +29,11 @@ docs/GSD-SYSTEM-SPECIFICATION.md
 gaps.md
 improve.md
 philosophy.md
+.tests/
 
 # Installed skills
+.github/agents/ez-*
+.github/skills/ez-*
 .github/agents/gsd-*
 .github/skills/gsd-*
 .github/get-shit-done/*

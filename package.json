@@ -44,6 +44,8 @@
   "devDependencies": {
     "c8": "^11.0.0",
     "esbuild": "^0.24.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.2",
     "proper-lockfile": "^4.1.2"
   },
   "scripts": {
@@ -51,5 +53,13 @@
     "prepublishOnly": "npm run build:hooks",
     "test": "node scripts/run-tests.cjs",
     "test:coverage": "c8 --check-coverage --lines 70 --reporter text --include 'get-shit-done/bin/lib/*.cjs' --exclude 'tests/**' --all node scripts/run-tests.cjs"
+  },
+  "lint-staged": {
+    "*.cjs": [
+      "node --test"
+    ],
+    "*.md": [
+      "node scripts/run-tests.cjs"
+    ]
   }
 }

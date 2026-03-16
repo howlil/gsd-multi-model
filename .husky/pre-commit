@@ -1,0 +1,13 @@
+#!/usr/bin/env sh
+
+# Run tests before commit
+echo "Running pre-commit tests..."
+
+# Build hooks first
+npm run build:hooks || { echo "Build failed. Commit aborted."; exit 1; }
+
+# Run tests
+npm test || { echo "Tests failed. Commit aborted."; exit 1; }
+
+echo "Pre-commit checks passed!"
+exit 0
