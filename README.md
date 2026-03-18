@@ -4,12 +4,12 @@
 
 **Turn AI coding assistants into reliable development teammates.**
 
-[![npm](https://img.shields.io/npm/v/ez-agents?style=for-the-badge&logo=npm)](https://www.npmjs.com/package/ez-agents)
+[![npm](https://img.shields.io/npm/v/@howlil/ez-agents?style=for-the-badge&logo=npm)](https://www.npmjs.com/package/@howlil/ez-agents)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/howlil/ez-agents?style=for-the-badge&logo=github)](https://github.com/howlil/ez-agents/stargazers)
 
 ```bash
-npm i -g ez-agents@latest
+npm i -g @howlil/ez-agents@latest
 ```
 
 **Works with:** Claude Code · OpenCode · Gemini CLI · Codex · Copilot · Qwen · Kimi
@@ -42,7 +42,7 @@ EZ Agents fixes this by adding a lightweight orchestration layer. Think of it as
 ### 1. Install
 
 ```bash
-npm i -g ez-agents@latest
+npm i -g @howlil/ez-agents@latest
 ```
 
 ### 2. Setup for Your AI Tool
@@ -252,7 +252,7 @@ ez-agents --claude --global
 ### Updating
 
 ```bash
-npm update -g ez-agents
+npm update -g @howlil/ez-agents
 ```
 
 **Development Install** (for contributing)

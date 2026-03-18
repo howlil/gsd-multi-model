@@ -1,5 +1,5 @@
 {
-  "name": "ez-agents",
+  "name": "@howlil/ez-agents",
   "version": "3.4.2",
   "description": "EZ Agents — Meta-prompting with multi-model support (Qwen, Kimi, OpenAI)",
   "bin": {
