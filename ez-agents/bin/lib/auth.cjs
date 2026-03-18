@@ -25,6 +25,7 @@ const PROVIDERS = {
   ANTHROPIC: 'anthropic',
   MOONSHOT: 'moonshot',
   ALIBABA: 'alibaba',
+  QWEN: 'qwen',
   OPENAI: 'openai'
 };
 
