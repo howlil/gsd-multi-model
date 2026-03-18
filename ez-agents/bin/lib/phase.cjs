@@ -7,6 +7,8 @@ const path = require('path');
 const { escapeRegex, normalizePhaseName, comparePhaseNum, findPhaseInternal, getArchivedPhaseDirs, generateSlugInternal, getMilestonePhaseFilter, toPosixPath, output, error } = require('./core.cjs');
 const { extractFrontmatter } = require('./frontmatter.cjs');
 const { writeStateMd } = require('./state.cjs');
+const { safePlanningWriteSync } = require('./planning-write.cjs');
+const { defaultLogger: logger } = require('./logger.cjs');
 
 function cmdPhasesList(cwd, options, raw) {
   const phasesDir = path.join(cwd, '.planning', 'phases');
@@ -79,8 +81,9 @@ function cmdPhasesList(cwd, options, raw) {
 
     // Default: list directories
     output({ directories: dirs, count: dirs.length }, raw, dirs.join('\n'));
-  } catch (e) {
-    error('Failed to list phases: ' + e.message);
+  } catch (err) {
+    logger.error('Failed to list phases in cmdPhasesList', { error: err.message });
+    error('Failed to list phases: ' + err.message);
   }
 }
 
@@ -144,8 +147,9 @@ function cmdPhaseNextDecimal(cwd, basePhase, raw) {
       raw,
       nextDecimal
     );
-  } catch (e) {
-    error('Failed to calculate next decimal phase: ' + e.message);
+  } catch (err) {
+    logger.error('Failed to calculate next decimal phase in cmdPhaseNextDecimal', { basePhase, error: err.message });
+    error('Failed to calculate next decimal phase: ' + err.message);
   }
 }
 
@@ -188,7 +192,8 @@ function cmdFindPhase(cwd, phase, raw) {
     };
 
     output(result, raw, result.directory);
-  } catch {
+  } catch (err) {
+    logger.warn('Failed to read phases directory in cmdFindPhase', { phasesDir, error: err.message });
     output(notFound, raw, '');
   }
 }
@@ -217,8 +222,8 @@ function cmdPhasePlanIndex(cwd, phase, raw) {
       phaseDir = path.join(phasesDir, match);
       phaseDirName = match;
     }
-  } catch {
-    // phases dir doesn't exist
+  } catch (err) {
+    logger.warn('Failed to enumerate phase directories in cmdPhasePlanIndex', { phasesDir, error: err.message });
   }
 
   if (!phaseDir) {
@@ -337,10 +342,10 @@ function cmdPhaseAdd(cwd, description, raw) {
 
   // Create directory with .gitkeep so git tracks empty folders
   fs.mkdirSync(dirPath, { recursive: true });
-  fs.writeFileSync(path.join(dirPath, '.gitkeep'), '');
+  safePlanningWriteSync(path.join(dirPath, '.gitkeep'), '');
 
   // Build phase entry
-  const phaseEntry = `\n### Phase ${newPhaseNum}: ${description}\n\n**Goal:** [To be planned]\n**Requirements**: TBD\n**Depends on:** Phase ${maxPhase}\n**Plans:** 0 plans\n\nPlans:\n- [ ] TBD (run /gsd:plan-phase ${newPhaseNum} to break down)\n`;
+  const phaseEntry = `\n### Phase ${newPhaseNum}: ${description}\n\n**Goal:** [To be planned]\n**Requirements**: TBD\n**Depends on:** Phase ${maxPhase}\n**Plans:** 0 plans\n\nPlans:\n- [ ] TBD (run /ez-plan-phase ${newPhaseNum} to break down)\n`;
 
   // Find insertion point: before last "---" or at end
   let updatedContent;
@@ -351,7 +356,7 @@ function cmdPhaseAdd(cwd, description, raw) {
     updatedContent = content + phaseEntry;
   }
 
-  fs.writeFileSync(roadmapPath, updatedContent, 'utf-8');
+  safePlanningWriteSync(roadmapPath, updatedContent);
 
   const result = {
     phase_number: newPhaseNum,
@@ -399,7 +404,9 @@ function cmdPhaseInsert(cwd, afterPhase, description, raw) {
       const dm = dir.match(decimalPattern);
       if (dm) existingDecimals.push(parseInt(dm[1], 10));
     }
-  } catch {}
+  } catch (err) {
+    logger.warn('Failed to enumerate decimal siblings in cmdPhaseInsert', { phasesDir, normalizedBase, error: err.message });
+  }
 
   const nextDecimal = existingDecimals.length === 0 ? 1 : Math.max(...existingDecimals) + 1;
   const decimalPhase = `${normalizedBase}.${nextDecimal}`;
@@ -408,10 +415,10 @@ function cmdPhaseInsert(cwd, afterPhase, description, raw) {
 
   // Create directory with .gitkeep so git tracks empty folders
   fs.mkdirSync(dirPath, { recursive: true });
-  fs.writeFileSync(path.join(dirPath, '.gitkeep'), '');
+  safePlanningWriteSync(path.join(dirPath, '.gitkeep'), '');
 
   // Build phase entry
-  const phaseEntry = `\n### Phase ${decimalPhase}: ${description} (INSERTED)\n\n**Goal:** [Urgent work - to be planned]\n**Requirements**: TBD\n**Depends on:** Phase ${afterPhase}\n**Plans:** 0 plans\n\nPlans:\n- [ ] TBD (run /gsd:plan-phase ${decimalPhase} to break down)\n`;
+  const phaseEntry = `\n### Phase ${decimalPhase}: ${description} (INSERTED)\n\n**Goal:** [Urgent work - to be planned]\n**Requirements**: TBD\n**Depends on:** Phase ${afterPhase}\n**Plans:** 0 plans\n\nPlans:\n- [ ] TBD (run /ez-plan-phase ${decimalPhase} to break down)\n`;
 
   // Insert after the target phase section
   const headerPattern = new RegExp(`(#{2,4}\\s*Phase\\s+0*${afterPhaseEscaped}:[^\\n]*\\n)`, 'i');
@@ -432,7 +439,7 @@ function cmdPhaseInsert(cwd, afterPhase, description, raw) {
   }
 
   const updatedContent = content.slice(0, insertIdx) + phaseEntry + content.slice(insertIdx);
-  fs.writeFileSync(roadmapPath, updatedContent, 'utf-8');
+  safePlanningWriteSync(roadmapPath, updatedContent);
 
   const result = {
     phase_number: decimalPhase,
@@ -468,7 +475,9 @@ function cmdPhaseRemove(cwd, targetPhase, options, raw) {
     const entries = fs.readdirSync(phasesDir, { withFileTypes: true });
     const dirs = entries.filter(e => e.isDirectory()).map(e => e.name).sort((a, b) => comparePhaseNum(a, b));
     targetDir = dirs.find(d => d.startsWith(normalized + '-') || d === normalized);
-  } catch {}
+  } catch (err) {
+    logger.warn('Failed to locate target phase directory in cmdPhaseRemove', { phasesDir, normalized, error: err.message });
+  }
 
   // Check for executed work (SUMMARY.md files)
   if (targetDir && !force) {
@@ -536,7 +545,9 @@ function cmdPhaseRemove(cwd, targetPhase, options, raw) {
           }
         }
       }
-    } catch {}
+    } catch (err) {
+      logger.warn('Failed to renumber decimal phase directories in cmdPhaseRemove', { normalized, error: err.message });
+    }
 
   } else {
     // Integer removal: renumber all subsequent integer phases
@@ -596,7 +607,9 @@ function cmdPhaseRemove(cwd, targetPhase, options, raw) {
           }
         }
       }
-    } catch {}
+    } catch (err) {
+      logger.warn('Failed to renumber integer phase directories in cmdPhaseRemove', { normalized, error: err.message });
+    }
   }
 
   // Update ROADMAP.md
@@ -663,7 +676,7 @@ function cmdPhaseRemove(cwd, targetPhase, options, raw) {
     }
   }
 
-  fs.writeFileSync(roadmapPath, roadmapContent, 'utf-8');
+  safePlanningWriteSync(roadmapPath, roadmapContent);
 
   // Update STATE.md phase count
   const statePath = path.join(cwd, '.planning', 'STATE.md');
@@ -751,7 +764,7 @@ function cmdPhaseComplete(cwd, phaseNum, raw) {
       `$1${summaryCount}/${planCount} plans complete`
     );
 
-    fs.writeFileSync(roadmapPath, roadmapContent, 'utf-8');
+    safePlanningWriteSync(roadmapPath, roadmapContent);
 
     // Update REQUIREMENTS.md traceability for this phase's requirements
     const reqPath = path.join(cwd, '.planning', 'REQUIREMENTS.md');
@@ -783,7 +796,7 @@ function cmdPhaseComplete(cwd, phaseNum, raw) {
           );
         }
 
-        fs.writeFileSync(reqPath, reqContent, 'utf-8');
+        safePlanningWriteSync(reqPath, reqContent);
         requirementsUpdated = true;
       }
     }
@@ -815,7 +828,9 @@ function cmdPhaseComplete(cwd, phaseNum, raw) {
         }
       }
     }
-  } catch {}
+  } catch (err) {
+    logger.warn('Failed to locate next phase from disk in cmdPhaseComplete', { phasesDir, phaseNum, error: err.message });
+  }
 
   // Fallback: if filesystem found no next phase, check ROADMAP.md
   // for phases that are defined but not yet planned (no directory on disk)
@@ -832,7 +847,9 @@ function cmdPhaseComplete(cwd, phaseNum, raw) {
           break;
         }
       }
-    } catch {}
+    } catch (err) {
+      logger.warn('Failed to locate next phase from ROADMAP fallback in cmdPhaseComplete', { roadmapPath, phaseNum, error: err.message });
+    }
   }
 
   // Update STATE.md

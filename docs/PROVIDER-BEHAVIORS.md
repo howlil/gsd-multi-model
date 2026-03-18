@@ -11,6 +11,8 @@ This document describes the behavioral differences between AI CLI providers that
 | Gemini CLI | `~/.gemini/` | `/ez-` | `/ez-command-name` |
 | Codex | `~/.codex/` | `$ez-` | `$ez-command-name` |
 | Copilot | `~/.copilot/` | `/ez-` | `/ez-command-name` |
+| Qwen Code | `~/.qwen/` | `/ez-` | `/ez-command-name` |
+| Kimi Code | `~/.kimi/` | `/ez-` | `/ez-command-name` |
 
 ## Command Structure Differences
 
@@ -64,24 +66,47 @@ This document describes the behavioral differences between AI CLI providers that
   - Path conversion: `~/.claude/` → `~/.copilot/`
   - Command name conversion: `ez:` → `ez-` in all references
 
+### Qwen Code
+- **Format**: Slash commands with hyphen separator
+- **Example**: `/ez-new-project`, `/ez-plan-phase`
+- **Location**: `~/.qwen/skills/ez-*/SKILL.md`
+- **Frontmatter**: Simple Markdown, no complex frontmatter required
+- **Tool Names**: lowercase
+- **Special Handling**:
+  - Skill architecture uses `skills/` directory structure with `SKILL.md` files
+  - Path conversion: `~/.claude/` → `~/.qwen/`
+  - Uses Alibaba DashScope SDK for model interactions
+
+### Kimi Code
+- **Format**: Slash commands with hyphen separator
+- **Example**: `/ez-new-project`, `/ez-plan-phase`
+- **Location**: `~/.kimi/skills/ez-*/SKILL.md`
+- **Frontmatter**: Simple Markdown, no complex frontmatter required
+- **Tool Names**: lowercase
+- **Special Handling**:
+  - Skill architecture uses `skills/` directory structure with `SKILL.md` files
+  - Path conversion: `~/.claude/` → `~/.kimi/`
+  - Uses Moonshot AI API for model interactions
+
 ## Tool Name Mappings
 
 EZ Agents automatically transforms tool names during installation to match each provider's conventions:
 
-| Claude Code | OpenCode | Gemini CLI | Codex | Copilot |
-|-------------|----------|------------|-------|---------|
-| `Read` | `read` | `read_file` | `read` | `read` |
-| `Write` | `write` | `write_file` | `write` | `edit` |
-| `Edit` | `edit` | `replace` | `edit` | `edit` |
-| `Bash` | `bash` | `run_shell_command` | `bash` | `execute` |
-| `Grep` | `grep` | `search_file_content` | `grep` | `search` |
-| `Glob` | `glob` | `glob` | `glob` | `search` |
-| `TodoWrite` | `todowrite` | `write_todos` | `todowrite` | `todo` |
-| `AskUserQuestion` | `question` | `ask_user` | `question` | `ask_user` |
-| `SlashCommand` | `skill` | N/A | `skill` | `skill` |
-| `WebSearch` | `websearch` | `google_web_search` | `websearch` | `web` |
-| `WebFetch` | `webfetch` | `web_fetch` | `webfetch` | `web` |
-| `Task` | `task` | (auto) | (auto) | `agent` |
+| Claude Code | OpenCode | Gemini CLI | Codex | Copilot | Qwen Code | Kimi Code |
+|-------------|----------|------------|-------|---------|-----------|-----------|
+| `Read` | `read` | `read_file` | `read` | `read` | `read` | `read` |
+| `Write` | `write` | `write_file` | `write` | `edit` | `write` | `write` |
+| `Edit` | `edit` | `replace` | `edit` | `edit` | `edit` | `edit` |
+| `Bash` | `bash` | `run_shell_command` | `bash` | `execute` | `bash` | `bash` |
+| `Grep` | `grep` | `search_file_content` | `grep` | `search` | `grep` | `grep` |
+| `Glob` | `glob` | `glob` | `glob` | `search` | `glob` | `glob` |
+| `TodoWrite` | `todowrite` | `write_todos` | `todowrite` | `todo` | `todowrite` | `todowrite` |
+| `AskUserQuestion` | `question` | `ask_user` | `question` | `ask_user` | `question` | `question` |
+| `SlashCommand` | `skill` | N/A | `skill` | `skill` | `skill` | `skill` |
+| `WebSearch` | `websearch` | `google_web_search` | `websearch` | `web` | `websearch` | `websearch` |
+| `WebFetch` | `webfetch` | `web_fetch` | `webfetch` | `web` | `webfetch` | `webfetch` |
+| `Task` | `task` | (auto) | (auto) | `agent` | `task` | `task` |
+
 
 ### MCP Tool Handling
 
@@ -112,6 +137,8 @@ All source files use Claude Code paths as the canonical format:
 | Gemini CLI | `~/.gemini/` | `./.gemini/` |
 | Codex | `~/.codex/` | `./.codex/` |
 | Copilot | `~/.copilot/` | `./.github/` |
+| Qwen Code | `~/.qwen/` | `./.qwen/` |
+| Kimi Code | `~/.kimi/` | `./.kimi/` |
 
 ### Special Cases
 
@@ -195,6 +222,8 @@ Each provider supports different environment variables for custom config paths:
 | Gemini CLI | `GEMINI_CONFIG_DIR` | `~/.gemini/` |
 | Codex | `CODEX_HOME` | `~/.codex/` |
 | Copilot | `COPILOT_CONFIG_DIR` | `~/.copilot/` |
+| Qwen Code | `QWEN_CONFIG_DIR` | `~/.qwen/` |
+| Kimi Code | `KIMI_CONFIG_DIR` | `~/.kimi/` |
 
 The EZ Agents installer respects these environment variables and the `--config-dir` flag for custom installations.
 
@@ -243,11 +272,11 @@ When `attribution.commit` is set to empty string (`""`), EZ Agents removes `Co-A
 
 ## Migration Notes
 
-### From GSD (Get Shit Done)
-- Command prefix changed from `/gsd:` to `/ez:`
+### From Legacy Command Format
+- Command prefix standardized to `/ez:`
 - NPM package changed from `ez-agents-cc` to `@howlil/ez-agents`
 - Folder structure remains compatible (`ez-agents/` internal folder preserved)
-- Update command: `/ez:update` (was `/gsd:update`)
+- Update command: `/ez:update`
 
 ### From Other Forks
 - Check tool name mappings — some forks use non-standard tool names

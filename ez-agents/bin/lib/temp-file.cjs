@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * GSD Temp File — Secure temporary file handler
+ * EZ Temp File — Secure temporary file handler
  * 
  * Creates secure temp files with fs.mkdtemp(), automatic cleanup on exit,
  * and path validation to prevent traversal attacks.

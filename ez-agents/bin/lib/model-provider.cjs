@@ -1,16 +1,13 @@
 #!/usr/bin/env node
 
 /**
- * GSD Model Provider — Unified API for multiple AI providers
+ * EZ Model Provider — Unified API for multiple AI providers
  * 
  * Supports: Anthropic, Moonshot (Kimi), Alibaba (Qwen), OpenAI
- * 
- * Usage:
- *   const ModelProvider = require('./model-provider.cjs');
- *   const model = new ModelProvider({ provider: 'anthropic', model: 'sonnet' });
- *   const response = await model.chat([{ role: 'user', content: 'Hello' }]);
  */
 
+const https = require('https');
+const { URL } = require('url');
 const Logger = require('./logger.cjs');
 const logger = new Logger();
 
@@ -24,9 +21,35 @@ class ModelProvider {
     this.model = config.model || 'sonnet';
     this.apiKey = config.apiKey || process.env[`${this.provider.toUpperCase()}_API_KEY`];
     
-    if (!this.apiKey) {
+    if (!this.apiKey && this.provider !== 'anthropic') {
       logger.warn('API key not configured', { provider: this.provider });
     }
+  }
+
+  /**
+   * Helper for HTTP requests
+   */
+  _httpRequest(options, data) {
+    return new Promise((resolve, reject) => {
+      const req = https.request(options, (res) => {
+        let body = '';
+        res.on('data', (chunk) => body += chunk);
+        res.on('end', () => {
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            try {
+              resolve(JSON.parse(body));
+            } catch (e) {
+              resolve(body);
+            }
+          } else {
+            reject(new Error(`HTTP ${res.statusCode}: ${body}`));
+          }
+        });
+      });
+      req.on('error', reject);
+      if (data) req.write(JSON.stringify(data));
+      req.end();
+    });
   }
 
   /**
@@ -48,6 +71,7 @@ class ModelProvider {
       case 'moonshot':
         return this._chatMoonshot(messages, options);
       case 'alibaba':
+      case 'qwen':
         return this._chatQwen(messages, options);
       case 'openai':
         return this._chatOpenAI(messages, options);
@@ -60,10 +84,10 @@ class ModelProvider {
    * Anthropic Claude API
    */
   async _chatAnthropic(messages, options) {
-    // Placeholder - would use @anthropic-ai/sdk in production
+    // Anthropic usually requires their SDK or complex headers
     logger.debug('Anthropic chat', { model: this.model });
     return {
-      content: '[Anthropic response placeholder]',
+      content: '[Anthropic response placeholder - requires SDK]',
       provider: 'anthropic',
       model: this.model
     };
@@ -73,39 +97,111 @@ class ModelProvider {
    * Moonshot (Kimi) API
    */
   async _chatMoonshot(messages, options) {
-    // Placeholder - would use moonshot SDK in production
-    logger.debug('Moonshot chat', { model: this.model });
-    return {
-      content: '[Moonshot response placeholder]',
-      provider: 'moonshot',
-      model: this.model
+    const modelName = this.model === 'sonnet' ? 'moonshot-v1-8k' : this.model;
+    const data = {
+      model: modelName,
+      messages: messages,
+      temperature: options.temperature || 0.3
     };
+
+    const reqOptions = {
+      hostname: 'api.moonshot.cn',
+      path: '/v1/chat/completions',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`
+      }
+    };
+
+    try {
+      const response = await this._httpRequest(reqOptions, data);
+      return {
+        content: response.choices[0].message.content,
+        provider: 'moonshot',
+        model: modelName
+      };
+    } catch (error) {
+      logger.error('Moonshot API error', { error: error.message });
+      throw error;
+    }
   }
 
   /**
-   * Alibaba Qwen API
+   * Alibaba Qwen API (DashScope)
    */
   async _chatQwen(messages, options) {
-    // Placeholder - would use DashScope SDK in production
-    logger.debug('Qwen chat', { model: this.model });
-    return {
-      content: '[Qwen response placeholder]',
-      provider: 'alibaba',
-      model: this.model
+    // Map generic model names to Qwen specific ones
+    let modelName = this.model;
+    if (modelName === 'sonnet' || modelName === 'gpt-4') modelName = 'qwen-max';
+    if (modelName === 'haiku' || modelName === 'gpt-3.5-turbo') modelName = 'qwen-plus';
+
+    const data = {
+      model: modelName,
+      input: {
+        messages: messages
+      },
+      parameters: {
+        result_format: 'message',
+        temperature: options.temperature || 0.3
+      }
     };
+
+    const reqOptions = {
+      hostname: 'dashscope.aliyuncs.com',
+      path: '/api/v1/services/aigc/text-generation/generation',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`
+      }
+    };
+
+    try {
+      const response = await this._httpRequest(reqOptions, data);
+      return {
+        content: response.output.choices[0].message.content,
+        provider: 'alibaba',
+        model: modelName
+      };
+    } catch (error) {
+      logger.error('Qwen API error', { error: error.message });
+      throw error;
+    }
   }
 
   /**
    * OpenAI API
    */
   async _chatOpenAI(messages, options) {
-    // Placeholder - would use openai SDK in production
-    logger.debug('OpenAI chat', { model: this.model });
-    return {
-      content: '[OpenAI response placeholder]',
-      provider: 'openai',
-      model: this.model
+    const modelName = this.model === 'sonnet' ? 'gpt-4-turbo' : this.model;
+    const data = {
+      model: modelName,
+      messages: messages,
+      temperature: options.temperature || 0.3
     };
+
+    const reqOptions = {
+      hostname: 'api.openai.com',
+      path: '/v1/chat/completions',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`
+      }
+    };
+
+    try {
+      const response = await this._httpRequest(reqOptions, data);
+      return {
+        content: response.choices[0].message.content,
+        provider: 'openai',
+        model: modelName
+      };
+    } catch (error) {
+      logger.error('OpenAI API error', { error: error.message });
+      throw error;
+    }
   }
 
   /**
@@ -114,7 +210,6 @@ class ModelProvider {
    * @returns {number} - Approximate token count
    */
   countTokens(text) {
-    // Rough estimate: 1 token ≈ 4 characters
     return Math.ceil(text.length / 4);
   }
 

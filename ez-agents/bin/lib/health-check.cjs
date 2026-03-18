@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
 /**
- * GSD Health Check — Health monitoring for GSD workflow
+ * EZ Health Check — Health monitoring for EZ workflow
  * 
- * Validates GSD environment and configuration
+ * Validates EZ environment and configuration
  * Used by workflows to detect failures and use fallback functions
  * 
  * Usage:

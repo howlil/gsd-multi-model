@@ -5,6 +5,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
+const { defaultLogger: logger } = require('./logger.cjs');
 
 // ─── Path helpers ────────────────────────────────────────────────────────────
 
@@ -63,7 +64,8 @@ function error(message) {
 function safeReadFile(filePath) {
   try {
     return fs.readFileSync(filePath, 'utf-8');
-  } catch {
+  } catch (err) {
+    logger.warn('safeReadFile failed', { filePath, error: err.message });
     return null;
   }
 }
@@ -75,8 +77,8 @@ function loadConfig(cwd) {
     commit_docs: true,
     search_gitignored: false,
     branching_strategy: 'none',
-    phase_branch_template: 'gsd/phase-{phase}-{slug}',
-    milestone_branch_template: 'gsd/{milestone}-{slug}',
+    phase_branch_template: 'ez/phase-{phase}-{slug}',
+    milestone_branch_template: 'ez/{milestone}-{slug}',
     research: true,
     plan_checker: true,
     verifier: true,
@@ -94,7 +96,11 @@ function loadConfig(cwd) {
       const depthToGranularity = { quick: 'coarse', standard: 'standard', comprehensive: 'fine' };
       parsed.granularity = depthToGranularity[parsed.depth] || parsed.depth;
       delete parsed.depth;
-      try { fs.writeFileSync(configPath, JSON.stringify(parsed, null, 2), 'utf-8'); } catch {}
+      try {
+        fs.writeFileSync(configPath, JSON.stringify(parsed, null, 2), 'utf-8');
+      } catch (err) {
+        logger.warn('Failed to persist migrated config depth->granularity', { configPath, error: err.message });
+      }
     }
 
     const get = (key, nested) => {
@@ -127,7 +133,8 @@ function loadConfig(cwd) {
       brave_search: get('brave_search') ?? defaults.brave_search,
       model_overrides: parsed.model_overrides || null,
     };
-  } catch {
+  } catch (err) {
+    logger.warn('Failed to load config, using defaults', { configPath, error: err.message });
     return defaults;
   }
 }
@@ -145,7 +152,8 @@ function isGitIgnored(cwd, targetPath) {
       stdio: 'pipe',
     });
     return true;
-  } catch {
+  } catch (err) {
+    logger.warn('git check-ignore failed, assuming not ignored', { targetPath, error: err.message });
     return false;
   }
 }
@@ -163,6 +171,7 @@ function execGit(cwd, args) {
     });
     return { exitCode: 0, stdout: stdout.trim(), stderr: '' };
   } catch (err) {
+    logger.warn('execGit failed', { args, error: err.message });
     return {
       exitCode: err.status ?? 1,
       stdout: (err.stdout ?? '').toString().trim(),
@@ -254,7 +263,8 @@ function searchPhaseInDir(baseDir, relBase, normalized) {
       has_context: hasContext,
       has_verification: hasVerification,
     };
-  } catch {
+  } catch (err) {
+    logger.warn('Failed to search phase directory', { baseDir, normalized, error: err.message });
     return null;
   }
 }
@@ -291,7 +301,9 @@ function findPhaseInternal(cwd, phase) {
         return result;
       }
     }
-  } catch {}
+  } catch (err) {
+    logger.warn('Failed while searching archived milestone phases', { milestonesDir, error: err.message });
+  }
 
   return null;
 }
@@ -326,7 +338,9 @@ function getArchivedPhaseDirs(cwd) {
         });
       }
     }
-  } catch {}
+  } catch (err) {
+    logger.warn('Failed to enumerate archived phase directories', { milestonesDir, error: err.message });
+  }
 
   return results;
 }
@@ -362,7 +376,8 @@ function getRoadmapPhaseInternal(cwd, phaseNum) {
       goal,
       section,
     };
-  } catch {
+  } catch (err) {
+    logger.warn('Failed to read roadmap phase metadata', { roadmapPath, phaseNum, error: err.message });
     return null;
   }
 }
@@ -391,7 +406,8 @@ function pathExistsInternal(cwd, targetPath) {
   try {
     fs.statSync(fullPath);
     return true;
-  } catch {
+  } catch (err) {
+    logger.warn('Path existence check failed', { fullPath, error: err.message });
     return false;
   }
 }
@@ -431,7 +447,8 @@ function getMilestoneInfo(cwd) {
       version: versionMatch ? versionMatch[0] : 'v1.0',
       name: 'milestone',
     };
-  } catch {
+  } catch (err) {
+    logger.warn('Failed to load milestone info, using fallback', { error: err.message });
     return { version: 'v1.0', name: 'milestone' };
   }
 }
@@ -450,7 +467,9 @@ function getMilestonePhaseFilter(cwd) {
     while ((m = phasePattern.exec(roadmap)) !== null) {
       milestonePhaseNums.add(m[1]);
     }
-  } catch {}
+  } catch (err) {
+    logger.warn('Failed to parse milestone phases from roadmap', { error: err.message });
+  }
 
   if (milestonePhaseNums.size === 0) {
     const passAll = () => true;

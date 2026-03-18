@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * GSD Git Utils — Safe git operations with atomic commits
+ * EZ Git Utils — Safe git operations with atomic commits
  * 
  * Provides:
  * - Atomic commits with validation

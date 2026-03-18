@@ -127,7 +127,7 @@ If multiple runtime installs are detected and the invoking runtime cannot be det
 
 **If VERSION file missing:**
 ```
-## GSD Update
+## EZ Update
 
 **Installed version:** Unknown
 

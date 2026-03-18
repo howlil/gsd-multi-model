@@ -5,6 +5,7 @@
 const fs = require('fs');
 const path = require('path');
 const { escapeRegex, normalizePhaseName, output, error, findPhaseInternal } = require('./core.cjs');
+const { safePlanningWriteSync } = require('./planning-write.cjs');
 
 function cmdRoadmapGetPhase(cwd, phaseNum, raw) {
   const roadmapPath = path.join(cwd, '.planning', 'ROADMAP.md');
@@ -158,7 +159,7 @@ function cmdRoadmapAnalyze(cwd, raw) {
     const roadmapComplete = checkboxMatch ? checkboxMatch[1] === 'x' : false;
 
     // If roadmap marks phase complete, trust that over disk file structure.
-    // Phases completed before GSD tracking (or via external tools) may lack
+    // Phases completed before EZ tracking (or via external tools) may lack
     // the standard PLAN/SUMMARY pairs but are still done.
     if (roadmapComplete && diskStatus !== 'complete') {
       diskStatus = 'complete';
@@ -286,7 +287,7 @@ function cmdRoadmapUpdatePlanProgress(cwd, phaseNum, raw) {
     roadmapContent = roadmapContent.replace(checkboxPattern, `$1x$2 (completed ${today})`);
   }
 
-  fs.writeFileSync(roadmapPath, roadmapContent, 'utf-8');
+  safePlanningWriteSync(roadmapPath, roadmapContent);
 
   output({
     updated: true,

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * GSD Audit Exec — Command execution with full audit logging
+ * EZ Audit Exec — Command execution with full audit logging
  * 
  * Logs all command executions to audit file for security review:
  * - Timestamp, command, arguments, context
@@ -22,13 +22,25 @@ const logger = new Logger();
 
 const execFileAsync = promisify(execFile);
 
-// Audit log file path
-const AUDIT_DIR = join('.planning', 'logs');
-const AUDIT_FILE = join(AUDIT_DIR, `audit-${new Date().toISOString().split('T')[0]}.jsonl`);
+// Audit log file path - lazy init
+let _AUDIT_DIR;
+let _AUDIT_FILE;
 
-// Ensure audit directory exists
-if (!existsSync(AUDIT_DIR)) {
-  mkdirSync(AUDIT_DIR, { recursive: true });
+function getAuditDir() {
+  if (!_AUDIT_DIR) {
+    _AUDIT_DIR = join('.planning', 'logs');
+    if (!existsSync(_AUDIT_DIR)) {
+      mkdirSync(_AUDIT_DIR, { recursive: true });
+    }
+  }
+  return _AUDIT_DIR;
+}
+
+function getAuditFile() {
+  if (!_AUDIT_FILE) {
+    _AUDIT_FILE = join(getAuditDir(), `audit-${new Date().toISOString().split('T')[0]}.jsonl`);
+  }
+  return _AUDIT_FILE;
 }
 
 /**
@@ -37,7 +49,7 @@ if (!existsSync(AUDIT_DIR)) {
  */
 function writeAudit(entry) {
   const line = JSON.stringify(entry) + '\n';
-  appendFileSync(AUDIT_FILE, line, 'utf-8');
+  appendFileSync(getAuditFile(), line, 'utf-8');
 }
 
 /**

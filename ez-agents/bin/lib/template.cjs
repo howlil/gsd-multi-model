@@ -6,6 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const { normalizePhaseName, findPhaseInternal, generateSlugInternal, toPosixPath, output, error } = require('./core.cjs');
 const { reconstructFrontmatter } = require('./frontmatter.cjs');
+const { safePlanningWriteSync } = require('./planning-write.cjs');
 
 function cmdTemplateSelect(cwd, planPath, raw) {
   if (!planPath) {
@@ -214,7 +215,7 @@ function cmdTemplateFill(cwd, templateType, options, raw) {
     return;
   }
 
-  fs.writeFileSync(outPath, fullContent, 'utf-8');
+  safePlanningWriteSync(outPath, fullContent);
   const relPath = toPosixPath(path.relative(cwd, outPath));
   output({ created: true, path: relPath, template: templateType }, raw, relPath);
 }

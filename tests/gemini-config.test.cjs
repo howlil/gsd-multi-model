@@ -1,11 +1,11 @@
 /**
- * GSD Tools Tests - Gemini agent conversion
+ * EZ Tools Tests - Gemini agent conversion
  *
  * Verifies Gemini-specific agent frontmatter conversion removes
  * unsupported fields while preserving converted tools and body text.
  */
 
-process.env.EZ_TEST_MODE = '1';
+process.env.EZ_AGENTS_TEST_MODE = '1';
 
 const { test, describe } = require('node:test');
 const assert = require('node:assert');

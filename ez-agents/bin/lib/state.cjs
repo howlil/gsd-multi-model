@@ -6,6 +6,8 @@ const fs = require('fs');
 const path = require('path');
 const { escapeRegex, loadConfig, getMilestoneInfo, getMilestonePhaseFilter, output, error } = require('./core.cjs');
 const { extractFrontmatter, reconstructFrontmatter } = require('./frontmatter.cjs');
+const { safePlanningWriteSync } = require('./planning-write.cjs');
+const { defaultLogger: logger } = require('./logger.cjs');
 
 // Shared helper: extract a field value from STATE.md content.
 // Supports both **Field:** bold and plain Field: format.
@@ -26,7 +28,9 @@ function cmdStateLoad(cwd, raw) {
   let stateRaw = '';
   try {
     stateRaw = fs.readFileSync(path.join(planningDir, 'STATE.md'), 'utf-8');
-  } catch {}
+  } catch (err) {
+    logger.warn('Failed to read STATE.md in cmdStateLoad', { planningDir, error: err.message });
+  }
 
   const configExists = fs.existsSync(path.join(planningDir, 'config.json'));
   const roadmapExists = fs.existsSync(path.join(planningDir, 'ROADMAP.md'));
@@ -102,7 +106,8 @@ function cmdStateGet(cwd, section, raw) {
     }
 
     output({ error: `Section or field "${section}" not found` }, raw, '');
-  } catch {
+  } catch (err) {
+    logger.error('STATE.md not found in cmdStateGet', { statePath, error: err.message });
     error('STATE.md not found');
   }
 }
@@ -146,7 +151,8 @@ function cmdStatePatch(cwd, patches, raw) {
     }
 
     output(results, raw, results.updated.length > 0 ? 'true' : 'false');
-  } catch {
+  } catch (err) {
+    logger.error('Failed to patch STATE.md', { statePath, error: err.message });
     error('STATE.md not found');
   }
 }
@@ -174,7 +180,8 @@ function cmdStateUpdate(cwd, field, value) {
     } else {
       output({ updated: false, reason: `Field "${field}" not found in STATE.md` });
     }
-  } catch {
+  } catch (err) {
+    logger.error('Failed to update STATE.md', { statePath, field, error: err.message });
     output({ updated: false, reason: 'STATE.md not found' });
   }
 }
@@ -325,6 +332,7 @@ function cmdStateAddDecision(cwd, options, raw) {
     summaryText = readTextArgOrFile(cwd, summary, summary_file, 'summary');
     rationaleText = readTextArgOrFile(cwd, rationale || '', rationale_file, 'rationale');
   } catch (err) {
+    logger.error('Failed to read decision text', { error: err.message });
     output({ added: false, reason: err.message }, raw, 'false');
     return;
   }
@@ -360,6 +368,7 @@ function cmdStateAddBlocker(cwd, text, raw) {
   try {
     blockerText = readTextArgOrFile(cwd, blockerOptions.text, blockerOptions.text_file, 'blocker');
   } catch (err) {
+    logger.error('Failed to read blocker text', { error: err.message });
     output({ added: false, reason: err.message }, raw, 'false');
     return;
   }
@@ -574,7 +583,9 @@ function buildStateFrontmatter(bodyContent, cwd) {
       const info = getMilestoneInfo(cwd);
       milestone = info.version;
       milestoneName = info.name;
-    } catch {}
+    } catch (err) {
+      logger.warn('Failed to resolve milestone info while building state frontmatter', { error: err.message });
+    }
   }
 
   let totalPhases = totalPhasesRaw ? parseInt(totalPhasesRaw, 10) : null;
@@ -609,7 +620,9 @@ function buildStateFrontmatter(bodyContent, cwd) {
         totalPlans = diskTotalPlans;
         completedPlans = diskTotalSummaries;
       }
-    } catch {}
+    } catch (err) {
+      logger.warn('Failed to compute phase progress from disk while building state frontmatter', { error: err.message });
+    }
   }
 
   let progressPercent = null;
@@ -637,7 +650,9 @@ function buildStateFrontmatter(bodyContent, cwd) {
     normalizedStatus = 'executing';
   }
 
-  const fm = { gsd_state_version: '1.0' };
+  const fm = {
+    ez_state_version: '1.0',
+  };
 
   if (milestone) fm.milestone = milestone;
   if (milestoneName) fm.milestone_name = milestoneName;
@@ -676,9 +691,9 @@ function syncStateFrontmatter(content, cwd) {
  * Write STATE.md with synchronized YAML frontmatter.
  * All STATE.md writes should use this instead of raw writeFileSync.
  */
-function writeStateMd(statePath, content, cwd) {
+function writeStateMd(statePath, content, cwd, options = {}) {
   const synced = syncStateFrontmatter(content, cwd);
-  fs.writeFileSync(statePath, synced, 'utf-8');
+  safePlanningWriteSync(statePath, synced, options);
 }
 
 function cmdStateJson(cwd, raw) {

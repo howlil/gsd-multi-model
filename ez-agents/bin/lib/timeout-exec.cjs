@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * GSD Timeout Exec — Command execution with timeout and fallback
+ * EZ Timeout Exec — Command execution with timeout and fallback
  * 
  * Provides safe command execution with configurable timeout
  * Logs errors and supports fallback values
@@ -30,11 +30,12 @@ const DEFAULT_TIMEOUT = 5000; // 5 seconds
  */
 async function execWithTimeout(cmd, args, options = {}) {
   const { timeout = DEFAULT_TIMEOUT, fallback = null } = options;
+  const hasFallback = Object.prototype.hasOwnProperty.call(options, 'fallback');
   
   return new Promise(async (resolve, reject) => {
     const timeoutId = setTimeout(() => {
       logger.error(`Command timed out: ${cmd} ${args.join(' ')}`, { timeout });
-      if (fallback) {
+      if (hasFallback) {
         logger.info('Using fallback value', { fallback });
         resolve(fallback);
       } else {
@@ -49,7 +50,7 @@ async function execWithTimeout(cmd, args, options = {}) {
     } catch (err) {
       clearTimeout(timeoutId);
       logger.error(`Command failed: ${cmd}`, { error: err.message, args });
-      if (fallback) {
+      if (hasFallback) {
         logger.info('Using fallback value', { fallback });
         resolve(fallback);
       } else {

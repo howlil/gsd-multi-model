@@ -17,8 +17,11 @@ const reset = '\x1b[0m';
 const EZ_CODEX_MARKER = '# EZ_Agents Agent Configuration \u2014 managed by ez-agents installer';
 
 // Copilot instructions marker constants
-const EZ_COPILOT_INSTRUCTIONS_MARKER = '<!-- EZ_Agents Configuration \u2014 managed by ez-agents installer -->';
-const EZ_COPILOT_INSTRUCTIONS_CLOSE_MARKER = '<!-- /EZ_Agents Configuration -->';
+const EZ_COPILOT_INSTRUCTIONS_MARKER = '<!-- EZ_AGENTS Configuration \u2014 managed by ez-agents installer -->';
+const EZ_COPILOT_INSTRUCTIONS_CLOSE_MARKER = '<!-- /EZ_AGENTS Configuration -->';
+// Legacy markers kept for backward compatibility with older installs.
+const LEGACY_EZ_COPILOT_INSTRUCTIONS_MARKER = '<!-- EZ_Agents Configuration \u2014 managed by ez-agents installer -->';
+const LEGACY_EZ_COPILOT_INSTRUCTIONS_CLOSE_MARKER = '<!-- /EZ_Agents Configuration -->';
 
 const CODEX_AGENT_SANDBOX = {
   'ez-executor': 'workspace-write',
@@ -63,6 +66,8 @@ const hasClaude = args.includes('--claude');
 const hasGemini = args.includes('--gemini');
 const hasCodex = args.includes('--codex');
 const hasCopilot = args.includes('--copilot');
+const hasQwen = args.includes('--qwen');
+const hasKimi = args.includes('--kimi');
 const hasBoth = args.includes('--both'); // Legacy flag, keeps working
 const hasAll = args.includes('--all');
 const hasUninstall = args.includes('--uninstall') || args.includes('-u');
@@ -70,7 +75,7 @@ const hasUninstall = args.includes('--uninstall') || args.includes('-u');
 // Runtime selection - can be set by flags or interactive prompt
 let selectedRuntimes = [];
 if (hasAll) {
-  selectedRuntimes = ['claude', 'opencode', 'gemini', 'codex', 'copilot'];
+  selectedRuntimes = ['claude', 'opencode', 'gemini', 'codex', 'copilot', 'qwen', 'kimi'];
 } else if (hasBoth) {
   selectedRuntimes = ['claude', 'opencode'];
 } else {
@@ -79,6 +84,8 @@ if (hasAll) {
   if (hasGemini) selectedRuntimes.push('gemini');
   if (hasCodex) selectedRuntimes.push('codex');
   if (hasCopilot) selectedRuntimes.push('copilot');
+  if (hasQwen) selectedRuntimes.push('qwen');
+  if (hasKimi) selectedRuntimes.push('kimi');
 }
 
 // WSL + Windows Node.js detection
@@ -140,13 +147,15 @@ function getDirName(runtime) {
   if (runtime === 'opencode') return '.opencode';
   if (runtime === 'gemini') return '.gemini';
   if (runtime === 'codex') return '.codex';
+  if (runtime === 'qwen') return '.qwen';
+  if (runtime === 'kimi') return '.kimi';
   return '.claude';
 }
 
 /**
  * Get the config directory path relative to home directory for a runtime
  * Used for templating hooks that use path.join(homeDir, '<configDir>', ...)
- * @param {string} runtime - 'claude', 'opencode', 'gemini', 'codex', or 'copilot'
+ * @param {string} runtime - 'claude', 'opencode', 'gemini', 'codex', 'copilot', or 'qwen'
  * @param {boolean} isGlobal - Whether this is a global install
  */
 function getConfigDirFromHome(runtime, isGlobal) {
@@ -163,6 +172,8 @@ function getConfigDirFromHome(runtime, isGlobal) {
   }
   if (runtime === 'gemini') return "'.gemini'";
   if (runtime === 'codex') return "'.codex'";
+  if (runtime === 'qwen') return "'.qwen'";
+  if (runtime === 'kimi') return "'.kimi'";
   return "'.claude'";
 }
 
@@ -237,7 +248,29 @@ function getGlobalDir(runtime, explicitDir = null) {
     }
     return path.join(os.homedir(), '.copilot');
   }
-  
+
+  if (runtime === 'qwen') {
+    // Qwen Code: --config-dir > QWEN_CONFIG_DIR > ~/.qwen
+    if (explicitDir) {
+      return expandTilde(explicitDir);
+    }
+    if (process.env.QWEN_CONFIG_DIR) {
+      return expandTilde(process.env.QWEN_CONFIG_DIR);
+    }
+    return path.join(os.homedir(), '.qwen');
+  }
+
+  if (runtime === 'kimi') {
+    // Kimi Code: --config-dir > KIMI_CONFIG_DIR > ~/.kimi
+    if (explicitDir) {
+      return expandTilde(explicitDir);
+    }
+    if (process.env.KIMI_CONFIG_DIR) {
+      return expandTilde(process.env.KIMI_CONFIG_DIR);
+    }
+    return path.join(os.homedir(), '.kimi');
+  }
+
   // Claude Code: --config-dir > CLAUDE_CONFIG_DIR > ~/.claude
   if (explicitDir) {
     return expandTilde(explicitDir);
@@ -257,11 +290,12 @@ const banner = '\n' +
   '  ╚══════╝╚═╝ ╚═╝' + reset + '\n' +
   '\n' +
   '  EZ_Agents ' + dim + 'v' + pkg.version + reset + '\n' +
-  '  ' + dim + 'Multi-Model Edition' + reset + '\n' +
+  '  Multi-Model Edition' + reset + '\n' +
   '  A meta-prompting, context engineering and spec-driven\n' +
   '  development system for Claude Code, OpenCode, Gemini, Codex, Copilot,\n' +
-  '  with multi-model support (Qwen, Kimi, OpenAI, Anthropic).\n' +
+  '  Qwen Code, Kimi Code, with multi-model support.\n' +
   '  Original by TÂCHES | Multi-Model Fork by @howlil.\n';
+
 
 // Parse --config-dir argument
 function parseConfigDirArg() {
@@ -299,7 +333,7 @@ if (hasUninstall) {
 
 // Show help if requested
 if (hasHelp) {
-  console.log(`  ${yellow}Usage:${reset} npx ez-agents [options]\n\n  ${yellow}Options:${reset}\n    ${cyan}-g, --global${reset}              Install globally (to config directory)\n    ${cyan}-l, --local${reset}               Install locally (to current directory)\n    ${cyan}--claude${reset}                  Install for Claude Code only\n    ${cyan}--opencode${reset}                Install for OpenCode only\n    ${cyan}--gemini${reset}                  Install for Gemini only\n    ${cyan}--codex${reset}                   Install for Codex only\n    ${cyan}--copilot${reset}                 Install for Copilot only\n    ${cyan}--all${reset}                     Install for all runtimes\n    ${cyan}-u, --uninstall${reset}           Uninstall EZ_Agents (remove all EZ_Agents files)\n    ${cyan}-c, --config-dir <path>${reset}   Specify custom config directory\n    ${cyan}-h, --help${reset}                Show this help message\n    ${cyan}--force-statusline${reset}        Replace existing statusline config\n\n  ${yellow}Examples:${reset}\n    ${dim}# Interactive install (prompts for runtime and location)${reset}\n    npx ez-agents\n\n    ${dim}# Install for Claude Code globally${reset}\n    npx ez-agents --claude --global\n\n    ${dim}# Install for all runtimes globally${reset}\n    npx ez-agents --all --global\n\n    ${dim}# Uninstall EZ_Agents globally${reset}\n    npx ez-agents --all --global --uninstall\n\n  ${yellow}Notes:${reset}\n    The --config-dir option is useful when you have multiple configurations.\n    It takes priority over CLAUDE_CONFIG_DIR / GEMINI_CONFIG_DIR / CODEX_HOME / COPILOT_CONFIG_DIR environment variables.\n\n  ${yellow}Model Providers:${reset}\n    Qwen, Kimi, OpenAI, and Anthropic are model providers configured in settings.json,\n    not separate CLI runtimes. See README.md for model configuration.\n`);
+  console.log(`  ${yellow}Usage:${reset} npx ez-agents [options]\n\n  ${yellow}Options:${reset}\n    ${cyan}-g, --global${reset}              Install globally (to config directory)\n    ${cyan}-l, --local${reset}               Install locally (to current directory)\n    ${cyan}--claude${reset}                  Install for Claude Code only\n    ${cyan}--opencode${reset}                Install for OpenCode only\n    ${cyan}--gemini${reset}                  Install for Gemini only\n    ${cyan}--codex${reset}                   Install for Codex only\n    ${cyan}--copilot${reset}                 Install for Copilot only\\n    ${cyan}--qwen${reset}                    Install for Qwen Code only\\n    ${cyan}--kimi${reset}                    Install for Kimi Code only\\n    ${cyan}--all${reset}                     Install for all runtimes\\n    ${cyan}-u, --uninstall${reset}           Uninstall EZ_Agents (remove all EZ_Agents files)\\n    ${cyan}-c, --config-dir <path>${reset}   Specify custom config directory\\n    ${cyan}-h, --help${reset}                Show this help message\\n    ${cyan}--force-statusline${reset}        Replace existing statusline config\\n\\n  ${yellow}Examples:${reset}\\n    ${dim}# Interactive install (prompts for runtime and location)${reset}\\n    npx ez-agents\\n\\n    ${dim}# Install for Claude Code globally${reset}\\n    npx ez-agents --claude --global\\n\\n    ${dim}# Install for Qwen Code globally${reset}\\n    npx ez-agents --qwen --global\\n\\n    ${dim}# Install for Kimi Code globally${reset}\\n    npx ez-agents --kimi --global\\n\\n    ${dim}# Install for all runtimes globally${reset}\\n    npx ez-agents --all --global\\n\\n    ${dim}# Uninstall EZ_Agents globally${reset}\\n    npx ez-agents --all --global --uninstall\\n\\n  ${yellow}Notes:${reset}\\n    The --config-dir option is useful when you have multiple configurations.\\n    It takes priority over CLAUDE_CONFIG_DIR / GEMINI_CONFIG_DIR / CODEX_HOME / COPILOT_CONFIG_DIR / QWEN_CONFIG_DIR / KIMI_CONFIG_DIR environment variables.\\n\\n  ${yellow}Model Providers:${reset}\\n    OpenAI and Anthropic are model providers configured in settings.json,\\n    not separate CLI runtimes. See README.md for model configuration.\\n`);
   process.exit(0);
 }
 
@@ -717,6 +751,52 @@ function convertClaudeCommandToCodexSkill(content, skillName) {
   return `---\nname: ${yamlQuote(skillName)}\ndescription: ${yamlQuote(description)}\nmetadata:\n  short-description: ${yamlQuote(shortDescription)}\n---\n\n${adapter}\n\n${body.trimStart()}`;
 }
 
+function convertClaudeToQwenAgent(content) {
+  const { frontmatter, body } = extractFrontmatterAndBody(content);
+  if (!frontmatter) return content;
+
+  const name = extractFrontmatterField(frontmatter, 'name') || 'unknown';
+  const description = extractFrontmatterField(frontmatter, 'description') || '';
+
+  // Qwen Code uses simple markdown. We'll put name and description in the body.
+  return `# Agent: ${name}\n\n${description}\n\n${body.trimStart()}`;
+}
+
+function convertClaudeToKimiSkill(content, skillName) {
+  const { frontmatter, body } = extractFrontmatterAndBody(content);
+  if (!frontmatter) return content;
+
+  const description = extractFrontmatterField(frontmatter, 'description') || '';
+
+  // Reconstruct as simple Markdown
+  return `# Skill: ${skillName}\n\n${description}\n\n${body.trimStart()}`;
+}
+
+function convertClaudeToKimiAgent(content) {
+  const { frontmatter, body } = extractFrontmatterAndBody(content);
+  if (!frontmatter) return content;
+
+  const name = extractFrontmatterField(frontmatter, 'name') || 'unknown';
+  const description = extractFrontmatterField(frontmatter, 'description') || '';
+
+  // Kimi Code uses simple markdown
+  return `# Agent: ${name}\n\n${description}\n\n${body.trimStart()}`;
+}
+
+/**
+ * Convert a Claude command (.md) to a Qwen skill (SKILL.md).
+ * Strips frontmatter and formats as simple Markdown.
+ */
+function convertClaudeToQwenSkill(content, skillName) {
+  const { frontmatter, body } = extractFrontmatterAndBody(content);
+  if (!frontmatter) return content;
+
+  const description = extractFrontmatterField(frontmatter, 'description') || '';
+
+  // Reconstruct as simple Markdown
+  return `# Skill: ${skillName}\n\n${description}\n\n${body.trimStart()}`;
+}
+
 /**
  * Convert Claude Code agent markdown to Codex agent format.
  * Applies base markdown conversions, then adds a <codex_agent_role> header
@@ -860,6 +940,23 @@ function mergeCodexConfig(configPath, EZ_AgentsBlock) {
   fs.writeFileSync(configPath, content);
 }
 
+function findCopilotInstructionsMarkerPair(content) {
+  const markerPairs = [
+    [EZ_COPILOT_INSTRUCTIONS_MARKER, EZ_COPILOT_INSTRUCTIONS_CLOSE_MARKER],
+    [LEGACY_EZ_COPILOT_INSTRUCTIONS_MARKER, LEGACY_EZ_COPILOT_INSTRUCTIONS_CLOSE_MARKER],
+  ];
+
+  for (const [openMarker, closeMarker] of markerPairs) {
+    const openIndex = content.indexOf(openMarker);
+    const closeIndex = content.indexOf(closeMarker);
+    if (openIndex !== -1 && closeIndex !== -1 && closeIndex >= openIndex) {
+      return { openIndex, closeIndex, closeMarker };
+    }
+  }
+
+  return null;
+}
+
 /**
  * Merge EZ_Agents instructions into copilot-instructions.md.
  * Three cases: new file, existing with markers, existing without markers.
@@ -878,13 +975,12 @@ function mergeCopilotInstructions(filePath, EZ_AgentsContent) {
   }
 
   const existing = fs.readFileSync(filePath, 'utf8');
-  const openIndex = existing.indexOf(EZ_COPILOT_INSTRUCTIONS_MARKER);
-  const closeIndex = existing.indexOf(EZ_COPILOT_INSTRUCTIONS_CLOSE_MARKER);
+  const markerMatch = findCopilotInstructionsMarkerPair(existing);
 
   // Case 2: Has EZ_Agents markers — replace between markers
-  if (openIndex !== -1 && closeIndex !== -1) {
-    const before = existing.substring(0, openIndex).trimEnd();
-    const after = existing.substring(closeIndex + EZ_COPILOT_INSTRUCTIONS_CLOSE_MARKER.length).trimStart();
+  if (markerMatch) {
+    const before = existing.substring(0, markerMatch.openIndex).trimEnd();
+    const after = existing.substring(markerMatch.closeIndex + markerMatch.closeMarker.length).trimStart();
     let newContent = '';
     if (before) newContent += before + '\n\n';
     newContent += EZ_AgentsBlock;
@@ -906,12 +1002,11 @@ function mergeCopilotInstructions(filePath, EZ_AgentsContent) {
  * @returns {string|null} - Cleaned content or null if empty
  */
 function stripEzAgentsFromCopilotInstructions(content) {
-  const openIndex = content.indexOf(EZ_COPILOT_INSTRUCTIONS_MARKER);
-  const closeIndex = content.indexOf(EZ_COPILOT_INSTRUCTIONS_CLOSE_MARKER);
+  const markerMatch = findCopilotInstructionsMarkerPair(content);
 
-  if (openIndex !== -1 && closeIndex !== -1) {
-    const before = content.substring(0, openIndex).trimEnd();
-    const after = content.substring(closeIndex + EZ_COPILOT_INSTRUCTIONS_CLOSE_MARKER.length).trimStart();
+  if (markerMatch) {
+    const before = content.substring(0, markerMatch.openIndex).trimEnd();
+    const after = content.substring(markerMatch.closeIndex + markerMatch.closeMarker.length).trimStart();
     const cleaned = (before + (before && after ? '\n\n' : '') + after).trim();
     if (!cleaned) return null;
     return cleaned + '\n';
@@ -930,7 +1025,7 @@ function installCodexConfig(targetDir, agentsSrc) {
   const agentsTomlDir = path.join(targetDir, 'agents');
   fs.mkdirSync(agentsTomlDir, { recursive: true });
 
-  const agentEntries = fs.readdirSync(agentsSrc).filter(f => f.startsWith('EZ-') && f.endsWith('.md'));
+  const agentEntries = fs.readdirSync(agentsSrc).filter(f => f.startsWith('ez-') && f.endsWith('.md'));
   const agents = [];
 
   // Compute the Codex pathPrefix for replacing .claude paths
@@ -1390,6 +1485,118 @@ function copyCommandsAsCopilotSkills(srcDir, skillsDir, prefix, isGlobal = false
 }
 
 /**
+ * Copy Claude commands as Kimi Code skills — one folder per skill with SKILL.md.
+ */
+function copyCommandsAsKimiSkills(srcDir, skillsDir, prefix, pathPrefix, runtime) {
+  if (!fs.existsSync(srcDir)) {
+    return;
+  }
+
+  fs.mkdirSync(skillsDir, { recursive: true });
+
+  // Remove previous EZ Kimi skills
+  const existing = fs.readdirSync(skillsDir, { withFileTypes: true });
+  for (const entry of existing) {
+    if (entry.isDirectory() && entry.name.startsWith(`${prefix}-`)) {
+      fs.rmSync(path.join(skillsDir, entry.name), { recursive: true });
+    }
+  }
+
+  function recurse(currentSrcDir, currentPrefix) {
+    const entries = fs.readdirSync(currentSrcDir, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const srcPath = path.join(currentSrcDir, entry.name);
+      if (entry.isDirectory()) {
+        recurse(srcPath, `${currentPrefix}-${entry.name}`);
+        continue;
+      }
+
+      if (!entry.name.endsWith('.md')) {
+        continue;
+      }
+
+      const baseName = entry.name.replace('.md', '');
+      const skillName = `${currentPrefix}-${baseName}`;
+      const skillDir = path.join(skillsDir, skillName);
+      fs.mkdirSync(skillDir, { recursive: true });
+
+      let content = fs.readFileSync(srcPath, 'utf8');
+      const globalClaudeRegex = /~\/\.claude\//g;
+      const globalClaudeHomeRegex = /\$HOME\/\.claude\//g;
+      const localClaudeRegex = /\.\/\.claude\//g;
+      const kimiDirRegex = /~\/\.kimi\//g;
+      content = content.replace(globalClaudeRegex, pathPrefix);
+      content = content.replace(globalClaudeHomeRegex, toHomePrefix(pathPrefix));
+      content = content.replace(localClaudeRegex, `./${getDirName(runtime)}/`);
+      content = content.replace(kimiDirRegex, pathPrefix);
+      content = processAttribution(content, getCommitAttribution(runtime));
+      content = convertClaudeToKimiSkill(content, skillName);
+      fs.writeFileSync(path.join(skillDir, 'SKILL.md'), content);
+    }
+  }
+
+  recurse(srcDir, prefix);
+}
+
+/**
+ * Copy Claude commands as Qwen Code skills — one folder per skill with SKILL.md.
+ * Qwen Code uses the same skills/ structure as Codex but with simpler format (no adapters needed).
+ */
+function copyCommandsAsQwenSkills(srcDir, skillsDir, prefix, pathPrefix, runtime) {
+  if (!fs.existsSync(srcDir)) {
+    return;
+  }
+
+  fs.mkdirSync(skillsDir, { recursive: true });
+
+  // Remove previous EZ Qwen skills
+  const existing = fs.readdirSync(skillsDir, { withFileTypes: true });
+  for (const entry of existing) {
+    if (entry.isDirectory() && entry.name.startsWith(`${prefix}-`)) {
+      fs.rmSync(path.join(skillsDir, entry.name), { recursive: true });
+    }
+  }
+
+  function recurse(currentSrcDir, currentPrefix) {
+    const entries = fs.readdirSync(currentSrcDir, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const srcPath = path.join(currentSrcDir, entry.name);
+      if (entry.isDirectory()) {
+        recurse(srcPath, `${currentPrefix}-${entry.name}`);
+        continue;
+      }
+
+      if (!entry.name.endsWith('.md')) {
+        continue;
+      }
+
+      const baseName = entry.name.replace('.md', '');
+      const skillName = `${currentPrefix}-${baseName}`;
+      const skillDir = path.join(skillsDir, skillName);
+      fs.mkdirSync(skillDir, { recursive: true });
+
+      let content = fs.readFileSync(srcPath, 'utf8');
+      const globalClaudeRegex = /~\/\.claude\//g;
+      const globalClaudeHomeRegex = /\$HOME\/\.claude\//g;
+      const localClaudeRegex = /\.\/\.claude\//g;
+      const qwenDirRegex = /~\/\.qwen\//g;
+      content = content.replace(globalClaudeRegex, pathPrefix);
+      content = content.replace(globalClaudeHomeRegex, toHomePrefix(pathPrefix));
+      content = content.replace(localClaudeRegex, `./${getDirName(runtime)}/`);
+      content = content.replace(qwenDirRegex, pathPrefix);
+      content = processAttribution(content, getCommitAttribution(runtime));
+      // Qwen Code uses simple markdown skills without frontmatter adapters
+      content = convertClaudeToQwenSkill(content, skillName);
+      fs.writeFileSync(path.join(skillDir, 'SKILL.md'), content);
+    }
+  }
+
+  recurse(srcDir, prefix);
+}
+
+/**
  * Recursively copy directory, replacing paths in .md files
  * Deletes existing destDir first to remove orphaned files from previous versions
  * @param {string} srcDir - Source directory
@@ -1552,6 +1759,8 @@ function uninstall(isGlobal, runtime = 'claude') {
   const isOpencode = runtime === 'opencode';
   const isCodex = runtime === 'codex';
   const isCopilot = runtime === 'copilot';
+  const isQwen = runtime === 'qwen';
+  const isKimi = runtime === 'kimi';
   const dirName = getDirName(runtime);
 
   // Get the target directory based on runtime and install type
@@ -1568,6 +1777,7 @@ function uninstall(isGlobal, runtime = 'claude') {
   if (runtime === 'gemini') runtimeLabel = 'Gemini';
   if (runtime === 'codex') runtimeLabel = 'Codex';
   if (runtime === 'copilot') runtimeLabel = 'Copilot';
+  if (runtime === 'qwen') runtimeLabel = 'Qwen Code';
 
   console.log(`  Uninstalling EZ_Agents from ${cyan}${runtimeLabel}${reset} at ${cyan}${locationLabel}${reset}\n`);
 
@@ -1594,8 +1804,8 @@ function uninstall(isGlobal, runtime = 'claude') {
       }
       console.log(`  ${green}✓${reset} Removed EZ_Agents commands from command/`);
     }
-  } else if (isCodex) {
-    // Codex: remove skills/ez-*/SKILL.md skill directories
+  } else if (isCodex || isQwen || isKimi) {
+    // Codex/Qwen/Kimi: remove skills/ez-*/SKILL.md skill directories
     const skillsDir = path.join(targetDir, 'skills');
     if (fs.existsSync(skillsDir)) {
       let skillCount = 0;
@@ -1608,41 +1818,46 @@ function uninstall(isGlobal, runtime = 'claude') {
       }
       if (skillCount > 0) {
         removedCount++;
-        console.log(`  ${green}✓${reset} Removed ${skillCount} Codex skills`);
+        let runtimeLabel = 'Codex';
+        if (isQwen) runtimeLabel = 'Qwen Code';
+        if (isKimi) runtimeLabel = 'Kimi Code';
+        console.log(`  ${green}✓${reset} Removed ${skillCount} ${runtimeLabel} skills`);
       }
     }
 
-    // Codex: remove EZ agent .toml config files
-    const codexAgentsDir = path.join(targetDir, 'agents');
-    if (fs.existsSync(codexAgentsDir)) {
-      const tomlFiles = fs.readdirSync(codexAgentsDir);
-      let tomlCount = 0;
-      for (const file of tomlFiles) {
-        if (file.startsWith('ez-') && file.endsWith('.toml')) {
-          fs.unlinkSync(path.join(codexAgentsDir, file));
-          tomlCount++;
+    if (isCodex) {
+      // Codex: remove EZ agent .toml config files
+      const codexAgentsDir = path.join(targetDir, 'agents');
+      if (fs.existsSync(codexAgentsDir)) {
+        const tomlFiles = fs.readdirSync(codexAgentsDir);
+        let tomlCount = 0;
+        for (const file of tomlFiles) {
+          if (file.startsWith('ez-') && file.endsWith('.toml')) {
+            fs.unlinkSync(path.join(codexAgentsDir, file));
+            tomlCount++;
+          }
+        }
+        if (tomlCount > 0) {
+          removedCount++;
+          console.log(`  ${green}✓${reset} Removed ${tomlCount} agent .toml configs`);
         }
       }
-      if (tomlCount > 0) {
-        removedCount++;
-        console.log(`  ${green}✓${reset} Removed ${tomlCount} agent .toml configs`);
-      }
-    }
 
-    // Codex: clean EZ sections from config.toml
-    const configPath = path.join(targetDir, 'config.toml');
-    if (fs.existsSync(configPath)) {
-      const content = fs.readFileSync(configPath, 'utf8');
-      const cleaned = stripEzAgentsFromCodexConfig(content);
-      if (cleaned === null) {
-        // File is empty after stripping — delete it
-        fs.unlinkSync(configPath);
-        removedCount++;
-        console.log(`  ${green}✓${reset} Removed config.toml (was EZ-only)`);
-      } else if (cleaned !== content) {
-        fs.writeFileSync(configPath, cleaned);
-        removedCount++;
-        console.log(`  ${green}✓${reset} Cleaned EZ_Agents sections from config.toml`);
+      // Codex: clean EZ sections from config.toml
+      const configPath = path.join(targetDir, 'config.toml');
+      if (fs.existsSync(configPath)) {
+        const content = fs.readFileSync(configPath, 'utf8');
+        const cleaned = stripEzAgentsFromCodexConfig(content);
+        if (cleaned === null) {
+          // File is empty after stripping — delete it
+          fs.unlinkSync(configPath);
+          removedCount++;
+          console.log(`  ${green}✓${reset} Removed config.toml (was EZ-only)`);
+        } else if (cleaned !== content) {
+          fs.writeFileSync(configPath, cleaned);
+          removedCount++;
+          console.log(`  ${green}✓${reset} Cleaned EZ_Agents sections from config.toml`);
+        }
       }
     }
   } else if (isCopilot) {
@@ -2208,6 +2423,8 @@ function install(isGlobal, runtime = 'claude') {
   const isGemini = runtime === 'gemini';
   const isCodex = runtime === 'codex';
   const isCopilot = runtime === 'copilot';
+  const isQwen = runtime === 'qwen';
+  const isKimi = runtime === 'kimi';
   const dirName = getDirName(runtime);
   const src = path.join(__dirname, '..');
 
@@ -2233,6 +2450,8 @@ function install(isGlobal, runtime = 'claude') {
   if (isGemini) runtimeLabel = 'Gemini';
   if (isCodex) runtimeLabel = 'Codex';
   if (isCopilot) runtimeLabel = 'Copilot';
+  if (isQwen) runtimeLabel = 'Qwen Code';
+  if (isKimi) runtimeLabel = 'Kimi Code';
 
   console.log(`  Installing for ${cyan}${runtimeLabel}${reset} to ${cyan}${locationLabel}${reset}\n`);
 
@@ -2245,7 +2464,7 @@ function install(isGlobal, runtime = 'claude') {
   // Clean up orphaned files from previous versions
   cleanupOrphanedFiles(targetDir);
 
-  // OpenCode uses command/ (flat), Codex uses skills/, Claude/Gemini use commands/ez/
+  // OpenCode uses command/ (flat), Codex/Copilot/Qwen use skills/, Claude/Gemini use commands/ez/
   if (isOpencode) {
     // OpenCode: flat structure in command/ directory
     const commandDir = path.join(targetDir, 'command');
@@ -2260,10 +2479,17 @@ function install(isGlobal, runtime = 'claude') {
     } else {
       failures.push('command/ez-*');
     }
-  } else if (isCodex) {
+  } else if (isCodex || isQwen || isKimi) {
+    // Codex, Qwen, Kimi: skills structure in skills/ directory
     const skillsDir = path.join(targetDir, 'skills');
     const ezSrc = path.join(src, 'commands', 'ez');
-    copyCommandsAsCodexSkills(ezSrc, skillsDir, 'ez', pathPrefix, runtime);
+    if (isQwen) {
+      copyCommandsAsQwenSkills(ezSrc, skillsDir, 'ez', pathPrefix, runtime);
+    } else if (isKimi) {
+      copyCommandsAsKimiSkills(ezSrc, skillsDir, 'ez', pathPrefix, runtime);
+    } else {
+      copyCommandsAsCodexSkills(ezSrc, skillsDir, 'ez', pathPrefix, runtime);
+    }
     const installedSkillNames = listCodexSkillNames(skillsDir);
     if (installedSkillNames.length > 0) {
       console.log(`  ${green}✓${reset} Installed ${installedSkillNames.length} skills to skills/`);
@@ -2356,6 +2582,10 @@ function install(isGlobal, runtime = 'claude') {
           content = convertClaudeAgentToCodexAgent(content);
         } else if (isCopilot) {
           content = convertClaudeAgentToCopilotAgent(content, isGlobal);
+        } else if (isQwen) {
+          content = convertClaudeToQwenAgent(content);
+        } else if (isKimi) {
+          content = convertClaudeToKimiAgent(content);
         }
         const destName = isCopilot ? entry.name.replace('.md', '.agent.md') : entry.name;
         fs.writeFileSync(path.join(agentsDest, destName), content);
@@ -2389,7 +2619,7 @@ function install(isGlobal, runtime = 'claude') {
     failures.push('VERSION');
   }
 
-  if (!isCodex && !isCopilot) {
+  if (!isCodex && !isCopilot && !isQwen && !isKimi) {
     // Write package.json to force CommonJS mode for EZ scripts
     // Prevents "require is not defined" errors when project has "type": "module"
     // Node.js walks up looking for package.json - this stops inheritance from project
@@ -2493,6 +2723,12 @@ function install(isGlobal, runtime = 'claude') {
     return { settingsPath: null, settings: null, statuslineCommand: null, runtime };
   }
 
+  if (isQwen || isKimi) {
+    // Qwen/Kimi: no settings.json hooks, no statusline (like Codex/Copilot)
+    // Skills are installed directly in skills/ez-*/SKILL.md
+    return { settingsPath: null, settings: null, statuslineCommand: null, runtime };
+  }
+
   // Configure statusline and hooks in settings.json
   // Gemini uses AfterTool instead of PostToolUse for post-tool hooks
   const postToolEvent = runtime === 'gemini' ? 'AfterTool' : 'PostToolUse';
@@ -2576,8 +2812,10 @@ function finishInstall(settingsPath, settings, statuslineCommand, shouldInstallS
   const isOpencode = runtime === 'opencode';
   const isCodex = runtime === 'codex';
   const isCopilot = runtime === 'copilot';
+  const isQwen = runtime === 'qwen';
+  const isKimi = runtime === 'kimi';
 
-  if (shouldInstallStatusline && !isOpencode && !isCodex && !isCopilot) {
+  if (shouldInstallStatusline && !isOpencode && !isCodex && !isCopilot && !isQwen && !isKimi) {
     settings.statusLine = {
       type: 'command',
       command: statuslineCommand
@@ -2586,7 +2824,7 @@ function finishInstall(settingsPath, settings, statuslineCommand, shouldInstallS
   }
 
   // Write settings when runtime supports settings.json
-  if (!isCodex && !isCopilot) {
+  if (!isCodex && !isCopilot && !isQwen && !isKimi) {
     writeSettings(settingsPath, settings);
   }
 
@@ -2600,11 +2838,12 @@ function finishInstall(settingsPath, settings, statuslineCommand, shouldInstallS
   if (runtime === 'gemini') program = 'Gemini';
   if (runtime === 'codex') program = 'Codex';
   if (runtime === 'copilot') program = 'Copilot';
+  if (runtime === 'qwen') program = 'Qwen Code';
+  if (runtime === 'kimi') program = 'Kimi Code';
 
   let command = '/ez:new-project';
-  if (runtime === 'opencode') command = '/ez-new-project';
+  if (runtime === 'opencode' || runtime === 'gemini' || runtime === 'copilot' || runtime === 'qwen' || runtime === 'kimi') command = '/ez-new-project';
   if (runtime === 'codex') command = '$ez-new-project';
-  if (runtime === 'copilot') command = '/ez-new-project';
   console.log(`
   ${green}Done!${reset} Open a blank directory in ${program} and run ${cyan}${command}${reset}.
 
@@ -2687,9 +2926,11 @@ function promptRuntime(callback) {
   ${cyan}3${reset}) Gemini      ${dim}(~/.gemini)${reset}
   ${cyan}4${reset}) Codex       ${dim}(~/.codex)${reset}
   ${cyan}5${reset}) Copilot     ${dim}(~/.copilot)${reset}
-  ${cyan}6${reset}) All ${dim}(all 5 runtimes above)${reset}
+  ${cyan}6${reset}) Qwen Code   ${dim}(~/.qwen)${reset} - Alibaba Qwen official CLI
+  ${cyan}7${reset}) Kimi Code   ${dim}(~/.kimi)${reset} - Moonshot Kimi official CLI
+  ${cyan}8${reset}) All ${dim}(all 7 runtimes above)${reset}
 
-  ${dim}Note: Qwen, Kimi, and OpenAI are model providers configured within each runtime's settings,
+  ${dim}Note: OpenAI and Anthropic are model providers configured within each runtime's settings,
   not separate CLI runtimes. See README.md for model configuration.${reset}
 `);
 
@@ -2697,8 +2938,12 @@ function promptRuntime(callback) {
     answered = true;
     rl.close();
     const choice = answer.trim() || '1';
-    if (choice === '6') {
-      callback(['claude', 'opencode', 'gemini', 'codex', 'copilot']);
+    if (choice === '8') {
+      callback(['claude', 'opencode', 'gemini', 'codex', 'copilot', 'qwen', 'kimi']);
+    } else if (choice === '7') {
+      callback(['kimi']);
+    } else if (choice === '6') {
+      callback(['qwen']);
     } else if (choice === '5') {
       callback(['copilot']);
     } else if (choice === '4') {
@@ -2862,6 +3107,10 @@ if (process.env.EZ_AGENTS_TEST_MODE) {
     stripEzAgentsFromCopilotInstructions,
     writeManifest,
     reportLocalPatches,
+    convertClaudeToQwenSkill,
+    convertClaudeToQwenAgent,
+    convertClaudeToKimiSkill,
+    convertClaudeToKimiAgent,
   };
 } else {
 

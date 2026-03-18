@@ -2,79 +2,49 @@
 
 # EZ Agents
 
-**ez-agents** — *Meta-prompting & Agent Orchestration, but ez*
-
-**English** · [简体中文](README.zh-CN.md)
-
-**An independent fork of EZ Agents (Get Shit Done) with multi-model support (Qwen, Kimi, OpenAI, Claude) and enhanced reliability features.**
-
-**Solves context rot — with added security, error handling, and cross-platform support.**
+**Meta-prompting & Agent Orchestration for AI-Assisted Development**
 
 [![GitHub forks](https://img.shields.io/github/forks/howlil/ez-agents?style=for-the-badge&logo=github&color=blue)](https://github.com/howlil/ez-agents/network)
 [![GitHub stars](https://img.shields.io/github/stars/howlil/ez-agents?style=for-the-badge&logo=github&color=yellow)](https://github.com/howlil/ez-agents/stargazers)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge)](LICENSE)
-
-<br>
+[![npm](https://img.shields.io/npm/v/@howlil/ez-agents?style=for-the-badge&logo=npm)](https://www.npmjs.com/package/@howlil/ez-agents)
 
 ```bash
 npm install -g git+https://github.com/howlil/ez-agents.git
 ```
 
-**Works on Mac, Windows, and Linux.**
+**Supports:** Claude Code · OpenCode · Gemini CLI · Codex · Copilot · Qwen · Kimi
 
-<br>
-
-**Original EZ Agents (Get Shit Done) by** [TÂCHES](https://github.com/glittercowboy/ez-agents) | **EZ Agents Fork by** [@howlil](https://github.com/howlil)
-
-<br>
-
-*"If you know clearly what you want, this WILL build it for you. No bs."*
-
-*"I've done SpecKit, OpenSpec and Taskmaster — this has produced the best results for me."*
-
-*"By far the most powerful addition to my Claude Code. Nothing over-engineered. Literally ez mode activated."*
-
-<br>
-
-[Features](#-whats-new-in-ez-agents) · [Install](#install) · [Commands](#commands) · [Multi-Model](#multi-model-support) · [User Guide](docs/USER-GUIDE.md)
+[Features](#features) · [Installation](#installation) · [Workflow](#workflow) · [Commands](#commands) · [Configuration](#configuration) · [Contributing](#contributing) · [User Guide](docs/USER-GUIDE.md)
 
 </div>
 
 ---
 
-## 🚀 What's New in EZ Agents
+> **Note:** EZ Agents is an independent fork of the original project by [TÂCHES](https://github.com/glittercowboy). This fork is not affiliated with the upstream repository. See [Acknowledgments](#acknowledgments) for details.
 
-> **Note:** This is an **independent fork** of EZ Agents (Get Shit Done). Not affiliated with the original EZ Agents project.
->
-> **Original EZ Agents (Get Shit Done):** [glittercowboy/ez-agents](https://github.com/glittercowboy/ez-agents) by TÂCHES
->
-> **This Fork:** [howlil/ez-agents](https://github.com/howlil/ez-agents) with multi-model support & enhancements
+---
 
-**EZ Agents** adds **multi-model support** and **enterprise-grade reliability** to EZ Agents (Get Shit Done).
+## Feature Comparison
 
-### Why This Fork Exists
+### EZ Agents vs. Upstream Baseline
 
-I needed EZ Agents (Get Shit Done) to work with multiple AI providers (not just Anthropic) and run reliably on Windows. This fork adds:
+| Feature | Upstream Baseline | EZ Agents (Fork) |
+|---------|----------------|------------------|
+| **AI Providers** | Anthropic only | ✓ Anthropic, Qwen, Kimi, OpenAI |
+| **Security** | Basic | ✓ Command allowlist, path validation, audit log, secret protection |
+| **Error Handling** | Basic | ✓ Retry with backoff, circuit breaker, timeout handling |
+| **Cross-Platform** | Unix commands (find, grep, head, tail) | ✓ Pure JavaScript (Windows-safe) |
+| **Git Safety** | Direct git calls | ✓ Atomic commits, branch automation, merge strategies |
+| **Updates** | Manual npm update | ✓ `ez-agents-update` command with changelog |
+| **Credential Storage** | Plain text config | ✓ System keychain (keytar) + encrypted fallback |
+| **Assistant Support** | Claude Code | ✓ Claude Code, OpenCode, Gemini, Codex, Copilot |
+| **Codebase Mapping** | Basic | ✓ Parallel mapper agents with structured output |
+| **Milestone Audit** | Manual verification | ✓ Automated requirements coverage check |
+| **Wave Execution** | Sequential | ✓ Dependency-aware parallel execution |
+| **Context Limits** | Fixed | ✓ Dynamic limits based on quality degradation points |
 
-- 🌍 **Multi-Model**: Qwen (Alibaba), Kimi (Moonshot), OpenAI, and Anthropic
-- 🔒 **Security**: Command injection prevention, path validation, audit logging
-- 🛡️ **Error Handling**: Retry with backoff, circuit breaker for failing operations
-- 🪟 **Windows Support**: Cross-platform file utilities (no Unix dependencies)
-- 🔄 **Easy Updates**: `ez-agents-update` command to stay current
-
-### Features Comparison
-
-| Feature | Original EZ Agents (Get Shit Done) | EZ Agents Fork |
-|---------|------------------------------|-----------|
-| **Multi-Model** | Anthropic only | ✓ Anthropic, Qwen, Kimi, OpenAI |
-| **Security** | Basic | ✓ Command allowlist, path validation, audit log |
-| **Error Handling** | Basic | ✓ Retry with backoff, circuit breaker |
-| **Cross-Platform** | Unix commands | ✓ Pure JavaScript (Windows-safe) |
-| **Git Safety** | Direct calls | ✓ Atomic commits, branch automation |
-| **Update Command** | Manual npm | ✓ `ez-agents-update` |
-| **Credential Storage** | Plain text | ✓ System keychain (keytar) |
-
-### 17 New Libraries
+### New Libraries (17 Additions)
 
 ```
 ez-agents/bin/lib/
@@ -82,7 +52,7 @@ ez-agents/bin/lib/
 ├── safe-path.cjs         # Path traversal prevention
 ├── auth.cjs              # Secure credential storage (keytar + fallback)
 ├── audit-exec.cjs        # Command audit logging (.planning/logs/)
-├── git-utils.cjs         # Safe git operations (atomic commits)
+├── git-utils.cjs         # Safe git operations (atomic commits, branch automation)
 ├── fs-utils.cjs          # Cross-platform file utils (find/grep/head/tail replacement)
 ├── retry.cjs             # Exponential backoff retry logic
 ├── circuit-breaker.cjs   # Prevent cascading failures
@@ -97,12 +67,9 @@ ez-agents/bin/lib/
 └── update.js             # ez-agents-update command
 ```
 
-### Multi-Model Support
-
-Configure different AI providers per agent:
+### Multi-Model Configuration Example
 
 ```json
-// .planning/config.json
 {
   "provider": {
     "default": "alibaba",
@@ -131,519 +98,591 @@ Configure different AI providers per agent:
 }
 ```
 
-### Quick Commands
+---
+
+## Overview
+
+EZ Agents is a context engineering layer that transforms AI coding assistants from reactive code generators into reliable development partners. It orchestrates specialized AI agents through a structured workflow: requirements gathering, research, planning, execution, and verification.
+
+### Key Capabilities
+
+- **Multi-Model Support** — Anthropic, Qwen (Alibaba), Kimi (Moonshot), OpenAI
+- **Context Engineering** — Automatic state management across sessions
+- **Parallel Agent Execution** — Wave-based task parallelization with dependency resolution
+- **Atomic Git Commits** — Per-task commits with meaningful messages
+- **Cross-Platform** — Windows, macOS, Linux (pure JavaScript, no Unix dependencies)
+- **Security** — Command injection prevention, path validation, audit logging
+
+---
+
+## Features
+
+| Feature | Description |
+|---------|-------------|
+| **Multi-Model** | Configure different AI providers per agent (Qwen, Kimi, OpenAI, Anthropic) |
+| **Agent Orchestration** | Thin orchestrator spawns specialized agents, collects results, routes to next step |
+| **Wave Execution** | Dependency-aware parallel execution with fresh context per plan |
+| **Milestone Management** | Versioned releases with audit, archive, and git tagging |
+| **Codebase Mapping** | Parallel mapper agents analyze stack, architecture, conventions |
+| **Context Files** | PROJECT.md, STATE.md, SUMMARY.md maintain memory across sessions |
+| **XML Prompts** | Structured task definitions with verification criteria |
+| **Error Handling** | Retry with exponential backoff, circuit breaker for failing operations |
+
+---
+
+## Installation
+
+### Prerequisites
+
+- Node.js >= 16.7.0
+- One of: Claude Code, OpenCode, Gemini CLI, Codex, Copilot
+
+### Install from GitHub (Recommended)
 
 ```bash
-# Install EZ Agents
-npm install -g ez-agents
-
-# Setup (Claude Code)
-ez-agents --claude --global
-
-# Update
-ez-agents-update
-
-# Force update
-ez-agents-update --force
-
-# Check version
-ez-agents --version
-
-# Help
-ez-agents --help
-```
-
-### Install
-
-**⚠️ Important: Use one of the methods below. Do NOT use `npx github:howlil/ez-agents` as it may fail.**
-
-**Option 1: Install from GitHub (Recommended)**
-
-```bash
-# Install globally from GitHub
+# Install globally
 npm install -g git+https://github.com/howlil/ez-agents.git
 
-# Then run installer
-ez-agents --claude --global
+# Setup for your runtime
+ez-agents --claude --global    # Claude Code
+ez-agents --opencode --global  # OpenCode
+ez-agents --gemini --global    # Gemini CLI
+ez-agents --codex --global     # Codex
+ez-agents --all --global       # All runtimes
 ```
 
-**Option 2: Use npx (No Installation)**
+### Install from npm
 
 ```bash
-# Run installer directly without installing
-npx @howlil/ez-agents --claude --global
-```
-
-**Option 3: Install from npm**
-
-```bash
-# Install from npm registry
 npm install -g @howlil/ez-agents
-
-# Then use
 ez-agents --claude --global
-ez-agents-update
 ```
 
-**Option 4: Install from Local Source (Development)**
+### Development Installation
 
 ```bash
-# Clone the repository
 git clone https://github.com/howlil/ez-agents.git
 cd ez-agents
-
-# Install globally from local directory
 npm install -g .
-
-# Then use
-ez-agents --claude --global
+ez-agents --claude --local
 ```
 
----
-
-**Installation Commands Reference:**
+### Update
 
 ```bash
-# Install EZ Agents globally
-npm install -g git+https://github.com/howlil/ez-agents.git
-
-# Setup for Claude Code (global)
-ez-agents --claude --global
-
-# Setup for Claude Code (local project)
-ez-agents --claude --local
-
-# Setup for all runtimes (Claude, OpenCode, Gemini, Codex, Copilot)
-ez-agents --all --global
-
-# Update EZ Agents
 ez-agents-update
-
-# Force reinstall
-ez-agents-update --force
-
-# Check version
-ez-agents --version
-
-# Help
-ez-agents --help
-
-# Uninstall
-ez-agents --all --global --uninstall
+ez-agents-update --force  # Force reinstall
 ```
 
-I'm a solo developer. I don't write code — Claude Code does.
+---
 
-Other spec-driven development tools exist; BMAD, Speckit... But they all seem to make things way more complicated than they need to be (sprint ceremonies, story points, stakeholder syncs, retrospectives, Jira workflows) or lack real big picture understanding of what you're building. I'm not a 50-person software company. I don't want to play enterprise theater. I'm just a creative person trying to build great things that work.
+## Workflow
 
-So I built EZ Agents. The complexity is in the system, not in your workflow. Behind the scenes: context engineering, XML prompt formatting, subagent orchestration, state management. What you see: a few commands that just work.
+### Complete Workflow Diagram
 
-The system gives Claude everything it needs to do the work *and* verify it. I trust the workflow. It just does a good job.
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                         EZ AGENTS COMPLETE WORKFLOW                                                  │
+└─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 
-That's what this is. No enterprise roleplay bullshit. Just an incredibly effective system for building cool stuff consistently using Claude Code.
-
-— **TÂCHES**
+                                            ┌─────────────────────┐
+                                            │   START PROJECT     │
+                                            └─────────┬───────────┘
+                                                      │
+                              ┌───────────────────────┴───────────────────────┐
+                              │                                               │
+                              ▼                                               ▼
+                    ┌───────────────────┐                         ┌───────────────────┐
+                    │  GREENFIELD       │                         │   BROWNFIELD      │
+                    │  (No code yet)    │                         │  (Existing code)  │
+                    └─────────┬─────────┘                         └─────────┬─────────┘
+                              │                                             │
+                              │                                             ▼
+                              │                                   ┌───────────────────┐
+                              │                                   │  /ez:map-codebase │
+                              │                                   │                   │
+                              │                                   │ Parallel mappers: │
+                              │                                   │ - STACK.md        │
+                              │                                   │ - ARCHITECTURE.md │
+                              │                                   │ - CONVENTIONS.md  │
+                              │                                   │ - STRUCTURE.md    │
+                              │                                   │ - INTEGRATIONS.md │
+                              │                                   │ - TESTING.md      │
+                              │                                   │ - CONCERNS.md     │
+                              │                                   └─────────┬─────────┘
+                              │                                             │
+                              └───────────────────────┬─────────────────────┘
+                                                      │
+                                                      ▼
+                                            ┌───────────────────┐
+                                            │  /ez:new-project  │
+                                            │                   │
+                                            │ 1. Questions      │
+                                            │ 2. Research       │
+                                            │ 3. Requirements   │
+                                            │ 4. Roadmap        │
+                                            └─────────┬─────────┘
+                                                      │
+                                                      ▼
+                                            ┌───────────────────┐
+                                            │  MILESTONE v1.0   │
+                                            │  (or v1.1, v2.0)  │
+                                            └─────────┬─────────┘
+                                                      │
+         ┌────────────────────────────────────────────┼────────────────────────────────────────────┐
+         │                                            │                                            │
+         ▼                                            ▼                                            ▼
+┌───────────────────┐                        ┌───────────────────┐                        ┌───────────────────┐
+│  PHASE 1          │                        │  PHASE 2          │                        │  PHASE N          │
+│                   │                        │                   │                        │                   │
+│ ┌───────────────┐ │                        │ ┌───────────────┐ │                        │ ┌───────────────┐ │
+│ │/ez:discuss    │ │                        │ │/ez:discuss    │ │                        │ │/ez:discuss    │ │
+│ │-phase 1       │ │                        │ │-phase 2       │ │                        │ │-phase N       │ │
+│ └───────┬───────┘ │                        │ └───────┬───────┘ │                        │ └───────┬───────┘ │
+│         │         │                        │         │         │                        │         │         │
+│         ▼         │                        │         ▼         │                        │         ▼         │
+│ ┌───────────────┐ │                        │ ┌───────────────┐ │                        │ ┌───────────────┐ │
+│ │/ez:plan       │ │                        │ │/ez:plan       │ │                        │ │/ez:plan       │ │
+│ │-phase 1       │ │                        │ │-phase 2       │ │                        │ │-phase N       │ │
+│ └───────┬───────┘ │                        │ └───────┬───────┘ │                        │ └───────┬───────┘ │
+│         │         │                        │         │         │                        │         │         │
+│         ▼         │                        │         ▼         │                        │         ▼         │
+│ ┌───────────────┐ │                        │ ┌───────────────┐ │                        │ ┌───────────────┐ │
+│ │/ez:execute    │ │                        │ │/ez:execute    │ │                        │ │/ez:execute    │ │
+│ │-phase 1       │ │                        │ │/ez:execute    │ │                        │ │-phase N       │ │
+│ └───────┬───────┘ │                        │ │-phase 2       │ │                        │ └───────┬───────┘ │
+│         │         │                        │ └───────┬───────┘ │                        │         │         │
+│         ▼         │                        │         │         │                        │         ▼         │
+│ ┌───────────────┐ │                        │         ▼         │                        │ ┌───────────────┐ │
+│ │/ez:verify     │ │                        │ ┌───────────────┐ │                        │ │/ez:verify     │ │
+│ │-work 1        │ │                        │ │/ez:verify     │ │                        │ │-work N        │ │
+│ └───────────────┘ │                        │ │-work 2        │ │                        │ └───────────────┘ │
+│                   │                        │ └───────────────┘ │                        │                   │
+└───────────────────┘                        └───────────────────┘                        └───────────────────┘
+         │                                            │                                            │
+         └────────────────────────────────────────────┴────────────────────────────────────────────┘
+                                                      │
+                                                      ▼
+                                            ┌───────────────────┐
+                                            │ /ez:audit-        │
+                                            │ milestone         │
+                                            │                   │
+                                            │ ✓ Requirements    │
+                                            │   coverage        │
+                                            │ ✓ Cross-phase     │
+                                            │   integration     │
+                                            │ ✓ E2E flows       │
+                                            └─────────┬─────────┘
+                                                      │
+                              ┌───────────────────────┴───────────────────────┐
+                              │                                               │
+                              ▼                                               ▼
+                    ┌───────────────────┐                         ┌───────────────────┐
+                    │   AUDIT PASS      │                         │   AUDIT FAIL      │
+                    └─────────┬─────────┘                         └─────────┬─────────┘
+                              │                                             │
+                              ▼                                             ▼
+                    ┌───────────────────┐                         ┌───────────────────┐
+                    │ /ez:complete-     │                         │ /ez:plan-milestone│
+                    │ milestone         │                         │ -gaps             │
+                    │                   │                         │                   │
+                    │ - Archive to      │                         │ Create fix phases │
+                    │   milestones/     │                         │                   │
+                    │ - Git tag v1.0    │                         │ Back to phase loop│
+                    │ - Collapse ROADMAP│                         │                   │
+                    └─────────┬─────────┘                         └───────────────────┘
+                              │
+                              ▼
+                    ┌───────────────────┐
+                    │ /ez:new-milestone │
+                    │                   │
+                    │ Start v1.1, v2.0  │
+                    │ (back to top)     │
+                    └───────────────────┘
+```
 
 ---
 
-Vibecoding has a bad reputation. You describe what you want, AI generates code, and you get inconsistent garbage that falls apart at scale.
+### Architecture: Agent Orchestration
 
-EZ Agents fixes that. It's the context engineering layer that makes Claude Code reliable. Describe your idea, let the system extract everything it needs to know, and let Claude Code get to work.
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    EZ Agents Orchestrator                        │
+├─────────────────────────────────────────────────────────────────┤
+│  Thin coordinator that spawns specialized agents, collects       │
+│  results, and routes to the next step. Never does heavy lifting. │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+        ┌─────────────────────┼─────────────────────┐
+        │                     │                     │
+        ▼                     ▼                     ▼
+┌───────────────┐   ┌─────────────────┐   ┌─────────────────┐
+│ ez-planner    │   │ ez-executor     │   │ ez-verifier     │
+│ ez-researcher │   │ ez-debugger     │   │ ez-auditor      │
+│ ez-mapper     │   │ ez-checker      │   │ ez-roadmapper   │
+└───────────────┘   └─────────────────┘   └─────────────────┘
+```
 
 ---
 
-## Who This Is For
+### Phase Execution: Wave Model
 
-People who want to describe what they want and have it built correctly — without pretending they're running a 50-person engineering org.
+Plans are grouped into waves based on dependencies. Independent plans run in parallel; dependent plans wait for prerequisites.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                         PHASE EXECUTION: WAVE MODEL                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+Wave 1 (parallel)                    Wave 2 (parallel)                    Wave 3 (sequential)
+┌─────────────────┐                  ┌─────────────────┐                  ┌─────────────────┐
+│ ┌─────────────┐ │                  │ ┌─────────────┐ │                  │ ┌─────────────┐ │
+│ │   Plan 01   │ │                  │ │   Plan 03   │ │                  │ │   Plan 05   │ │
+│ │             │ │                  │ │             │ │                  │ │             │ │
+│ │ User Model  │ │                  │ │ Orders API  │ │                  │ │ Checkout UI │ │
+│ │ + Auth      │ │                  │ │             │ │                  │ │             │ │
+│ └─────────────┘ │                  │ └─────────────┘ │                  │ └─────────────┘ │
+│                 │       ┌──────────│                 │       ┌──────────│                 │
+│ ┌─────────────┐ │       │          │ ┌─────────────┐ │       │          │ ┌─────────────┐ │
+│ │   Plan 02   │ │       │          │ │   Plan 04   │ │       │          │ │   Plan 06   │ │
+│ │             │ │       │          │ │             │ │       │          │ │             │ │
+│ │ Product     │ │       │          │ │ Cart API    │ │       │          │ │ Payment     │ │
+│ │ Model       │ │       │          │ │             │ │       │          │ │ Integration │ │
+│ └─────────────┘ │       │          │ └─────────────┘ │       │          │ └─────────────┘ │
+└─────────────────┘       │          └─────────────────┘       │          └─────────────────┘
+        │                 │                    │                │                    │
+        │                 │                    │                │                    │
+        └─────────────────┴────────────────────┴────────────────┘                    │
+        Dependencies:                                                                 │
+        - Plan 03 needs Plan 01 (Orders API needs User Model)                        │
+        - Plan 04 needs Plan 02 (Cart API needs Product Model)                       │
+        - Plan 05 needs Plans 03 + 04 (Checkout needs Orders + Cart)                 │
+        - Plan 06 needs Plan 05 (Payment needs Checkout)                             │
+```
+
+---
+
+### Use Case: Greenfield Project (From Scratch)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                         GREENFIELD PROJECT WORKFLOW                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────┐
+│ User Story   │ "I want to build a task management app with team collaboration"
+└──────┬───────┘
+       │
+       ▼
+┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ MILESTONE 1: MVP (v1.0)                                                                                          │
+├───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                                   │
+│  ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────┐ │
+│  │ PHASE 1: Foundation                                                                                        │ │
+│  │                                                                                                             │ │
+│  │  /ez:discuss-phase 1                                                                                        │ │
+│  │  ├── Clarify: Tech stack preferences? → "Next.js + PostgreSQL"                                              │ │
+│  │  ├── Clarify: Auth method? → "Email + OAuth (Google, GitHub)"                                               │ │
+│  │  └── Output: 1-CONTEXT.md                                                                                   │ │
+│  │                                                                                                             │ │
+│  │  /ez:plan-phase 1                                                                                           │ │
+│  │  ├── Research: Next.js auth patterns, PostgreSQL schema design                                              │ │
+│  │  ├── Plans: 1-01-user-auth.md, 1-02-database-schema.md, 1-03-project-setup.md                               │ │
+│  │  └── Output: 1-RESEARCH.md, 3 PLAN files                                                                    │ │
+│  │                                                                                                             │ │
+│  │  /ez:execute-phase 1                                                                                        │ │
+│  │  ├── Wave 1: Plan 1-02 (schema), Plan 1-03 (setup) [parallel]                                               │ │
+│  │  ├── Wave 2: Plan 1-01 (auth) [depends on schema]                                                           │ │
+│  │  └── Output: 3 SUMMARY.md files, 3 atomic commits                                                           │ │
+│  │                                                                                                             │ │
+│  │  /ez:verify-work 1                                                                                          │ │
+│  │  ├── Test: Can register/login? ✓                                                                            │ │
+│  │  ├── Test: Can connect to DB? ✓                                                                             │ │
+│  │  └── Output: 1-VERIFICATION.md, 1-UAT.md                                                                    │ │
+│  └─────────────────────────────────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                                                   │
+│  ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────┐ │
+│  │ PHASE 2: Core Features                                                                                     │ │
+│  │  (Same discuss → plan → execute → verify loop)                                                              │ │
+│  └─────────────────────────────────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                                                   │
+│  ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────┐ │
+│  │ PHASE 3: Team Collaboration                                                                                │ │
+│  │  (Same discuss → plan → execute → verify loop)                                                              │ │
+│  └─────────────────────────────────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                                                   │
+└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+       │
+       ▼
+┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ /ez:audit-milestone                                                                                              │
+│ ✓ All requirements covered                                                                                       │
+│ ✓ Cross-phase integration verified                                                                               │
+│ ✓ E2E flows working                                                                                              │
+└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+       │
+       ▼
+┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ /ez:complete-milestone v1.0                                                                                      │
+│ ├── Archive: milestones/v1.0-ROADMAP.md, milestones/v1.0-REQUIREMENTS.md                                         │
+│ ├── Git tag: v1.0                                                                                                │
+│ └── Collapse: ROADMAP.md (one-line summary)                                                                      │
+└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+       │
+       ▼
+┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ /ez:new-milestone v1.1 "Advanced Features"                                                                       │
+│ └── Back to phase loop for new features                                                                          │
+└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### Use Case: Brownfield Project (Existing Codebase)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                         BROWNFIELD PROJECT WORKFLOW                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────┐
+│ User Story   │ "I want to add a notification system to my existing e-commerce app"
+└──────┬───────┘
+       │
+       ▼
+┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ STEP 1: MAP CODEBASE                                                                                             │
+├───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                                   │
+│  /ez:map-codebase                                                                                                 │
+│                                                                                                                   │
+│  ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────┐ │
+│  │ Parallel Mapper Agents (spawn 4 agents simultaneously):                                                     │ │
+│  │                                                                                                             │ │
+│  │  Agent 1: Tech Focus          Agent 2: Architecture Focus                                                   │ │
+│  │  ├── STACK.md                 ├── ARCHITECTURE.md                                                           │ │
+│  │  └── INTEGRATIONS.md          └── STRUCTURE.md                                                              │ │
+│  │                                                                                                             │ │
+│  │  Agent 3: Quality Focus       Agent 4: Concerns Focus                                                       │ │
+│  │  ├── CONVENTIONS.md           └── CONCERNS.md                                                               │ │
+│  │  └── TESTING.md                                                                                             │ │
+│  └─────────────────────────────────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                                                   │
+│  Output: .planning/codebase/ (7 structured documents)                                                            │
+└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+       │
+       ▼
+┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ STEP 2: INITIALIZE PROJECT (uses codebase map)                                                                   │
+├───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                                   │
+│  /ez:new-project                                                                                                  │
+│                                                                                                                   │
+│  ├── Read: .planning/codebase/*.md (understand existing stack, patterns, concerns)                                │
+│  ├── Questions: "What notification types?" → "Email, SMS, push"                                                   │
+│  ├── Research: Notification service providers, delivery patterns                                                  │
+│  ├── Requirements: v1.1 notification features                                                                     │
+│  └── Roadmap: Phases for notification implementation                                                              │
+│                                                                                                                   │
+│  Output: PROJECT.md (updated), REQUIREMENTS.md, ROADMAP.md, STATE.md                                              │
+└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+       │
+       ▼
+┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ STEP 3: PHASE LOOP (same as greenfield)                                                                          │
+│                                                                                                                   │
+│  For each phase: discuss → plan → execute → verify                                                                │
+│                                                                                                                   │
+│  Key difference: Planner reads codebase map to ensure plans match existing patterns                               │
+└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### Use Case: Quick Task (Ad-hoc)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                         QUICK TASK WORKFLOW                                                        │
+└─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────┐
+│ User Story   │ "Add a dark mode toggle to settings page"
+└──────┬───────┘
+       │
+       ▼
+┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ /ez:quick [--full] [--discuss]                                                                                   │
+├───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                                   │
+│  Standard Mode (default):                                                                                         │
+│  ├── Planner: Create plan (skip research, skip plan-checker)                                                      │
+│  ├── Executor: Implement with atomic commits                                                                      │
+│  └── Output: .planning/quick/001-dark-mode-toggle/PLAN.md, SUMMARY.md                                             │
+│                                                                                                                   │
+│  With --full:                                                                                                     │
+│  ├── Add plan-checker verification                                                                                │
+│  └── Add verifier after execution                                                                                 │
+│                                                                                                                   │
+│  With --discuss:                                                                                                  │
+│  ├── Gather context first (preferences, implementation details)                                                   │
+│  └── Pass context to planner                                                                                      │
+│                                                                                                                   │
+└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+Use cases:
+- Bug fixes
+- Small features
+- Configuration changes
+- One-off tasks
+```
+
+---
+
+### Use Case: Milestone with Audit Gaps
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                         MILESTONE AUDIT WITH GAPS                                                  │
+└─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+All phases completed
+       │
+       ▼
+┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ /ez:audit-milestone v1.0                                                                                         │
+├───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                                   │
+│  Audit Checks:                                                                                                    │
+│  ├── ✓ Requirements coverage: 45/48 requirements met                                                              │
+│  ├── ✓ Cross-phase integration: All phase boundaries verified                                                     │
+│  └── ✗ E2E flows: 3 flows incomplete                                                                              │
+│                                                                                                                   │
+│  Gaps Identified:                                                                                                 │
+│  ├── REQ-023: Password reset email not implemented                                                                │
+│  ├── REQ-041: Search results pagination missing                                                                   │
+│  └── FLOW-003: Checkout flow fails at payment step                                                                │
+│                                                                                                                   │
+│  Output: v1.0-MILESTONE-AUDIT.md (status: gaps_found)                                                             │
+└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+       │
+       ▼
+┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ /ez:plan-milestone-gaps                                                                                          │
+├───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                                   │
+│  Creates fix phases:                                                                                              │
+│  ├── Phase 8: Password reset implementation                                                                       │
+│  ├── Phase 9: Search pagination                                                                                   │
+│  └── Phase 10: Payment flow fix                                                                                   │
+│                                                                                                                   │
+│  Output: Updated ROADMAP.md with new phases                                                                       │
+└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+       │
+       ▼
+┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Back to Phase Loop                                                                                               │
+│                                                                                                                   │
+│  /ez:discuss-phase 8 → /ez:plan-phase 8 → /ez:execute-phase 8 → /ez:verify-work 8                                 │
+│  /ez:discuss-phase 9 → /ez:plan-phase 9 → /ez:execute-phase 9 → /ez:verify-work 9                                 │
+│  /ez:discuss-phase 10 → /ez:plan-phase 10 → /ez:execute-phase 10 → /ez:verify-work 10                             │
+│                                                                                                                   │
+└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+       │
+       ▼
+┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Re-run Audit                                                                                                     │
+│                                                                                                                   │
+│  /ez:audit-milestone v1.0 → status: passed                                                                        │
+│                                                                                                                   │
+└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+       │
+       ▼
+┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Complete Milestone                                                                                               │
+│                                                                                                                   │
+│  /ez:complete-milestone v1.0                                                                                      │
+│                                                                                                                   │
+└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### Use Case: Debug Session
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                         DEBUG SESSION WORKFLOW                                                     │
+└─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+Issue discovered during verification
+       │
+       ▼
+┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ /ez:debug "Login fails with 500 error"                                                                           │
+├───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                                   │
+│  Debug Agent spawns:                                                                                              │
+│  ├── 1. Reproduce: Attempt login, capture error                                                                   │
+│  ├── 2. Investigate: Check logs, trace request flow                                                               │
+│  ├── 3. Identify: Find root cause (e.g., missing env var, DB connection)                                          │
+│  └── 4. Document: Create DEBUG.md with findings                                                                   │
+│                                                                                                                   │
+│  Output: .planning/debug/001-login-500-error/DEBUG.md                                                             │
+└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+       │
+       ▼
+┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Fix Plan Created                                                                                                 │
+│                                                                                                                   │
+│  ├── Plan: Fix login endpoint (add missing JWT_SECRET env var handling)                                           │
+│  └── Ready for: /ez:execute-phase (with fix plan)                                                                 │
+│                                                                                                                   │
+└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
 ## Getting Started
 
-```bash
-npx ez-agents
-```
-
-The installer prompts you to choose:
-1. **Runtime** — Claude Code, OpenCode, Gemini, Codex, Copilot, or all
-2. **Location** — Global (all projects) or local (current project only)
-
-Verify with:
-- Claude Code / Gemini: `/ez:help`
-- OpenCode: `/ez-help`
-- Codex: `$ez-help`
-
-> [!NOTE]
-> Codex installation uses skills (`skills/ez-*/SKILL.md`) rather than custom prompts.
-
-### Staying Updated
-
-EZ Agents evolves fast. Update periodically:
+### Quick Start
 
 ```bash
-ez-agents-update
+# Install
+npm install -g git+https://github.com/howlil/ez-agents.git
+
+# Setup for your runtime
+ez-agents --claude --global
+
+# Start (in your runtime: Claude Code, OpenCode, Gemini, etc.)
+/ez:help
 ```
 
-<details>
-<summary><strong>Non-interactive Install (Docker, CI, Scripts)</strong></summary>
+### Basic Usage
 
+**Greenfield (New Project):**
 ```bash
-# Claude Code
-ez-agents --claude --global   # Install to ~/.claude/
-ez-agents --claude --local    # Install to ./.claude/
-
-# OpenCode (open source, free models)
-ez-agents --opencode --global # Install to ~/.config/opencode/
-
-# Gemini CLI
-ez-agents --gemini --global   # Install to ~/.gemini/
-
-# Codex (skills-first)
-ez-agents --codex --global    # Install to ~/.codex/
-ez-agents --codex --local     # Install to ./.codex/
-
-# All runtimes
-ez-agents --all --global      # Install to all directories
+/ez:new-project          # Initialize: questions → research → requirements → roadmap
+/ez:discuss-phase 1      # Capture implementation decisions
+/ez:plan-phase 1         # Research + create plans
+/ez:execute-phase 1      # Execute plans in waves
+/ez:verify-work 1        # User acceptance testing
 ```
 
-Use `--global` (`-g`) or `--local` (`-l`) to skip the location prompt.
-Use `--claude`, `--opencode`, `--gemini`, `--codex`, or `--all` to skip the runtime prompt.
-
-</details>
-
-<details>
-<summary><strong>Development Installation</strong></summary>
-
-Clone the repository and run the installer locally:
-
+**Brownfield (Existing Codebase):**
 ```bash
-git clone https://github.com/howlil/ez-agents.git
-cd ez-agents
-node bin/install.js --claude --local
+/ez:map-codebase         # Analyze existing code first
+/ez:new-project          # Initialize (uses codebase map)
+# Continue with phase loop above
 ```
 
-Installs to `./.claude/` for testing modifications before contributing.
-
-</details>
-
-### Recommended: Skip Permissions Mode
-
-EZ Agents is designed for frictionless automation. Run Claude Code with:
-
+**Quick Tasks:**
 ```bash
-claude --dangerously-skip-permissions
+/ez:quick                # Ad-hoc tasks without full planning
 ```
 
-> [!TIP]
-> This is how EZ Agents is intended to be used — stopping to approve `date` and `git commit` 50 times defeats the purpose.
-
-<details>
-<summary><strong>Alternative: Granular Permissions</strong></summary>
-
-If you prefer not to use that flag, add this to your project's `.claude/settings.json`:
-
-```json
-{
-  "permissions": {
-    "allow": [
-      "Bash(date:*)",
-      "Bash(echo:*)",
-      "Bash(cat:*)",
-      "Bash(ls:*)",
-      "Bash(mkdir:*)",
-      "Bash(wc:*)",
-      "Bash(head:*)",
-      "Bash(tail:*)",
-      "Bash(sort:*)",
-      "Bash(grep:*)",
-      "Bash(tr:*)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(git status:*)",
-      "Bash(git log:*)",
-      "Bash(git diff:*)",
-      "Bash(git tag:*)"
-    ]
-  }
-}
-```
-
-</details>
-
----
-
-## How It Works
-
-> **Already have code?** Run `/ez:map-codebase` first. It spawns parallel agents to analyze your stack, architecture, conventions, and concerns. Then `/ez:new-project` knows your codebase — questions focus on what you're adding, and planning automatically loads your patterns.
-
-### 1. Initialize Project
-
-```
-/ez:new-project
-```
-
-One command, one flow. The system:
-
-1. **Questions** — Asks until it understands your idea completely (goals, constraints, tech preferences, edge cases)
-2. **Research** — Spawns parallel agents to investigate the domain (optional but recommended)
-3. **Requirements** — Extracts what's v1, v2, and out of scope
-4. **Roadmap** — Creates phases mapped to requirements
-
-You approve the roadmap. Now you're ready to build.
-
-**Creates:** `PROJECT.md`, `REQUIREMENTS.md`, `ROADMAP.md`, `STATE.md`, `.planning/research/`
-
----
-
-### 2. Discuss Phase
-
-```
-/ez:discuss-phase 1
-```
-
-**This is where you shape the implementation.**
-
-Your roadmap has a sentence or two per phase. That's not enough context to build something the way *you* imagine it. This step captures your preferences before anything gets researched or planned.
-
-The system analyzes the phase and identifies gray areas based on what's being built:
-
-- **Visual features** → Layout, density, interactions, empty states
-- **APIs/CLIs** → Response format, flags, error handling, verbosity
-- **Content systems** → Structure, tone, depth, flow
-- **Organization tasks** → Grouping criteria, naming, duplicates, exceptions
-
-For each area you select, it asks until you're satisfied. The output — `CONTEXT.md` — feeds directly into the next two steps:
-
-1. **Researcher reads it** — Knows what patterns to investigate ("user wants card layout" → research card component libraries)
-2. **Planner reads it** — Knows what decisions are locked ("infinite scroll decided" → plan includes scroll handling)
-
-The deeper you go here, the more the system builds what you actually want. Skip it and you get reasonable defaults. Use it and you get *your* vision.
-
-**Creates:** `{phase_num}-CONTEXT.md`
-
----
-
-### 3. Plan Phase
-
-```
-/ez:plan-phase 1
-```
-
-The system:
-
-1. **Researches** — Investigates how to implement this phase, guided by your CONTEXT.md decisions
-2. **Plans** — Creates 2-3 atomic task plans with XML structure
-3. **Verifies** — Checks plans against requirements, loops until they pass
-
-Each plan is small enough to execute in a fresh context window. No degradation, no "I'll be more concise now."
-
-**Creates:** `{phase_num}-RESEARCH.md`, `{phase_num}-{N}-PLAN.md`
-
----
-
-### 4. Execute Phase
-
-```
-/ez:execute-phase 1
-```
-
-The system:
-
-1. **Runs plans in waves** — Parallel where possible, sequential when dependent
-2. **Fresh context per plan** — 200k tokens purely for implementation, zero accumulated garbage
-3. **Commits per task** — Every task gets its own atomic commit
-4. **Verifies against goals** — Checks the codebase delivers what the phase promised
-
-Walk away, come back to completed work with clean git history.
-
-**How Wave Execution Works:**
-
-Plans are grouped into "waves" based on dependencies. Within each wave, plans run in parallel. Waves run sequentially.
-
-```
-┌────────────────────────────────────────────────────────────────────┐
-│  PHASE EXECUTION                                                   │
-├────────────────────────────────────────────────────────────────────┤
-│                                                                    │
-│  WAVE 1 (parallel)          WAVE 2 (parallel)          WAVE 3      │
-│  ┌─────────┐ ┌─────────┐    ┌─────────┐ ┌─────────┐    ┌─────────┐ │
-│  │ Plan 01 │ │ Plan 02 │ →  │ Plan 03 │ │ Plan 04 │ →  │ Plan 05 │ │
-│  │         │ │         │    │         │ │         │    │         │ │
-│  │ User    │ │ Product │    │ Orders  │ │ Cart    │    │ Checkout│ │
-│  │ Model   │ │ Model   │    │ API     │ │ API     │    │ UI      │ │
-│  └─────────┘ └─────────┘    └─────────┘ └─────────┘    └─────────┘ │
-│       │           │              ↑           ↑              ↑      │
-│       └───────────┴──────────────┴───────────┘              │      │
-│              Dependencies: Plan 03 needs Plan 01            │      │
-│                          Plan 04 needs Plan 02              │      │
-│                          Plan 05 needs Plans 03 + 04        │      │
-│                                                                    │
-└────────────────────────────────────────────────────────────────────┘
-```
-
-**Why waves matter:**
-- Independent plans → Same wave → Run in parallel
-- Dependent plans → Later wave → Wait for dependencies
-- File conflicts → Sequential plans or same plan
-
-This is why "vertical slices" (Plan 01: User feature end-to-end) parallelize better than "horizontal layers" (Plan 01: All models, Plan 02: All APIs).
-
-**Creates:** `{phase_num}-{N}-SUMMARY.md`, `{phase_num}-VERIFICATION.md`
-
----
-
-### 5. Verify Work
-
-```
-/ez:verify-work 1
-```
-
-**This is where you confirm it actually works.**
-
-Automated verification checks that code exists and tests pass. But does the feature *work* the way you expected? This is your chance to use it.
-
-The system:
-
-1. **Extracts testable deliverables** — What you should be able to do now
-2. **Walks you through one at a time** — "Can you log in with email?" Yes/no, or describe what's wrong
-3. **Diagnoses failures automatically** — Spawns debug agents to find root causes
-4. **Creates verified fix plans** — Ready for immediate re-execution
-
-If everything passes, you move on. If something's broken, you don't manually debug — you just run `/ez:execute-phase` again with the fix plans it created.
-
-**Creates:** `{phase_num}-UAT.md`, fix plans if issues found
-
----
-
-### 6. Repeat → Complete → Next Milestone
-
-```
-/ez:discuss-phase 2
-/ez:plan-phase 2
-/ez:execute-phase 2
-/ez:verify-work 2
-...
-/ez:complete-milestone
-/ez:new-milestone
-```
-
-Loop **discuss → plan → execute → verify** until milestone complete.
-
-If you want faster intake during discussion, use `/ez:discuss-phase <n> --batch` to answer a small grouped set of questions at once instead of one-by-one.
-
-Each phase gets your input (discuss), proper research (plan), clean execution (execute), and human verification (verify). Context stays fresh. Quality stays high.
-
-When all phases are done, `/ez:complete-milestone` archives the milestone and tags the release.
-
-Then `/ez:new-milestone` starts the next version — same flow as `new-project` but for your existing codebase. You describe what you want to build next, the system researches the domain, you scope requirements, and it creates a fresh roadmap. Each milestone is a clean cycle: define → build → ship.
-
----
-
-### Quick Mode
-
-```
-/ez:quick
-```
-
-**For ad-hoc tasks that don't need full planning.**
-
-Quick mode gives you EZ Agents guarantees (atomic commits, state tracking) with a faster path:
-
-- **Same agents** — Planner + executor, same quality
-- **Skips optional steps** — No research, no plan checker, no verifier
-- **Separate tracking** — Lives in `.planning/quick/`, not phases
-
-Use for: bug fixes, small features, config changes, one-off tasks.
-
-```
-/ez:quick
-> What do you want to do? "Add dark mode toggle to settings"
-```
-
-**Creates:** `.planning/quick/001-add-dark-mode-toggle/PLAN.md`, `SUMMARY.md`
-
----
-
-## Why It Works
-
-### Context Engineering
-
-Claude Code is incredibly powerful *if* you give it the context it needs. Most people don't.
-
-EZ Agents handles it for you:
-
-| File | What it does |
-|------|--------------|
-| `PROJECT.md` | Project vision, always loaded |
-| `research/` | Ecosystem knowledge (stack, features, architecture, pitfalls) |
-| `REQUIREMENTS.md` | Scoped v1/v2 requirements with phase traceability |
-| `ROADMAP.md` | Where you're going, what's done |
-| `STATE.md` | Decisions, blockers, position — memory across sessions |
-| `PLAN.md` | Atomic task with XML structure, verification steps |
-| `SUMMARY.md` | What happened, what changed, committed to history |
-| `todos/` | Captured ideas and tasks for later work |
-
-Size limits based on where Claude's quality degrades. Stay under, get consistent excellence.
-
-### XML Prompt Formatting
-
-Every plan is structured XML optimized for Claude:
-
-```xml
-<task type="auto">
-  <name>Create login endpoint</name>
-  <files>src/app/api/auth/login/route.ts</files>
-  <action>
-    Use jose for JWT (not jsonwebtoken - CommonJS issues).
-    Validate credentials against users table.
-    Return httpOnly cookie on success.
-  </action>
-  <verify>curl -X POST localhost:3000/api/auth/login returns 200 + Set-Cookie</verify>
-  <done>Valid credentials return cookie, invalid return 401</done>
-</task>
-```
-
-Precise instructions. No guessing. Verification built in.
-
-### Multi-Agent Orchestration
-
-Every stage uses the same pattern: a thin orchestrator spawns specialized agents, collects results, and routes to the next step.
-
-| Stage | Orchestrator does | Agents do |
-|-------|------------------|-----------|
-| Research | Coordinates, presents findings | 4 parallel researchers investigate stack, features, architecture, pitfalls |
-| Planning | Validates, manages iteration | Planner creates plans, checker verifies, loop until pass |
-| Execution | Groups into waves, tracks progress | Executors implement in parallel, each with fresh 200k context |
-| Verification | Presents results, routes next | Verifier checks codebase against goals, debuggers diagnose failures |
-
-The orchestrator never does heavy lifting. It spawns agents, waits, integrates results.
-
-**The result:** You can run an entire phase — deep research, multiple plans created and verified, thousands of lines of code written across parallel executors, automated verification against goals — and your main context window stays at 30-40%. The work happens in fresh subagent contexts. Your session stays fast and responsive.
-
-### Atomic Git Commits
-
-Each task gets its own commit immediately after completion:
-
-```bash
-abc123f docs(08-02): complete user registration plan
-def456g feat(08-02): add email confirmation flow
-hij789k feat(08-02): implement password hashing
-lmn012o feat(08-02): create registration endpoint
-```
-
-> [!NOTE]
-> **Benefits:** Git bisect finds exact failing task. Each task independently revertable. Clear history for Claude in future sessions. Better observability in AI-automated workflow.
-
-Every commit is surgical, traceable, and meaningful.
-
-### Modular by Design
-
-- Add phases to current milestone
-- Insert urgent work between phases
-- Complete milestones and start fresh
-- Adjust plans without rebuilding everything
-
-You're never locked in. The system adapts.
+See [Workflow](#workflow) for complete diagrams and [Commands](#commands) for full reference.
 
 ---
 
@@ -651,79 +690,92 @@ You're never locked in. The system adapts.
 
 ### Core Workflow
 
-| Command | What it does |
-|---------|--------------|
-| `/ez:new-project [--auto]` | Full initialization: questions → research → requirements → roadmap |
-| `/ez:discuss-phase [N] [--auto]` | Capture implementation decisions before planning |
-| `/ez:plan-phase [N] [--auto]` | Research + plan + verify for a phase |
-| `/ez:execute-phase <N>` | Execute all plans in parallel waves, verify when complete |
-| `/ez:verify-work [N]` | Manual user acceptance testing ¹ |
-| `/ez:audit-milestone` | Verify milestone achieved its definition of done |
-| `/ez:complete-milestone` | Archive milestone, tag release |
-| `/ez:new-milestone [name]` | Start next version: questions → research → requirements → roadmap |
+| Command | Description |
+|---------|-------------|
+| `/ez:new-project [--auto]` | Initialize: questions → research → requirements → roadmap |
+| `/ez:discuss-phase [N]` | Capture implementation decisions before planning |
+| `/ez:plan-phase [N]` | Research + plan + verify for a phase |
+| `/ez:execute-phase <N>` | Execute plans in waves, verify on completion |
+| `/ez:verify-work [N]` | User acceptance testing for a phase |
+| `/ez:audit-milestone` | Verify milestone achieved definition of done |
+| `/ez:complete-milestone <version>` | Archive milestone, tag release |
+| `/ez:new-milestone [name]` | Start next version cycle |
 
-### Navigation
+### Codebase Analysis
 
-| Command | What it does |
-|---------|--------------|
-| `/ez:progress` | Where am I? What's next? |
-| `/ez:help` | Show all commands and usage guide |
-| `/ez:update` | Update EZ Agents with changelog preview |
-| `/ez:join-discord` | Join the EZ Agents Discord community |
-
-### Brownfield
-
-| Command | What it does |
-|---------|--------------|
-| `/ez:map-codebase [area]` | Analyze existing codebase before new-project |
+| Command | Description |
+|---------|-------------|
+| `/ez:map-codebase [area]` | Analyze codebase with parallel mapper agents |
 
 ### Phase Management
 
-| Command | What it does |
-|---------|--------------|
+| Command | Description |
+|---------|-------------|
 | `/ez:add-phase` | Append phase to roadmap |
 | `/ez:insert-phase [N]` | Insert urgent work between phases |
 | `/ez:remove-phase [N]` | Remove future phase, renumber |
-| `/ez:list-phase-assumptions [N]` | See Claude's intended approach before planning |
-| `/ez:plan-milestone-gaps` | Create phases to close gaps from audit |
+| `/ez:list-phase-assumptions [N]` | Review intended approach before planning |
+| `/ez:plan-milestone-gaps` | Create phases to close audit gaps |
 
-### Session
+### Session Management
 
-| Command | What it does |
-|---------|--------------|
+| Command | Description |
+|---------|-------------|
 | `/ez:pause-work` | Create handoff when stopping mid-phase |
 | `/ez:resume-work` | Restore from last session |
+| `/ez:progress` | Current status and next steps |
 
 ### Utilities
 
-| Command | What it does |
-|---------|--------------|
+| Command | Description |
+|---------|-------------|
+| `/ez:help` | Show all commands and usage guide |
 | `/ez:settings` | Configure model profile and workflow agents |
 | `/ez:set-profile <profile>` | Switch model profile (quality/balanced/budget) |
 | `/ez:add-todo [desc]` | Capture idea for later |
 | `/ez:check-todos` | List pending todos |
 | `/ez:debug [desc]` | Systematic debugging with persistent state |
-| `/ez:quick [--full] [--discuss]` | Execute ad-hoc task with EZ Agents guarantees (`--full` adds plan-checking and verification, `--discuss` gathers context first) |
-| `/ez:health [--repair]` | Validate `.planning/` directory integrity, auto-repair with `--repair` |
+| `/ez:quick [--full] [--discuss]` | Execute ad-hoc task with EZ Agents guarantees |
+| `/ez:health [--repair]` | Validate `.planning/` directory integrity |
+| `/ez:update` | Update EZ Agents with changelog preview |
 
-<sup>¹ Contributed by reddit user OracleGreyBeard</sup>
+---
+
+## Project Structure
+
+### Generated Files
+
+| File | Purpose |
+|------|---------|
+| `.planning/PROJECT.md` | Project vision and current state |
+| `.planning/REQUIREMENTS.md` | Scoped requirements with phase traceability |
+| `.planning/ROADMAP.md` | Phase structure and completion status |
+| `.planning/STATE.md` | Decisions, blockers, position (session memory) |
+| `.planning/config.json` | Workflow preferences and model configuration |
+| `.planning/research/` | Domain research documents |
+| `.planning/codebase/` | Codebase analysis (stack, architecture, conventions) |
+| `.planning/phases/` | Phase plans and summaries |
+| `.planning/milestones/` | Archived milestone artifacts |
+
+### Context Documents
+
+| Document | Content |
+|----------|---------|
+| `STACK.md` | Tech stack, versions, rationale |
+| `ARCHITECTURE.md` | Patterns, layers, data flow |
+| `STRUCTURE.md` | Folder structure, key files |
+| `CONVENTIONS.md` | Coding standards, linting, formatting |
+| `INTEGRATIONS.md` | External APIs, services, databases |
+| `TESTING.md` | Test framework, coverage, patterns |
+| `CONCERNS.md` | Tech debt, gotchas, performance issues |
 
 ---
 
 ## Configuration
 
-EZ Agents stores project settings in `.planning/config.json`. Configure during `/ez:new-project` or update later with `/ez:settings`. For the full config schema, workflow toggles, git branching options, and per-agent model breakdown, see the [User Guide](docs/USER-GUIDE.md#configuration-reference).
-
-### Core Settings
-
-| Setting | Options | Default | What it controls |
-|---------|---------|---------|------------------|
-| `mode` | `yolo`, `interactive` | `interactive` | Auto-approve vs confirm at each step |
-| `granularity` | `coarse`, `standard`, `fine` | `standard` | Phase granularity — how finely scope is sliced (phases × plans) |
-
 ### Model Profiles
 
-Control which Claude model each agent uses. Balance quality vs token spend.
+Control which model each agent uses. Balance quality vs token spend.
 
 | Profile | Planning | Execution | Verification |
 |---------|----------|-----------|--------------|
@@ -731,51 +783,61 @@ Control which Claude model each agent uses. Balance quality vs token spend.
 | `balanced` (default) | Opus | Sonnet | Sonnet |
 | `budget` | Sonnet | Sonnet | Haiku |
 
-Switch profiles:
+```bash
+/ez:set-profile quality
 ```
-/ez:set-profile budget
+
+### Multi-Model Configuration
+
+Configure different AI providers per agent in `.planning/config.json`:
+
+```json
+{
+  "provider": {
+    "default": "alibaba",
+    "anthropic": {
+      "api_key": "env:ANTHROPIC_API_KEY",
+      "models": { "opus": "claude-3-opus-20240229", "sonnet": "claude-3-sonnet-20240229" }
+    },
+    "alibaba": {
+      "api_key": "env:DASHSCOPE_API_KEY",
+      "models": { "high": "qwen-max", "balanced": "qwen-plus" }
+    },
+    "moonshot": {
+      "api_key": "env:MOONSHOT_API_KEY",
+      "models": { "high": "moonshot-v1-128k" }
+    },
+    "openai": {
+      "api_key": "env:OPENAI_API_KEY",
+      "models": { "high": "gpt-4-turbo-preview" }
+    }
+  },
+  "agent_overrides": {
+    "ez-planner": { "provider": "alibaba", "model": "qwen-max" },
+    "ez-executor": { "provider": "anthropic", "model": "sonnet" },
+    "ez-verifier": { "provider": "moonshot", "model": "balanced" }
+  }
+}
 ```
 
-Or configure via `/ez:settings`.
+### Workflow Settings
 
-### Workflow Agents
-
-These spawn additional agents during planning/execution. They improve quality but add tokens and time.
-
-| Setting | Default | What it does |
-|---------|---------|--------------|
-| `workflow.research` | `true` | Researches domain before planning each phase |
-| `workflow.plan_check` | `true` | Verifies plans achieve phase goals before execution |
-| `workflow.verifier` | `true` | Confirms must-haves were delivered after execution |
-| `workflow.auto_advance` | `false` | Auto-chain discuss → plan → execute without stopping |
-
-Use `/ez:settings` to toggle these, or override per-invocation:
-- `/ez:plan-phase --skip-research`
-- `/ez:plan-phase --skip-verify`
-
-### Execution
-
-| Setting | Default | What it controls |
-|---------|---------|------------------|
-| `parallelization.enabled` | `true` | Run independent plans simultaneously |
-| `planning.commit_docs` | `true` | Track `.planning/` in git |
+| Setting | Options | Default | Description |
+|---------|---------|---------|-------------|
+| `mode` | `yolo`, `interactive` | `interactive` | Auto-approve vs confirm at each step |
+| `granularity` | `coarse`, `standard`, `fine` | `standard` | Phase granularity (phases × plans) |
+| `workflow.research` | `boolean` | `true` | Research domain before planning |
+| `workflow.plan_check` | `boolean` | `true` | Verify plans achieve phase goals |
+| `workflow.verifier` | `boolean` | `true` | Confirm must-haves delivered |
+| `parallelization.enabled` | `boolean` | `true` | Run independent plans in parallel |
 
 ### Git Branching
 
-Control how EZ Agents handles branches during execution.
-
-| Setting | Options | Default | What it does |
-|---------|---------|---------|--------------|
+| Setting | Options | Default | Description |
+|---------|---------|---------|-------------|
 | `git.branching_strategy` | `none`, `phase`, `milestone` | `none` | Branch creation strategy |
 | `git.phase_branch_template` | string | `ez/phase-{phase}-{slug}` | Template for phase branches |
 | `git.milestone_branch_template` | string | `ez/{milestone}-{slug}` | Template for milestone branches |
-
-**Strategies:**
-- **`none`** — Commits to current branch (default EZ Agents behavior)
-- **`phase`** — Creates a branch per phase, merges at phase completion
-- **`milestone`** — Creates one branch for entire milestone, merges at completion
-
-At milestone completion, EZ Agents offers squash merge (recommended) or merge with history.
 
 ---
 
@@ -783,10 +845,7 @@ At milestone completion, EZ Agents offers squash merge (recommended) or merge wi
 
 ### Protecting Sensitive Files
 
-EZ Agents' codebase mapping and analysis commands read files to understand your project. **Protect files containing secrets** by adding them to Claude Code's deny list:
-
-1. Open Claude Code settings (`.claude/settings.json` or global)
-2. Add sensitive file patterns to the deny list:
+Add sensitive file patterns to Claude Code's deny list:
 
 ```json
 {
@@ -803,90 +862,127 @@ EZ Agents' codebase mapping and analysis commands read files to understand your 
 }
 ```
 
-This prevents Claude from reading these files entirely, regardless of what commands you run.
+### Built-in Protections
 
-> [!IMPORTANT]
-> EZ Agents includes built-in protections against committing secrets, but defense-in-depth is best practice. Deny read access to sensitive files as a first line of defense.
+- Command injection prevention (allowlist + validation)
+- Path traversal prevention
+- Secure credential storage (keytar + fallback)
+- Command audit logging (`.planning/logs/`)
+- Atomic commits with branch automation
 
 ---
 
 ## Troubleshooting
 
-**Commands not found after install?**
-- Restart your runtime to reload commands/skills
-- Verify files exist in `~/.claude/commands/ez/` (global) or `./.claude/commands/ez/` (local)
-- For Codex, verify skills exist in `~/.codex/skills/ez-*/SKILL.md` (global) or `./.codex/skills/ez-*/SKILL.md` (local)
+### Commands Not Found
 
-**Commands not working as expected?**
-- Run `/ez:help` to verify installation
-- Re-run `ez-agents` to reinstall
-
-**Updating to the latest version?**
 ```bash
-ez-agents-update
+# Verify installation
+/ez:help
+
+# Reinstall
+ez-agents --claude --global
 ```
 
-**Using Docker or containerized environments?**
+### File Path Issues (Docker/Containers)
 
-If file reads fail with tilde paths (`~/.claude/...`), set `CLAUDE_CONFIG_DIR` before installing:
+If tilde paths fail, set `CLAUDE_CONFIG_DIR`:
+
 ```bash
 CLAUDE_CONFIG_DIR=/home/youruser/.claude ez-agents --global
 ```
-This ensures absolute paths are used instead of `~` which may not expand correctly in containers.
 
-### Uninstalling
-
-To remove EZ Agents completely:
+### Uninstall
 
 ```bash
-# Global installs
+# Global
 ez-agents --claude --global --uninstall
 ez-agents --opencode --global --uninstall
 ez-agents --codex --global --uninstall
 
-# Local installs (current project)
+# Local (current project)
 ez-agents --claude --local --uninstall
-ez-agents --opencode --local --uninstall
-ez-agents --codex --local --uninstall
 ```
 
-This removes all EZ Agents commands, agents, hooks, and settings while preserving your other configurations.
+---
+
+## Contributing
+
+Contributions are welcome! EZ Agents builds upon the foundation of the upstream project by TÂCHES.
+
+### How to Contribute
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/my-feature`)
+3. Commit changes (`git commit -m 'Add my feature'`)
+4. Push to branch (`git push origin feature/my-feature`)
+5. Open a Pull Request
+
+### Development Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/howlil/ez-agents.git
+cd ez-agents
+
+# Install globally from local source
+npm install -g .
+
+# Build hooks
+npm run build:hooks
+
+# Run tests
+npm test
+```
+
+### Guidelines
+
+- Follow existing code conventions (JavaScript, no TypeScript)
+- Add tests for new functionality
+- Update documentation for user-facing changes
+- Keep changes focused and atomic
 
 ---
 
-## Community Ports
+## Acknowledgments
 
-OpenCode, Gemini CLI, and Codex are now natively supported via `ez-agents`.
+### Original Project
 
-These community ports pioneered multi-runtime support:
+EZ Agents is a fork of the original project by [TÂCHES](https://github.com/glittercowboy). We build upon that foundation with multi-model support and enterprise-grade enhancements.
 
-| Project | Platform | Description |
-|---------|----------|-------------|
-| [ez-opencode](https://github.com/rokicool/ez-opencode) | OpenCode | Original OpenCode adaptation |
-| ez-gemini (archived) | Gemini CLI | Original Gemini adaptation by uberfuzzy |
+### Community Ports
 
----
+| Project | Platform | Repository |
+|---------|----------|------------|
+| ez-opencode | OpenCode | [rokicool/ez-opencode](https://github.com/rokicool/ez-opencode) |
+| ez-gemini (archived) | Gemini CLI | uberfuzzy |
 
-## Star History
-
-<a href="https://star-history.com/#glittercowboy/ez-agents&Date">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=glittercowboy/ez-agents&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=glittercowboy/ez-agents&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=glittercowboy/ez-agents&type=Date" />
- </picture>
-</a>
+These community ports pioneered multi-runtime support now included in EZ Agents.
 
 ---
 
 ## License
 
-MIT License. See [LICENSE](LICENSE) for details.
+MIT License — See [LICENSE](LICENSE) for details.
+
+---
+
+## Star History
+
+<a href="https://star-history.com/#howlil/ez-agents&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=howlil/ez-agents&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=howlil/ez-agents&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=howlil/ez-agents&type=Date" />
+ </picture>
+</a>
 
 ---
 
 <div align="center">
 
-**Claude Code is powerful. EZ Agents makes it reliable.**
+**EZ Agents makes AI-assisted development reliable through context engineering and agent orchestration.**
+
+[Report Issue](https://github.com/howlil/ez-agents/issues) · [Request Feature](https://github.com/howlil/ez-agents/issues) · [User Guide](docs/USER-GUIDE.md)
 
 </div>

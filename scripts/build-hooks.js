@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Copy GSD hooks to dist for installation.
+ * Copy EZ hooks to dist for installation.
  */
 
 const fs = require('fs');

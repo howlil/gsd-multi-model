@@ -7,6 +7,7 @@ const path = require('path');
 const { safeReadFile, normalizePhaseName, execGit, findPhaseInternal, getMilestoneInfo, output, error } = require('./core.cjs');
 const { extractFrontmatter, parseMustHavesBlock } = require('./frontmatter.cjs');
 const { writeStateMd } = require('./state.cjs');
+const { defaultLogger: logger } = require('./logger.cjs');
 
 function cmdVerifySummary(cwd, summaryPath, checkFileCount, raw) {
   if (!summaryPath) {
@@ -179,7 +180,13 @@ function cmdVerifyPhaseCompleteness(cwd, phase, raw) {
 
   // List plans and summaries
   let files;
-  try { files = fs.readdirSync(phaseDir); } catch { output({ error: 'Cannot read phase directory' }, raw); return; }
+  try {
+    files = fs.readdirSync(phaseDir);
+  } catch (err) {
+    logger.warn('Failed to read phase directory in cmdVerifyPhaseCompleteness', { phaseDir, error: err.message });
+    output({ error: 'Cannot read phase directory' }, raw);
+    return;
+  }
 
   const plans = files.filter(f => f.match(/-PLAN\.md$/i));
   const summaries = files.filter(f => f.match(/-SUMMARY\.md$/i));
@@ -369,7 +376,8 @@ function cmdVerifyKeyLinks(cwd, planFilePath, raw) {
             check.detail = `Pattern "${link.pattern}" not found in source or target`;
           }
         }
-      } catch {
+      } catch (err) {
+        logger.warn('Invalid regex while verifying key links', { pattern: link.pattern, error: err.message });
         check.detail = `Invalid regex pattern: ${link.pattern}`;
       }
     } else {
@@ -426,7 +434,9 @@ function cmdValidateConsistency(cwd, raw) {
       const dm = dir.match(/^(\d+[A-Z]?(?:\.\d+)*)/i);
       if (dm) diskPhases.add(dm[1]);
     }
-  } catch {}
+  } catch (err) {
+    logger.warn('Failed to enumerate phase directories while validating consistency', { phasesDir, error: err.message });
+  }
 
   // Check: phases in ROADMAP but not on disk
   for (const p of roadmapPhases) {
@@ -488,7 +498,9 @@ function cmdValidateConsistency(cwd, raw) {
         }
       }
     }
-  } catch {}
+  } catch (err) {
+    logger.warn('Failed to validate plan numbering while validating consistency', { phasesDir, error: err.message });
+  }
 
   // Check: frontmatter in plans has required fields
   try {
@@ -508,7 +520,9 @@ function cmdValidateConsistency(cwd, raw) {
         }
       }
     }
-  } catch {}
+  } catch (err) {
+    logger.warn('Failed to validate plan frontmatter while validating consistency', { phasesDir, error: err.message });
+  }
 
   const passed = errors.length === 0;
   output({ passed, errors, warnings, warning_count: warnings.length }, raw, passed ? 'passed' : 'failed');
@@ -537,7 +551,7 @@ function cmdValidateHealth(cwd, options, raw) {
 
   // ─── Check 1: .planning/ exists ───────────────────────────────────────────
   if (!fs.existsSync(planningDir)) {
-    addIssue('error', 'E001', '.planning/ directory not found', 'Run /gsd:new-project to initialize');
+    addIssue('error', 'E001', '.planning/ directory not found', 'Run /ez:new-project to initialize');
     output({
       status: 'broken',
       errors,
@@ -550,7 +564,7 @@ function cmdValidateHealth(cwd, options, raw) {
 
   // ─── Check 2: PROJECT.md exists and has required sections ─────────────────
   if (!fs.existsSync(projectPath)) {
-    addIssue('error', 'E002', 'PROJECT.md not found', 'Run /gsd:new-project to create');
+    addIssue('error', 'E002', 'PROJECT.md not found', 'Run /ez:new-project to create');
   } else {
     const content = fs.readFileSync(projectPath, 'utf-8');
     const requiredSections = ['## What This Is', '## Core Value', '## Requirements'];
@@ -563,12 +577,12 @@ function cmdValidateHealth(cwd, options, raw) {
 
   // ─── Check 3: ROADMAP.md exists ───────────────────────────────────────────
   if (!fs.existsSync(roadmapPath)) {
-    addIssue('error', 'E003', 'ROADMAP.md not found', 'Run /gsd:new-milestone to create roadmap');
+    addIssue('error', 'E003', 'ROADMAP.md not found', 'Run /ez:new-milestone to create roadmap');
   }
 
   // ─── Check 4: STATE.md exists and references valid phases ─────────────────
   if (!fs.existsSync(statePath)) {
-    addIssue('error', 'E004', 'STATE.md not found', 'Run /gsd:health --repair to regenerate', true);
+    addIssue('error', 'E004', 'STATE.md not found', 'Run /ez:health --repair to regenerate', true);
     repairs.push('regenerateState');
   } else {
     const stateContent = fs.readFileSync(statePath, 'utf-8');
@@ -584,14 +598,16 @@ function cmdValidateHealth(cwd, options, raw) {
           if (m) diskPhases.add(m[1]);
         }
       }
-    } catch {}
+    } catch (err) {
+      logger.warn('Failed to read phase directories while validating STATE references', { phasesDir, error: err.message });
+    }
     // Check for invalid references
     for (const ref of phaseRefs) {
       const normalizedRef = String(parseInt(ref, 10)).padStart(2, '0');
       if (!diskPhases.has(ref) && !diskPhases.has(normalizedRef) && !diskPhases.has(String(parseInt(ref, 10)))) {
         // Only warn if phases dir has any content (not just an empty project)
         if (diskPhases.size > 0) {
-          addIssue('warning', 'W002', `STATE.md references phase ${ref}, but only phases ${[...diskPhases].sort().join(', ')} exist`, 'Run /gsd:health --repair to regenerate STATE.md', true);
+          addIssue('warning', 'W002', `STATE.md references phase ${ref}, but only phases ${[...diskPhases].sort().join(', ')} exist`, 'Run /ez:health --repair to regenerate STATE.md', true);
           if (!repairs.includes('regenerateState')) repairs.push('regenerateState');
         }
       }
@@ -600,7 +616,7 @@ function cmdValidateHealth(cwd, options, raw) {
 
   // ─── Check 5: config.json valid JSON + valid schema ───────────────────────
   if (!fs.existsSync(configPath)) {
-    addIssue('warning', 'W003', 'config.json not found', 'Run /gsd:health --repair to create with defaults', true);
+    addIssue('warning', 'W003', 'config.json not found', 'Run /ez:health --repair to create with defaults', true);
     repairs.push('createConfig');
   } else {
     try {
@@ -612,7 +628,8 @@ function cmdValidateHealth(cwd, options, raw) {
         addIssue('warning', 'W004', `config.json: invalid model_profile "${parsed.model_profile}"`, `Valid values: ${validProfiles.join(', ')}`);
       }
     } catch (err) {
-      addIssue('error', 'E005', `config.json: JSON parse error - ${err.message}`, 'Run /gsd:health --repair to reset to defaults', true);
+      logger.warn('Failed to parse config.json in cmdValidateHealth', { configPath, error: err.message });
+      addIssue('error', 'E005', `config.json: JSON parse error - ${err.message}`, 'Run /ez:health --repair to reset to defaults', true);
       repairs.push('resetConfig');
     }
   }
@@ -623,10 +640,12 @@ function cmdValidateHealth(cwd, options, raw) {
       const configRaw = fs.readFileSync(configPath, 'utf-8');
       const configParsed = JSON.parse(configRaw);
       if (configParsed.workflow && configParsed.workflow.nyquist_validation === undefined) {
-        addIssue('warning', 'W008', 'config.json: workflow.nyquist_validation absent (defaults to enabled but agents may skip)', 'Run /gsd:health --repair to add key', true);
+        addIssue('warning', 'W008', 'config.json: workflow.nyquist_validation absent (defaults to enabled but agents may skip)', 'Run /ez:health --repair to add key', true);
         if (!repairs.includes('addNyquistKey')) repairs.push('addNyquistKey');
       }
-    } catch {}
+    } catch (err) {
+      logger.warn('Failed to parse config for nyquist key check', { configPath, error: err.message });
+    }
   }
 
   // ─── Check 6: Phase directory naming (NN-name format) ─────────────────────
@@ -637,7 +656,9 @@ function cmdValidateHealth(cwd, options, raw) {
         addIssue('warning', 'W005', `Phase directory "${e.name}" doesn't follow NN-name format`, 'Rename to match pattern (e.g., 01-setup)');
       }
     }
-  } catch {}
+  } catch (err) {
+    logger.warn('Failed to inspect phase directory naming in health validation', { phasesDir, error: err.message });
+  }
 
   // ─── Check 7: Orphaned plans (PLAN without SUMMARY) ───────────────────────
   try {
@@ -656,7 +677,9 @@ function cmdValidateHealth(cwd, options, raw) {
         }
       }
     }
-  } catch {}
+  } catch (err) {
+    logger.warn('Failed to inspect orphaned plans in health validation', { phasesDir, error: err.message });
+  }
 
   // ─── Check 7b: Nyquist VALIDATION.md consistency ────────────────────────
   try {
@@ -670,11 +693,13 @@ function cmdValidateHealth(cwd, options, raw) {
         const researchFile = phaseFiles.find(f => f.endsWith('-RESEARCH.md'));
         const researchContent = fs.readFileSync(path.join(phasesDir, e.name, researchFile), 'utf-8');
         if (researchContent.includes('## Validation Architecture')) {
-          addIssue('warning', 'W009', `Phase ${e.name}: has Validation Architecture in RESEARCH.md but no VALIDATION.md`, 'Re-run /gsd:plan-phase with --research to regenerate');
+          addIssue('warning', 'W009', `Phase ${e.name}: has Validation Architecture in RESEARCH.md but no VALIDATION.md`, 'Re-run /ez-plan-phase with --research to regenerate');
         }
       }
     }
-  } catch {}
+  } catch (err) {
+    logger.warn('Failed to inspect validation architecture consistency in health validation', { phasesDir, error: err.message });
+  }
 
   // ─── Check 8: Run existing consistency checks ─────────────────────────────
   // Inline subset of cmdValidateConsistency
@@ -696,7 +721,9 @@ function cmdValidateHealth(cwd, options, raw) {
           if (dm) diskPhases.add(dm[1]);
         }
       }
-    } catch {}
+    } catch (err) {
+      logger.warn('Failed to run roadmap/disk consistency checks in health validation', { roadmapPath, phasesDir, error: err.message });
+    }
 
     // Phases in ROADMAP but not on disk
     for (const p of roadmapPhases) {
@@ -755,7 +782,7 @@ function cmdValidateHealth(cwd, options, raw) {
             stateContent += `**Current phase:** (determining...)\n`;
             stateContent += `**Status:** Resuming\n\n`;
             stateContent += `## Session Log\n\n`;
-            stateContent += `- ${new Date().toISOString().split('T')[0]}: STATE.md regenerated by /gsd:health --repair\n`;
+            stateContent += `- ${new Date().toISOString().split('T')[0]}: STATE.md regenerated by /ez:health --repair\n`;
             writeStateMd(statePath, stateContent, cwd);
             repairActions.push({ action: repair, success: true, path: 'STATE.md' });
             break;
@@ -772,6 +799,7 @@ function cmdValidateHealth(cwd, options, raw) {
                 }
                 repairActions.push({ action: repair, success: true, path: 'config.json' });
               } catch (err) {
+                logger.error('Failed to repair nyquist key', { error: err.message });
                 repairActions.push({ action: repair, success: false, error: err.message });
               }
             }
@@ -779,6 +807,7 @@ function cmdValidateHealth(cwd, options, raw) {
           }
         }
       } catch (err) {
+        logger.error('Failed to perform repair action', { action: repair, error: err.message });
         repairActions.push({ action: repair, success: false, error: err.message });
       }
     }

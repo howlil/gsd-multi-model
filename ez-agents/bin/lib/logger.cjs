@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * GSD Logger — Centralized logging module for GSD workflow
+ * EZ Logger — Centralized logging module for EZ workflow
  * 
  * Provides structured logging with levels (ERROR, WARN, INFO, DEBUG)
  * Writes to .planning/logs/ez-{timestamp}.log
@@ -24,7 +24,6 @@ class Logger {
   constructor(logDir = '.planning/logs') {
     this.logDir = logDir;
     this.logFile = null;
-    this._ensureLogDir();
   }
 
   /**
@@ -42,6 +41,9 @@ class Logger {
    * @returns {string} - Path to log file
    */
   getLogFile() {
+    if (!this.logFile) {
+      this._ensureLogDir();
+    }
     return this.logFile;
   }
 
@@ -52,6 +54,11 @@ class Logger {
    * @param {Object} context - Additional context data
    */
   log(level, message, context = {}) {
+    // Ensure log directory exists before first write
+    if (!this.logFile) {
+      this._ensureLogDir();
+    }
+    
     const entry = {
       timestamp: new Date().toISOString(),
       level,
@@ -65,11 +72,11 @@ class Logger {
       
       // Always output ERROR level to console for visibility
       if (level === 'ERROR') {
-        console.error(`[GSD ${level}] ${message}`);
+        console.error(`[EZ ${level}] ${message}`);
       }
     } catch (err) {
       // Fallback: log to console if file write fails
-      console.error(`[GSD ${level}] ${message} (file write failed: ${err.message})`);
+      console.error(`[EZ ${level}] ${message} (file write failed: ${err.message})`);
     }
   }
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * GSD File Lock — File locking utility for concurrent write protection
+ * EZ File Lock — File locking utility for concurrent write protection
  * 
  * Uses proper-lockfile to prevent concurrent writes to planning files
  * Includes deadlock detection (30s timeout) and automatic lock cleanup
@@ -82,11 +82,11 @@ async function simpleLock(filePath, options = {}) {
         }
       }
       
-      // Try to create lock file
+      // Try to create lock file (using 'wx' flag to fail if it exists)
       fs.writeFileSync(lockPath, JSON.stringify({
         pid: process.pid,
         timestamp: Date.now()
-      }), 'utf-8');
+      }), { encoding: 'utf-8', flag: 'wx' });
       
       lockHolders.set(filePath, lockPath);
       

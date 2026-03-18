@@ -1,29 +1,73 @@
 # Changelog
 
-All notable changes to EZ Agents (forked from EZ Agents) will be documented in this file.
+All notable changes to EZ Agents will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
-## Migration Guide: EZ Agents → EZ Agents
+## [3.3.0] - 2026-03-18
 
-**This fork has been rebranded from EZ Agents (Get Shit Done) to EZ Agents.**
+### Added
+
+- **End-to-End Testing Framework** - Comprehensive E2E tests for complete user workflows
+  - Complete project lifecycle testing (health check → phase management → milestone complete)
+  - Phase lifecycle testing (create → verify → complete)
+  - State management testing (load → update → verify persistence)
+  - Multi-phase workflow testing with dependencies
+  - Decimal phase numbering support
+  - Error handling and edge case testing
+
+- **10 New E2E Test Cases** covering:
+  - Complete workflow: health check → phase management → milestone complete
+  - Phase lifecycle: create → verify → complete
+  - State management: load → update → verify persistence
+  - Roadmap analyze with disk status
+  - Health check with missing critical files
+  - Phase operations with invalid phase numbers
+  - State operations with missing STATE.md
+  - Config operations with invalid JSON
+  - Multiple phases with dependencies
+  - Phase numbering with decimal phases
+
+### Fixed
+
+- **Test Helper Improvements** - Updated `runEzTools` to use `spawnSync` for proper stdout/stderr capture
+- **Verify Health Test** - Fixed test expectation to accept both E001 and E002/E003/E004 error codes
+- **Debug Cleanup** - Removed debug statements from `verify.cjs` and `ez-tools.cjs`
+
+### Changed
+
+- **Test Coverage** - Increased from 687 to 697 tests (all passing)
+- **Test Reliability** - Improved E2E test assertions to handle varying output formats
+
+### Technical Details
+
+- All 697 tests passing (100% pass rate)
+- New E2E tests located in `tests/e2e-workflow.test.cjs`
+- Test helper updated in `tests/helpers.cjs`
+- Health validation test updated in `tests/verify-health.test.cjs`
+
+---
+
+## Migration Guide: Legacy Branding → EZ Agents
+
+**This fork has been rebranded to EZ Agents.**
 
 ### What Changed
 
-| Category | Before (EZ Agents) | After (EZ Agents) |
+| Category | Before (Legacy) | After (EZ Agents) |
 |----------|-------------|-------------------|
 | **NPM Package** | `ez-agents-cc` | `@howlil/ez-agents` |
-| **Command Prefix** | `/EZ Agents:` | `/ez:` |
+| **Command Prefix** | `/legacy:` | `/ez:` |
 | **Install Command** | `npx ez-agents-cc` | `npx ez-agents` |
-| **Update Command** | `/EZ Agents:update` | `/ez:update` |
+| **Update Command** | `/legacy:update` | `/ez:update` |
 | **Agent Prefix** | `ez-*` | `ez-*` |
 | **Folder Structure** | `ez-agents/` (internal) | `ez-agents/` (unchanged) |
 
 ### Migration Steps
 
-1. **Uninstall EZ Agents** (if installed globally):
+1. **Uninstall legacy package** (if installed globally):
    ```bash
    npx ez-agents-cc --all --global --uninstall
    ```
@@ -34,7 +78,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
    ```
 
 3. **Update your workflows**:
-   - Replace `/EZ Agents:` with `/ez:` in your notes and documentation
+   - Replace legacy slash-command prefixes with `/ez:` in your notes and documentation
    - Update any custom scripts that reference `ez-agents-cc`
 
 ### What Stayed the Same
@@ -50,10 +94,35 @@ EZ Agents adds **multi-model support** (Qwen, Kimi, OpenAI, Anthropic) and **ent
 
 ---
 
-## [Unreleased]
+## [3.2.1] - 2026-03-18
+
+### Removed
+- **Legacy GSD Support**: Completely removed all remaining legacy `~/.gsd` fallback paths, `gsd_state_version` metadata, and `runGsdTools` aliases.
+- **Legacy Scripts**: Deleted `replace-gsd-tools.js` and `run-replace.js`.
+
+### Fixed
+- **Branding**: Updated remaining GSD references in tests, documentation, and security email (`security@ez.agents`).
+- **Tests**: Fixed `COMMANDS_DIR` path in `agent-frontmatter.test.cjs` and refactored `copilot-install.test.cjs` to use EZ-branded functions and variables.
+
+## [3.2.0] - 2026-03-18
 
 ### Added
 - **Node repair operator** (`workflows/node-repair.md`) — autonomous recovery when task verification fails. Instead of immediately asking the user, the executor attempts structured repair: RETRY (different approach), DECOMPOSE (break into sub-tasks), or PRUNE (skip with justification). Only escalates to the user when the repair budget is exhausted or an architectural decision is needed. Repair budget defaults to 2 attempts per task; configurable via `workflow.node_repair_budget`. Disable entirely with `workflow.node_repair: false` to restore original behavior.
+- **Comprehensive test suite expansion**: Added 12 new test files covering circuit breakers, file locks, logger integration, and state-snapshot consistency.
+- **Assistant Adapter Refactor**: Unified multi-model support for Qwen, Kimi, and OpenAI via a new adapter pattern.
+- **EZ-Agents Rebranding**: Finalized the migration from legacy GSD branding across all workflows, agents, and documentation.
+
+## [3.1.1] - 2026-03-17
+
+### Fixed
+- `init new-project` brownfield detection is now cross-platform and no longer depends on Unix shell pipelines.
+- Global defaults and Brave key detection now prefer `~/.ez` while keeping legacy `~/.gsd` fallback compatibility.
+- User-facing workflow banners and command hints are now fully EZ-branded (`EZ ►`, `/ez-*`) with stale legacy references removed.
+
+### Changed
+- Logger filename convention updated to `ez-*.log` and planning temp write prefix updated to `ez-write-*`.
+- STATE frontmatter now emits `ez_state_version` while preserving `gsd_state_version` compatibility alias for older state readers.
+- Release-adjacent docs/templates cleaned to align with current EZ naming and command format.
 
 ## [1.22.4] - 2026-03-03
 

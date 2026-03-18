@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * GSD Retry — Retry utility with exponential backoff
+ * EZ Retry — Retry utility with exponential backoff
  * 
  * Features:
  * - Configurable max retries, base delay, max delay

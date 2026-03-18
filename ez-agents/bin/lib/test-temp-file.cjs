@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Test script for GSD Temp File Handler
+ * Test script for EZ Temp File Handler
  * Run: node ez-agents/bin/lib/test-temp-file.cjs
  */
 

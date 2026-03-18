@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Test script for GSD Logger
+ * Test script for EZ Logger
  * Run: node ez-agents/bin/lib/test-logger.cjs
  */
 
@@ -9,7 +9,7 @@ const Logger = require('./logger.cjs');
 const path = require('path');
 
 console.log('='.repeat(50));
-console.log('Testing GSD Logger...');
+console.log('Testing EZ Logger...');
 console.log('='.repeat(50));
 
 const logger = new Logger();

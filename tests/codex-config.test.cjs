@@ -6,7 +6,7 @@
  */
 
 // Enable test exports from install.js (skips main CLI logic)
-process.env.EZ Agents_TEST_MODE = '1';
+process.env.EZ_AGENTS_TEST_MODE = '1';
 
 const { test, describe, beforeEach, afterEach } = require('node:test');
 const assert = require('node:assert');
@@ -40,7 +40,7 @@ describe('getCodexSkillAdapterHeader', () => {
   test('includes correct invocation syntax', () => {
     const result = getCodexSkillAdapterHeader('ez-plan-phase');
     assert.ok(result.includes('`$ez-plan-phase`'), 'has $skillName invocation');
-    assert.ok(result.includes('{{EZ Agents_ARGS}}'), 'has EZ Agents_ARGS variable');
+    assert.ok(result.includes('{{EZ_ARGS}}'), 'has EZ_ARGS variable');
   });
 
   test('section B maps AskUserQuestion parameters', () => {

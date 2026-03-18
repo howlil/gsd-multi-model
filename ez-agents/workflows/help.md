@@ -119,7 +119,7 @@ Usage: `/ez:execute-phase 5`
 ### Quick Mode
 
 **`/ez:quick`**
-Execute small, ad-hoc tasks with GSD guarantees but skip optional agents.
+Execute small, ad-hoc tasks with EZ guarantees but skip optional agents.
 
 Quick mode uses the same system with a shorter path:
 - Spawns planner + executor (skips researcher, checker, verifier)
@@ -307,7 +307,7 @@ Configure workflow toggles and model profile interactively.
 Usage: `/ez:settings`
 
 **`/ez:set-profile <profile>`**
-Quick switch model profile for GSD agents.
+Quick switch model profile for EZ agents.
 
 - `quality` — Opus everywhere except verification
 - `balanced` — Opus for planning, Sonnet for execution (default)

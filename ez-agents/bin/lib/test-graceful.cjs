@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Test script for GSD Health Check and Timeout Exec
+ * Test script for EZ Health Check and Timeout Exec
  * Run: node ez-agents/bin/lib/test-graceful.cjs
  */
 
@@ -9,7 +9,7 @@ const HealthCheck = require('./health-check.cjs');
 const { execWithTimeout } = require('./timeout-exec.cjs');
 
 console.log('='.repeat(50));
-console.log('Testing GSD Graceful Degradation...');
+console.log('Testing EZ Graceful Degradation...');
 console.log('='.repeat(50));
 
 // Test 1: Health Check

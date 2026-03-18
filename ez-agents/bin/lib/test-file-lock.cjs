@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Test script for GSD File Lock
+ * Test script for EZ File Lock
  * Run: node ez-agents/bin/lib/test-file-lock.cjs
  */
 

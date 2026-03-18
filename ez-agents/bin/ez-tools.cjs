@@ -139,6 +139,7 @@ const milestone = require('./lib/milestone.cjs');
 const commands = require('./lib/commands.cjs');
 const init = require('./lib/init.cjs');
 const frontmatter = require('./lib/frontmatter.cjs');
+const HealthCheck = require('./lib/health-check.cjs');
 
 // ─── CLI Router ───────────────────────────────────────────────────────────────
 
@@ -172,7 +173,7 @@ async function main() {
   const command = args[0];
 
   if (!command) {
-    error('Usage: ez-tools <command> [args] [--raw] [--cwd <path>]\nCommands: state, resolve-model, find-phase, commit, verify-summary, verify, frontmatter, template, generate-slug, current-timestamp, list-todos, verify-path-exists, config-ensure-section, init');
+    error('Usage: ez-tools <command> [args] [--raw] [--cwd <path>]\nCommands: state, resolve-model, find-phase, commit, verify-summary, verify, frontmatter, template, generate-slug, current-timestamp, list-todos, verify-path-exists, config-ensure-section, init, health');
   }
 
   switch (command) {
@@ -244,6 +245,13 @@ async function main() {
       } else {
         state.cmdStateLoad(cwd, raw);
       }
+      break;
+    }
+
+    case 'health': {
+      const health = new HealthCheck();
+      const result = health.runAll();
+      console.log(JSON.stringify(result, null, 2));
       break;
     }
 
@@ -526,7 +534,7 @@ async function main() {
           init.cmdInitPlanPhase(cwd, args[2], raw);
           break;
         case 'new-project':
-          init.cmdInitNewProject(cwd, raw);
+          await init.cmdInitNewProject(cwd, raw);
           break;
         case 'new-milestone':
           init.cmdInitNewMilestone(cwd, raw);

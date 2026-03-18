@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * GSD Safe Path — Path traversal prevention utility
+ * EZ Safe Path — Path traversal prevention utility
  * 
  * Prevents path traversal attacks by:
  * - Resolving and validating paths against base directory

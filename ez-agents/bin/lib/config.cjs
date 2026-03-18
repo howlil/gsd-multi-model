@@ -5,6 +5,7 @@
 const fs = require('fs');
 const path = require('path');
 const { output, error } = require('./core.cjs');
+const { safePlanningWriteSync } = require('./planning-write.cjs');
 
 const VALID_CONFIG_KEYS = new Set([
   'mode', 'granularity', 'parallelization', 'commit_docs', 'model_profile',
@@ -36,16 +37,22 @@ function cmdConfigEnsureSection(cwd, raw) {
     return;
   }
 
-  // Detect Brave Search API key availability
+  // Detect Brave Search API key availability (prefer ~/.ez)
   const homedir = require('os').homedir();
-  const braveKeyFile = path.join(homedir, '.gsd', 'brave_api_key');
-  const hasBraveSearch = !!(process.env.BRAVE_API_KEY || fs.existsSync(braveKeyFile));
+  const braveKeyCandidates = [
+    path.join(homedir, '.ez', 'brave_api_key'),
+  ];
+  const hasBraveSearch = !!(process.env.BRAVE_API_KEY || braveKeyCandidates.some(p => fs.existsSync(p)));
 
-  // Load user-level defaults from ~/.gsd/defaults.json if available
-  const globalDefaultsPath = path.join(homedir, '.gsd', 'defaults.json');
+  // Load user-level defaults from ~/.ez/defaults.json
+  const defaultsCandidates = [
+    path.join(homedir, '.ez', 'defaults.json'),
+  ];
+  const existingDefaultsPath = defaultsCandidates.find(p => fs.existsSync(p));
+  const globalDefaultsPath = existingDefaultsPath || defaultsCandidates[0];
   let userDefaults = {};
   try {
-    if (fs.existsSync(globalDefaultsPath)) {
+    if (existingDefaultsPath) {
       userDefaults = JSON.parse(fs.readFileSync(globalDefaultsPath, 'utf-8'));
       // Migrate deprecated "depth" key to "granularity"
       if ('depth' in userDefaults && !('granularity' in userDefaults)) {
@@ -65,8 +72,8 @@ function cmdConfigEnsureSection(cwd, raw) {
     commit_docs: true,
     search_gitignored: false,
     branching_strategy: 'none',
-    phase_branch_template: 'gsd/phase-{phase}-{slug}',
-    milestone_branch_template: 'gsd/{milestone}-{slug}',
+    phase_branch_template: 'ez/phase-{phase}-{slug}',
+    milestone_branch_template: 'ez/{milestone}-{slug}',
     workflow: {
       research: true,
       plan_check: true,
@@ -83,7 +90,7 @@ function cmdConfigEnsureSection(cwd, raw) {
   };
 
   try {
-    fs.writeFileSync(configPath, JSON.stringify(defaults, null, 2), 'utf-8');
+    safePlanningWriteSync(configPath, JSON.stringify(defaults, null, 2));
     const result = { created: true, path: '.planning/config.json' };
     output(result, raw, 'created');
   } catch (err) {
@@ -132,7 +139,7 @@ function cmdConfigSet(cwd, keyPath, value, raw) {
 
   // Write back
   try {
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8');
+    safePlanningWriteSync(configPath, JSON.stringify(config, null, 2));
     const result = { updated: true, key: keyPath, value: parsedValue };
     output(result, raw, `${keyPath}=${parsedValue}`);
   } catch (err) {

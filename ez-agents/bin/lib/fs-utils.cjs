@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * GSD FS Utils — Cross-platform file system utilities
+ * EZ FS Utils — Cross-platform file system utilities
  * 
  * Replaces Unix commands (find, grep, head, tail) with
  * cross-platform JavaScript implementations.

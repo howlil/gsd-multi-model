@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * GSD Safe Exec — Secure command execution with allowlist and validation
+ * EZ Safe Exec — Secure command execution with allowlist and validation
  * 
  * Prevents command injection by:
  * - Using execFile instead of execSync with string concatenation

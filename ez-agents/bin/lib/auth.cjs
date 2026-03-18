@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * GSD Auth — Secure credential storage using system keychain
+ * EZ Auth — Secure credential storage using system keychain
  * 
  * Stores API keys securely using:
  * - keytar for system keychain (Windows Credential Manager, macOS Keychain, libsecret)

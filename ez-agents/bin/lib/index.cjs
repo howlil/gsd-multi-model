@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * GSD Lib Index — Central export for all GSD libraries
+ * EZ Lib Index — Central export for all EZ libraries
  * 
  * Provides single import point for all utility modules.
  * 

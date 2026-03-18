@@ -4,8 +4,10 @@
 
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
 const { loadConfig, resolveModelInternal, findPhaseInternal, getRoadmapPhaseInternal, pathExistsInternal, generateSlugInternal, getMilestoneInfo, normalizePhaseName, toPosixPath, output, error } = require('./core.cjs');
+const { defaultLogger: logger } = require('./logger.cjs');
+const { findFiles } = require('./fs-utils.cjs');
+const { execWithTimeout } = require('./timeout-exec.cjs');
 
 function cmdInitExecutePhase(cwd, phase, raw) {
   if (!phase) {
@@ -153,37 +155,62 @@ function cmdInitPlanPhase(cwd, phase, raw) {
       if (uatFile) {
         result.uat_path = toPosixPath(path.join(phaseInfo.directory, uatFile));
       }
-    } catch {}
+    } catch (err) {
+      logger.warn('Failed to inspect phase artifacts in cmdInitPlanPhase', { phaseDirFull, error: err.message });
+    }
   }
 
   output(result, raw);
 }
 
-function cmdInitNewProject(cwd, raw) {
+async function cmdInitNewProject(cwd, raw) {
   const config = loadConfig(cwd);
 
-  // Detect Brave Search API key availability
+  // Detect Brave Search API key availability (prefer ~/.ez)
   const homedir = require('os').homedir();
-  const braveKeyFile = path.join(homedir, '.gsd', 'brave_api_key');
-  const hasBraveSearch = !!(process.env.BRAVE_API_KEY || fs.existsSync(braveKeyFile));
+  const braveKeyCandidates = [
+    path.join(homedir, '.ez', 'brave_api_key'),
+  ];
+  const hasBraveSearch = !!(process.env.BRAVE_API_KEY || braveKeyCandidates.some(p => fs.existsSync(p)));
 
   // Detect existing code
   let hasCode = false;
   let hasPackageFile = false;
   try {
-    const files = execSync('find . -maxdepth 3 \\( -name "*.ts" -o -name "*.js" -o -name "*.py" -o -name "*.go" -o -name "*.rs" -o -name "*.swift" -o -name "*.java" \\) 2>/dev/null | grep -v node_modules | grep -v .git | head -5', {
-      cwd,
-      encoding: 'utf-8',
-      stdio: ['pipe', 'pipe', 'pipe'],
+    const codeFiles = findFiles(cwd, [
+      /\.ts$/,
+      /\.js$/,
+      /\.py$/,
+      /\.go$/,
+      /\.rs$/,
+      /\.swift$/,
+      /\.java$/,
+    ], {
+      maxDepth: 3,
+      exclude: ['node_modules', '.git'],
     });
-    hasCode = files.trim().length > 0;
-  } catch {}
+    hasCode = codeFiles.length > 0;
+  } catch (err) {
+    logger.warn('Failed to detect existing source files in cmdInitNewProject', { cwd, error: err.message });
+  }
 
   hasPackageFile = pathExistsInternal(cwd, 'package.json') ||
                    pathExistsInternal(cwd, 'requirements.txt') ||
                    pathExistsInternal(cwd, 'Cargo.toml') ||
                    pathExistsInternal(cwd, 'go.mod') ||
                    pathExistsInternal(cwd, 'Package.swift');
+
+  let hasGit = pathExistsInternal(cwd, '.git');
+  try {
+    const gitProbe = await execWithTimeout('git', ['rev-parse', '--is-inside-work-tree'], { timeout: 5000, fallback: '' });
+    if (gitProbe === '') {
+      logger.info('Fallback activated during init new-project git probe', { command: 'git rev-parse --is-inside-work-tree' });
+    } else {
+      hasGit = gitProbe.trim() === 'true' || hasGit;
+    }
+  } catch (err) {
+    logger.warn('Init new-project git probe failed without fallback', { error: err.message });
+  }
 
   const result = {
     // Models
@@ -206,7 +233,7 @@ function cmdInitNewProject(cwd, raw) {
     needs_codebase_map: (hasCode || hasPackageFile) && !pathExistsInternal(cwd, '.planning/codebase'),
 
     // Git state
-    has_git: pathExistsInternal(cwd, '.git'),
+    has_git: hasGit,
 
     // Enhanced search
     brave_search_available: hasBraveSearch,
@@ -307,7 +334,9 @@ function cmdInitResume(cwd, raw) {
   let interruptedAgentId = null;
   try {
     interruptedAgentId = fs.readFileSync(path.join(cwd, '.planning', 'current-agent-id.txt'), 'utf-8').trim();
-  } catch {}
+  } catch (err) {
+    logger.warn('Failed to read current-agent-id marker in cmdInitResume', { cwd, error: err.message });
+  }
 
   const result = {
     // File existence
@@ -436,7 +465,9 @@ function cmdInitPhaseOp(cwd, phase, raw) {
       if (uatFile) {
         result.uat_path = toPosixPath(path.join(phaseInfo.directory, uatFile));
       }
-    } catch {}
+    } catch (err) {
+      logger.warn('Failed to inspect phase artifacts in cmdInitPhaseOp', { phaseDirFull, error: err.message });
+    }
   }
 
   output(result, raw);
@@ -471,9 +502,13 @@ function cmdInitTodos(cwd, area, raw) {
           area: todoArea,
           path: '.planning/todos/pending/' + file,
         });
-      } catch {}
+      } catch (err) {
+        logger.warn('Failed to parse todo file in cmdInitTodos', { file, error: err.message });
+      }
     }
-  } catch {}
+  } catch (err) {
+    logger.warn('Failed to list pending todos in cmdInitTodos', { pendingDir, error: err.message });
+  }
 
   const result = {
     // Config
@@ -520,9 +555,13 @@ function cmdInitMilestoneOp(cwd, raw) {
         const phaseFiles = fs.readdirSync(path.join(phasesDir, dir));
         const hasSummary = phaseFiles.some(f => f.endsWith('-SUMMARY.md') || f === 'SUMMARY.md');
         if (hasSummary) completedPhases++;
-      } catch {}
+      } catch (err) {
+        logger.warn('Failed to inspect phase directory in cmdInitMilestoneOp', { dir, error: err.message });
+      }
     }
-  } catch {}
+  } catch (err) {
+    logger.warn('Failed to list phase directories in cmdInitMilestoneOp', { phasesDir, error: err.message });
+  }
 
   // Check archive
   const archiveDir = path.join(cwd, '.planning', 'archive');
@@ -531,7 +570,9 @@ function cmdInitMilestoneOp(cwd, raw) {
     archivedMilestones = fs.readdirSync(archiveDir, { withFileTypes: true })
       .filter(e => e.isDirectory())
       .map(e => e.name);
-  } catch {}
+  } catch (err) {
+    logger.warn('Failed to list archived milestones in cmdInitMilestoneOp', { archiveDir, error: err.message });
+  }
 
   const result = {
     // Config
@@ -570,7 +611,9 @@ function cmdInitMapCodebase(cwd, raw) {
   let existingMaps = [];
   try {
     existingMaps = fs.readdirSync(codebaseDir).filter(f => f.endsWith('.md'));
-  } catch {}
+  } catch (err) {
+    logger.warn('Failed to list codebase map files in cmdInitMapCodebase', { codebaseDir, error: err.message });
+  }
 
   const result = {
     // Models
@@ -646,7 +689,9 @@ function cmdInitProgress(cwd, raw) {
         nextPhase = phaseInfo;
       }
     }
-  } catch {}
+  } catch (err) {
+    logger.warn('Failed to analyze phase progress in cmdInitProgress', { phasesDir, error: err.message });
+  }
 
   // Check for paused work
   let pausedAt = null;
@@ -654,7 +699,9 @@ function cmdInitProgress(cwd, raw) {
     const state = fs.readFileSync(path.join(cwd, '.planning', 'STATE.md'), 'utf-8');
     const pauseMatch = state.match(/\*\*Paused At:\*\*\s*(.+)/);
     if (pauseMatch) pausedAt = pauseMatch[1].trim();
-  } catch {}
+  } catch (err) {
+    logger.warn('Failed to read paused state in cmdInitProgress', { cwd, error: err.message });
+  }
 
   const result = {
     // Models

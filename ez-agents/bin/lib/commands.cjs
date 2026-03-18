@@ -6,6 +6,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 const { safeReadFile, loadConfig, isGitIgnored, execGit, normalizePhaseName, comparePhaseNum, getArchivedPhaseDirs, generateSlugInternal, getMilestoneInfo, resolveModelInternal, MODEL_PROFILES, toPosixPath, output, error, findPhaseInternal } = require('./core.cjs');
 const { extractFrontmatter } = require('./frontmatter.cjs');
+const { defaultLogger: logger } = require('./logger.cjs');
 
 function cmdGenerateSlug(text, raw) {
   if (!text) {
@@ -70,9 +71,13 @@ function cmdListTodos(cwd, area, raw) {
           area: todoArea,
           path: toPosixPath(path.join('.planning', 'todos', 'pending', file)),
         });
-      } catch {}
+      } catch (err) {
+        logger.warn('Failed to parse todo file in cmdListTodos', { file, error: err.message });
+      }
     }
-  } catch {}
+  } catch (err) {
+    logger.warn('Failed to list pending todos in cmdListTodos', { pendingDir, error: err.message });
+  }
 
   const result = { count, todos };
   output(result, raw, count.toString());
@@ -90,7 +95,8 @@ function cmdVerifyPathExists(cwd, targetPath, raw) {
     const type = stats.isDirectory() ? 'directory' : stats.isFile() ? 'file' : 'other';
     const result = { exists: true, type };
     output(result, raw, 'true');
-  } catch {
+  } catch (err) {
+    logger.warn('Path verification failed in cmdVerifyPathExists', { fullPath, error: err.message });
     const result = { exists: false, type: null };
     output(result, raw, 'false');
   }
@@ -119,7 +125,9 @@ function cmdHistoryDigest(cwd, raw) {
       for (const dir of currentDirs) {
         allPhaseDirs.push({ name: dir, fullPath: path.join(phasesDir, dir), milestone: null });
       }
-    } catch {}
+    } catch (err) {
+      logger.warn('Failed to enumerate current phase directories in cmdHistoryDigest', { phasesDir, error: err.message });
+    }
   }
 
   if (allPhaseDirs.length === 0) {
@@ -177,8 +185,8 @@ function cmdHistoryDigest(cwd, raw) {
             fm['tech-stack'].added.forEach(t => digest.tech_stack.add(typeof t === 'string' ? t : t.name));
           }
 
-        } catch (e) {
-          // Skip malformed summaries
+        } catch (err) {
+          logger.warn('Skipping malformed summary in cmdHistoryDigest', { summary, dirPath, error: err.message });
         }
       }
     }
@@ -192,8 +200,9 @@ function cmdHistoryDigest(cwd, raw) {
     digest.tech_stack = [...digest.tech_stack];
 
     output(digest, raw);
-  } catch (e) {
-    error('Failed to generate history digest: ' + e.message);
+  } catch (err) {
+    logger.error('Failed to generate history digest', { error: err.message });
+    error('Failed to generate history digest: ' + err.message);
   }
 }
 
@@ -375,6 +384,7 @@ async function cmdWebsearch(query, options, raw) {
       results
     }, raw, results.map(r => `${r.title}\n${r.url}\n${r.description}`).join('\n\n'));
   } catch (err) {
+    logger.warn('Websearch request failed in cmdWebsearch', { query, error: err.message });
     output({ available: false, error: err.message }, raw, '');
   }
 }
@@ -411,7 +421,9 @@ function cmdProgressRender(cwd, format, raw) {
 
       phases.push({ number: phaseNum, name: phaseName, plans, summaries, status });
     }
-  } catch {}
+  } catch (err) {
+    logger.warn('Failed to enumerate phase directories in cmdProgressRender', { phasesDir, error: err.message });
+  }
 
   const percent = totalPlans > 0 ? Math.min(100, Math.round((totalSummaries / totalPlans) * 100)) : 0;
 
@@ -492,7 +504,7 @@ function cmdScaffold(cwd, type, options, raw) {
   switch (type) {
     case 'context': {
       filePath = path.join(phaseDir, `${padded}-CONTEXT.md`);
-      content = `---\nphase: "${padded}"\nname: "${name || phaseInfo?.phase_name || 'Unnamed'}"\ncreated: ${today}\n---\n\n# Phase ${phase}: ${name || phaseInfo?.phase_name || 'Unnamed'} — Context\n\n## Decisions\n\n_Decisions will be captured during /gsd:discuss-phase ${phase}_\n\n## Discretion Areas\n\n_Areas where the executor can use judgment_\n\n## Deferred Ideas\n\n_Ideas to consider later_\n`;
+      content = `---\nphase: "${padded}"\nname: "${name || phaseInfo?.phase_name || 'Unnamed'}"\ncreated: ${today}\n---\n\n# Phase ${phase}: ${name || phaseInfo?.phase_name || 'Unnamed'} — Context\n\n## Decisions\n\n_Decisions will be captured during /ez-discuss-phase ${phase}_\n\n## Discretion Areas\n\n_Areas where the executor can use judgment_\n\n## Deferred Ideas\n\n_Ideas to consider later_\n`;
       break;
     }
     case 'uat': {
@@ -566,7 +578,9 @@ function cmdStats(cwd, format, raw) {
 
       phases.push({ number: phaseNum, name: phaseName, plans, summaries, status });
     }
-  } catch {}
+  } catch (err) {
+    logger.warn('Failed to enumerate phase directories in cmdStats', { phasesDir, error: err.message });
+  }
 
   const percent = totalPlans > 0 ? Math.min(100, Math.round((totalSummaries / totalPlans) * 100)) : 0;
 
@@ -581,7 +595,9 @@ function cmdStats(cwd, format, raw) {
       requirementsComplete = checked ? checked.length : 0;
       requirementsTotal = requirementsComplete + (unchecked ? unchecked.length : 0);
     }
-  } catch {}
+  } catch (err) {
+    logger.warn('Failed to parse REQUIREMENTS.md in cmdStats', { reqPath, error: err.message });
+  }
 
   // Last activity from STATE.md
   let lastActivity = null;
@@ -591,7 +607,9 @@ function cmdStats(cwd, format, raw) {
       const activityMatch = stateContent.match(/\*\*Last Activity:\*\*\s*(.+)/);
       if (activityMatch) lastActivity = activityMatch[1].trim();
     }
-  } catch {}
+  } catch (err) {
+    logger.warn('Failed to read STATE.md in cmdStats', { statePath, error: err.message });
+  }
 
   // Git stats
   let gitCommits = 0;
@@ -601,7 +619,9 @@ function cmdStats(cwd, format, raw) {
     gitCommits = parseInt(commitCount.trim(), 10) || 0;
     const firstDate = execGit(cwd, ['log', '--reverse', '--format=%as', '--max-count=1']);
     gitFirstCommitDate = firstDate.trim() || null;
-  } catch {}
+  } catch (err) {
+    logger.warn('Failed to compute git stats in cmdStats', { cwd, error: err.message });
+  }
 
   const completedPhases = phases.filter(p => p.status === 'Complete').length;
 

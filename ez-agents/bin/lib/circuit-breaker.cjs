@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * GSD Circuit Breaker — Prevent cascading failures
+ * EZ Circuit Breaker — Prevent cascading failures
  * 
  * Implements circuit breaker pattern:
  * - CLOSED: Normal operation

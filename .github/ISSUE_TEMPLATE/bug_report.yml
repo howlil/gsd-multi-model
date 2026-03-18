@@ -10,7 +10,7 @@ body:
   - type: input
     id: version
     attributes:
-      label: GSD Version
+      label: EZ Agents Version
       description: "Run: npm list -g get-shit-done-cc"
       placeholder: "e.g., 1.18.0"
     validations:
@@ -45,7 +45,7 @@ body:
       label: Steps to reproduce
       description: How can we reproduce this?
       placeholder: |
-        1. Run /gsd:...
+        1. Run /ez:...
         2. ...
     validations:
       required: true

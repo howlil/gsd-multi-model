@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * GSD Assistant Adapters — Unified interface for AI coding assistants
+ * EZ Assistant Adapters — Unified interface for AI coding assistants
  * 
  * Adapters for: Claude Code, OpenCode, Gemini CLI, Codex
  * 
@@ -166,6 +166,63 @@ class CodexAdapter extends AssistantAdapter {
 }
 
 /**
+ * Qwen Code adapter
+ */
+class QwenAdapter extends AssistantAdapter {
+  constructor() {
+    super('qwen');
+  }
+
+  async spawnAgent(type, options) {
+    logger.info('Qwen Code: spawning agent', { type });
+    // Qwen Code uses its own agent system
+    return { type, status: 'completed', result: '[Qwen Code agent result]' };
+  }
+
+  async callTool(tool, params) {
+    logger.info('Qwen Code: calling tool', { tool });
+    return { tool, status: 'success' };
+  }
+
+  selectModel(taskType) {
+    const models = {
+      planning: 'qwen-max',
+      execution: 'qwen-plus',
+      verification: 'qwen-plus'
+    };
+    return models[taskType] || models.execution;
+  }
+}
+
+/**
+ * Kimi Code adapter
+ */
+class KimiAdapter extends AssistantAdapter {
+  constructor() {
+    super('kimi');
+  }
+
+  async spawnAgent(type, options) {
+    logger.info('Kimi Code: spawning agent', { type });
+    return { type, status: 'completed', result: '[Kimi Code agent result]' };
+  }
+
+  async callTool(tool, params) {
+    logger.info('Kimi Code: calling tool', { tool });
+    return { tool, status: 'success' };
+  }
+
+  selectModel(taskType) {
+    const models = {
+      planning: 'moonshot-v1-32k',
+      execution: 'moonshot-v1-8k',
+      verification: 'moonshot-v1-8k'
+    };
+    return models[taskType] || models.execution;
+  }
+}
+
+/**
  * Factory function to create adapter
  * @param {string} type - Adapter type
  * @returns {AssistantAdapter} - Adapter instance
@@ -175,7 +232,9 @@ function createAdapter(type) {
     'claude-code': ClaudeCodeAdapter,
     'opencode': OpenCodeAdapter,
     'gemini': GeminiAdapter,
-    'codex': CodexAdapter
+    'codex': CodexAdapter,
+    'qwen': QwenAdapter,
+    'kimi': KimiAdapter
   };
 
   const AdapterClass = adapters[type];
@@ -191,7 +250,7 @@ function createAdapter(type) {
  * @returns {string[]} - List of adapter names
  */
 function getAvailableAdapters() {
-  return ['claude-code', 'opencode', 'gemini', 'codex'];
+  return ['claude-code', 'opencode', 'gemini', 'codex', 'qwen', 'kimi'];
 }
 
 module.exports = {

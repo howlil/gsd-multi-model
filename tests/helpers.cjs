@@ -1,32 +1,43 @@
 /**
- * GSD Tools Test Helpers
+ * EZ Tools Test Helpers
  */
 
-const { execSync, execFileSync } = require('child_process');
+const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-const TOOLS_PATH = path.join(__dirname, '..', 'ez-agents', 'bin', 'ez-tools.cjs');
+const EZ_TOOLS_PATH = path.join(__dirname, '..', 'ez-agents', 'bin', 'ez-tools.cjs');
 
 /**
  * Run ez-tools command.
  *
  * @param {string|string[]} args - Command string (shell-interpreted) or array
- *   of arguments (shell-bypassed via execFileSync, safe for JSON and dollar signs).
+ *   of arguments (shell-bypassed, safe for JSON and dollar signs).
  * @param {string} cwd - Working directory.
+ * @param {object} envOverrides - Optional env var overrides.
  */
-function runGsdTools(args, cwd = process.cwd()) {
+function runEzTools(args, cwd = process.cwd(), envOverrides = {}) {
   try {
+    const env = { ...process.env, ...envOverrides };
     let result;
     if (Array.isArray(args)) {
-      result = execFileSync(process.execPath, [TOOLS_PATH, ...args], {
+      // Use spawnSync for array args to properly capture stdout/stderr
+      const { spawnSync } = require('child_process');
+      const spawnResult = spawnSync(process.execPath, [EZ_TOOLS_PATH, ...args], {
         cwd,
+        env,
         encoding: 'utf-8',
         stdio: ['pipe', 'pipe', 'pipe'],
       });
+      return { 
+        success: spawnResult.status === 0, 
+        output: (spawnResult.stdout || '').trim(), 
+        stderr: (spawnResult.stderr || '').trim(),
+      };
     } else {
-      result = execSync(`node "${TOOLS_PATH}" ${args}`, {
+      result = execSync(`node "${EZ_TOOLS_PATH}" ${args}`, {
         cwd,
+        env,
         encoding: 'utf-8',
         stdio: ['pipe', 'pipe', 'pipe'],
       });
@@ -72,4 +83,4 @@ function cleanup(tmpDir) {
   fs.rmSync(tmpDir, { recursive: true, force: true });
 }
 
-module.exports = { runGsdTools, createTempProject, createTempGitProject, cleanup, TOOLS_PATH };
+module.exports = { runEzTools, createTempProject, createTempGitProject, cleanup, EZ_TOOLS_PATH };

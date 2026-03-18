@@ -24,7 +24,7 @@ NYQUIST_CFG=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" config get workflo
 
 If `NYQUIST_CFG` is `false`: exit with "Nyquist validation is disabled. Enable via /ez:settings."
 
-Display banner: `GSD > VALIDATE PHASE {N}: {name}`
+Display banner: `EZ > VALIDATE PHASE {N}: {name}`
 
 ## 1. Detect Input State
 
@@ -135,14 +135,14 @@ node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" commit "docs(phase-${PHASE}): ad
 
 **Compliant:**
 ```
-GSD > PHASE {N} IS NYQUIST-COMPLIANT
+EZ > PHASE {N} IS NYQUIST-COMPLIANT
 All requirements have automated verification.
 ▶ Next: /ez:audit-milestone
 ```
 
 **Partial:**
 ```
-GSD > PHASE {N} VALIDATED (PARTIAL)
+EZ > PHASE {N} VALIDATED (PARTIAL)
 {M} automated, {K} manual-only.
 ▶ Retry: /ez:validate-phase {N}
 ```

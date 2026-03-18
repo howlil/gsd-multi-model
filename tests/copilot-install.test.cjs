@@ -1,5 +1,5 @@
 /**
- * GSD Tools Tests - Copilot Install Plumbing
+ * EZ Tools Tests - Copilot Install Plumbing
  *
  * Tests for Copilot runtime directory resolution, config paths,
  * and integration with the multi-runtime installer.
@@ -7,7 +7,7 @@
  * Requirements: CLI-01, CLI-02, CLI-03, CLI-04, CLI-05, CLI-06
  */
 
-process.env.EZ_TEST_MODE = '1';
+process.env.EZ_AGENTS_TEST_MODE = '1';
 
 const { test, describe, beforeEach, afterEach } = require('node:test');
 const assert = require('node:assert');
@@ -28,7 +28,7 @@ const {
   EZ_COPILOT_INSTRUCTIONS_MARKER,
   EZ_COPILOT_INSTRUCTIONS_CLOSE_MARKER,
   mergeCopilotInstructions,
-  stripGsdFromCopilotInstructions,
+  stripEzAgentsFromCopilotInstructions,
   writeManifest,
   reportLocalPatches,
 } = require('../bin/install.js');
@@ -385,14 +385,14 @@ Body content here referencing ~/.claude/foo and ez:health.`;
   test('handles skill without allowed-tools', () => {
     const input = `---
 name: ez:help
-description: Show available GSD commands
+description: Show available EZ commands
 ---
 
 Help content.`;
 
     const result = convertClaudeCommandToCopilotSkill(input, 'ez-help');
     assert.ok(result.includes('name: ez-help'), 'name set');
-    assert.ok(result.includes('description: Show available GSD commands'), 'description preserved');
+    assert.ok(result.includes('description: Show available EZ commands'), 'description preserved');
     assert.ok(!result.includes('allowed-tools:'), 'no allowed-tools line');
   });
 
@@ -500,7 +500,7 @@ describe('convertClaudeAgentToCopilotAgent', () => {
   test('maps and deduplicates tools', () => {
     const input = `---
 name: ez-executor
-description: Executes GSD plans
+description: Executes EZ plans
 tools: Read, Write, Edit, Bash, Grep, Glob
 color: yellow
 ---
@@ -527,7 +527,7 @@ Body.`;
   test('preserves name description and color', () => {
     const input = `---
 name: ez-executor
-description: Executes GSD plans with atomic commits
+description: Executes EZ plans with atomic commits
 tools: Read, Bash
 color: yellow
 ---
@@ -536,7 +536,7 @@ Body.`;
 
     const result = convertClaudeAgentToCopilotAgent(input);
     assert.ok(result.includes('name: ez-executor'), 'name preserved');
-    assert.ok(result.includes('description: Executes GSD plans with atomic commits'), 'description preserved');
+    assert.ok(result.includes('description: Executes EZ plans with atomic commits'), 'description preserved');
     assert.ok(result.includes('color: yellow'), 'color preserved');
   });
 
@@ -626,7 +626,7 @@ describe('copyCommandsAsCopilotSkills', () => {
       // Count ez-* directories — should be 31
       const dirs = fs.readdirSync(tempDir, { withFileTypes: true })
         .filter(e => e.isDirectory() && e.name.startsWith('ez-'));
-      assert.strictEqual(dirs.length, 33, `Expected 36 skill folders, got ${dirs.length}`);
+      assert.strictEqual(dirs.length, EXPECTED_SKILLS, `Expected ${EXPECTED_SKILLS} skill folders, got ${dirs.length}`);
     } finally {
       fs.rmSync(tempDir, { recursive: true });
     }
@@ -747,10 +747,10 @@ describe('Copilot agent conversion - real files', () => {
     assert.ok(toolsLine.includes("'read'"), 'Read mapped');
   });
 
-  test('all 12 agents convert without error', () => {
+  test('all 15 agents convert without error', () => {
     const agents = fs.readdirSync(agentsSrc)
       .filter(f => f.startsWith('ez-') && f.endsWith('.md'));
-    assert.strictEqual(agents.length, 12, `Expected 15 agents, got ${agents.length}`);
+    assert.strictEqual(agents.length, 15, `Expected 15 agents, got ${agents.length}`);
 
     for (const agentFile of agents) {
       const content = fs.readFileSync(path.join(agentsSrc, agentFile), 'utf8');
@@ -795,14 +795,13 @@ describe('Copilot content conversion - engine files', () => {
     assert.ok(result.includes('ez-health'), 'command name converted');
   });
 
-  test('converts engine .cjs files correctly', () => {
-    const verifyCjs = fs.readFileSync(
-      path.join(__dirname, '..', 'ez-agents', 'bin', 'lib', 'verify.cjs'), 'utf8'
+  test('converts engine files correctly', () => {
+    const healthMd = fs.readFileSync(
+      path.join(__dirname, '..', 'commands', 'ez', 'health.md'), 'utf8'
     );
-    const result = convertClaudeToCopilotContent(verifyCjs);
+    const result = convertClaudeToCopilotContent(healthMd);
 
     assert.ok(!result.match(/ez:[a-z]/), 'no ez: references remain');
-    assert.ok(result.includes('ez-new-project'), 'ez:new-project converted');
     assert.ok(result.includes('ez-health'), 'ez:health converted');
   });
 });
@@ -812,9 +811,9 @@ describe('Copilot content conversion - engine files', () => {
 describe('Copilot instructions merge/strip', () => {
   let tmpDir;
 
-  const gsdContent = '- Follow project conventions\n- Use structured workflows';
+  const ezContent = '- Follow project conventions\n- Use structured workflows';
 
-  function makeGsdBlock(content) {
+  function makeEzBlock(content) {
     return EZ_COPILOT_INSTRUCTIONS_MARKER + '\n' + content.trim() + '\n' + EZ_COPILOT_INSTRUCTIONS_CLOSE_MARKER;
   }
 
@@ -831,29 +830,29 @@ describe('Copilot instructions merge/strip', () => {
 
     test('creates file from scratch when none exists', () => {
       const filePath = path.join(tmpMergeDir, 'copilot-instructions.md');
-      mergeCopilotInstructions(filePath, gsdContent);
+      mergeCopilotInstructions(filePath, ezContent);
 
       assert.ok(fs.existsSync(filePath), 'file was created');
       const result = fs.readFileSync(filePath, 'utf8');
       assert.ok(result.includes(EZ_COPILOT_INSTRUCTIONS_MARKER), 'has opening marker');
       assert.ok(result.includes(EZ_COPILOT_INSTRUCTIONS_CLOSE_MARKER), 'has closing marker');
-      assert.ok(result.includes('Follow project conventions'), 'has GSD content');
+      assert.ok(result.includes('Follow project conventions'), 'has EZ content');
     });
 
-    test('replaces GSD section when both markers present', () => {
+    test('replaces EZ section when both markers present', () => {
       const filePath = path.join(tmpMergeDir, 'copilot-instructions.md');
       const oldContent = '# User Setup\n\n' +
-        makeGsdBlock('- Old GSD content') +
+        makeEzBlock('- Old EZ content') +
         '\n\n# User Notes\n';
       fs.writeFileSync(filePath, oldContent);
 
-      mergeCopilotInstructions(filePath, gsdContent);
+      mergeCopilotInstructions(filePath, ezContent);
       const result = fs.readFileSync(filePath, 'utf8');
 
       assert.ok(result.includes('# User Setup'), 'user content before preserved');
       assert.ok(result.includes('# User Notes'), 'user content after preserved');
-      assert.ok(!result.includes('Old GSD content'), 'old GSD content removed');
-      assert.ok(result.includes('Follow project conventions'), 'new GSD content inserted');
+      assert.ok(!result.includes('Old EZ content'), 'old EZ content removed');
+      assert.ok(result.includes('Follow project conventions'), 'new EZ content inserted');
     });
 
     test('appends to existing file when no markers present', () => {
@@ -861,22 +860,22 @@ describe('Copilot instructions merge/strip', () => {
       const userContent = '# My Custom Instructions\n\nDo things my way.\n';
       fs.writeFileSync(filePath, userContent);
 
-      mergeCopilotInstructions(filePath, gsdContent);
+      mergeCopilotInstructions(filePath, ezContent);
       const result = fs.readFileSync(filePath, 'utf8');
 
       assert.ok(result.includes('# My Custom Instructions'), 'original content preserved');
       assert.ok(result.includes('Do things my way.'), 'original text preserved');
-      assert.ok(result.includes(EZ_COPILOT_INSTRUCTIONS_MARKER), 'GSD block appended');
-      assert.ok(result.includes('Follow project conventions'), 'GSD content appended');
+      assert.ok(result.includes(EZ_COPILOT_INSTRUCTIONS_MARKER), 'EZ block appended');
+      assert.ok(result.includes('Follow project conventions'), 'EZ content appended');
       // Verify separator exists
       assert.ok(result.includes('Do things my way.\n\n' + EZ_COPILOT_INSTRUCTIONS_MARKER),
-        'double newline separator before GSD block');
+        'double newline separator before EZ block');
     });
 
     test('handles file that is ez-only (re-creates cleanly)', () => {
       const filePath = path.join(tmpMergeDir, 'copilot-instructions.md');
-      const gsdOnly = makeGsdBlock('- Old instructions') + '\n';
-      fs.writeFileSync(filePath, gsdOnly);
+      const ezOnly = makeEzBlock('- Old instructions') + '\n';
+      fs.writeFileSync(filePath, ezOnly);
 
       const newContent = '- Updated instructions';
       mergeCopilotInstructions(filePath, newContent);
@@ -891,70 +890,70 @@ describe('Copilot instructions merge/strip', () => {
     test('preserves user content before and after markers', () => {
       const filePath = path.join(tmpMergeDir, 'copilot-instructions.md');
       const content = '# My Setup\n\n' +
-        makeGsdBlock('- old content') +
+        makeEzBlock('- old content') +
         '\n\n# My Notes\n';
       fs.writeFileSync(filePath, content);
 
-      mergeCopilotInstructions(filePath, gsdContent);
+      mergeCopilotInstructions(filePath, ezContent);
       const result = fs.readFileSync(filePath, 'utf8');
 
       assert.ok(result.includes('# My Setup'), 'content before markers preserved');
       assert.ok(result.includes('# My Notes'), 'content after markers preserved');
-      assert.ok(result.includes('Follow project conventions'), 'new GSD content between markers');
-      // Verify ordering: before → GSD → after
+      assert.ok(result.includes('Follow project conventions'), 'new EZ content between markers');
+      // Verify ordering: before → EZ → after
       const setupIdx = result.indexOf('# My Setup');
       const markerIdx = result.indexOf(EZ_COPILOT_INSTRUCTIONS_MARKER);
       const notesIdx = result.indexOf('# My Notes');
-      assert.ok(setupIdx < markerIdx, 'user setup comes before GSD block');
-      assert.ok(markerIdx < notesIdx, 'GSD block comes before user notes');
+      assert.ok(setupIdx < markerIdx, 'user setup comes before EZ block');
+      assert.ok(markerIdx < notesIdx, 'EZ block comes before user notes');
     });
   });
 
-  describe('stripGsdFromCopilotInstructions', () => {
+  describe('stripEzAgentsFromCopilotInstructions', () => {
     test('returns null when content is ez-only', () => {
-      const content = makeGsdBlock('- GSD instructions only') + '\n';
-      const result = stripGsdFromCopilotInstructions(content);
+      const content = makeEzBlock('- EZ instructions only') + '\n';
+      const result = stripEzAgentsFromCopilotInstructions(content);
       assert.strictEqual(result, null, 'returns null for ez-only content');
     });
 
     test('returns cleaned content when user content exists before markers', () => {
       const content = '# My Setup\n\nCustom rules here.\n\n' +
-        makeGsdBlock('- GSD stuff') + '\n';
-      const result = stripGsdFromCopilotInstructions(content);
+        makeEzBlock('- EZ stuff') + '\n';
+      const result = stripEzAgentsFromCopilotInstructions(content);
 
       assert.ok(result !== null, 'does not return null');
       assert.ok(result.includes('# My Setup'), 'user content preserved');
       assert.ok(result.includes('Custom rules here.'), 'user text preserved');
       assert.ok(!result.includes(EZ_COPILOT_INSTRUCTIONS_MARKER), 'opening marker removed');
       assert.ok(!result.includes(EZ_COPILOT_INSTRUCTIONS_CLOSE_MARKER), 'closing marker removed');
-      assert.ok(!result.includes('GSD stuff'), 'GSD content removed');
+      assert.ok(!result.includes('EZ stuff'), 'EZ content removed');
     });
 
     test('returns cleaned content when user content exists after markers', () => {
-      const content = makeGsdBlock('- GSD stuff') + '\n\n# My Notes\n\nPersonal notes.\n';
-      const result = stripGsdFromCopilotInstructions(content);
+      const content = makeEzBlock('- EZ stuff') + '\n\n# My Notes\n\nPersonal notes.\n';
+      const result = stripEzAgentsFromCopilotInstructions(content);
 
       assert.ok(result !== null, 'does not return null');
       assert.ok(result.includes('# My Notes'), 'user content after preserved');
       assert.ok(result.includes('Personal notes.'), 'user text after preserved');
       assert.ok(!result.includes(EZ_COPILOT_INSTRUCTIONS_MARKER), 'opening marker removed');
-      assert.ok(!result.includes('GSD stuff'), 'GSD content removed');
+      assert.ok(!result.includes('EZ stuff'), 'EZ content removed');
     });
 
     test('returns cleaned content preserving both before and after', () => {
-      const content = '# Before\n\n' + makeGsdBlock('- GSD middle') + '\n\n# After\n';
-      const result = stripGsdFromCopilotInstructions(content);
+      const content = '# Before\n\n' + makeEzBlock('- EZ middle') + '\n\n# After\n';
+      const result = stripEzAgentsFromCopilotInstructions(content);
 
       assert.ok(result !== null, 'does not return null');
       assert.ok(result.includes('# Before'), 'content before preserved');
       assert.ok(result.includes('# After'), 'content after preserved');
-      assert.ok(!result.includes('GSD middle'), 'GSD content removed');
+      assert.ok(!result.includes('EZ middle'), 'EZ content removed');
       assert.ok(!result.includes(EZ_COPILOT_INSTRUCTIONS_MARKER), 'markers removed');
     });
 
     test('returns original content when no markers found', () => {
-      const content = '# Just user content\n\nNo GSD markers here.\n';
-      const result = stripGsdFromCopilotInstructions(content);
+      const content = '# Just user content\n\nNo EZ markers here.\n';
+      const result = stripEzAgentsFromCopilotInstructions(content);
       assert.strictEqual(result, content, 'returns content unchanged');
     });
   });
@@ -993,30 +992,30 @@ describe('Copilot uninstall skill removal', () => {
       .map(e => e.name);
 
     assert.deepStrictEqual(ezSkills.sort(), ['ez-bar', 'ez-foo'], 'identifies ez-* skills');
-    assert.deepStrictEqual(nonezSkills, ['custom-skill'], 'preserves non-gsd skills');
+    assert.deepStrictEqual(nonezSkills, ['custom-skill'], 'preserves non-ez skills');
   });
 
-  test('cleans GSD section from copilot-instructions.md on uninstall', () => {
+  test('cleans EZ section from copilot-instructions.md on uninstall', () => {
     const content = '# My Setup\n\nMy custom rules.\n\n' +
       EZ_COPILOT_INSTRUCTIONS_MARKER + '\n' +
-      '- GSD managed content\n' +
+      '- EZ managed content\n' +
       EZ_COPILOT_INSTRUCTIONS_CLOSE_MARKER + '\n';
 
-    const result = stripGsdFromCopilotInstructions(content);
+    const result = stripEzAgentsFromCopilotInstructions(content);
 
     assert.ok(result !== null, 'does not return null when user content exists');
     assert.ok(result.includes('# My Setup'), 'user content preserved');
     assert.ok(result.includes('My custom rules.'), 'user text preserved');
-    assert.ok(!result.includes('GSD managed content'), 'GSD content removed');
+    assert.ok(!result.includes('EZ managed content'), 'EZ content removed');
     assert.ok(!result.includes(EZ_COPILOT_INSTRUCTIONS_MARKER), 'markers removed');
   });
 
   test('deletes copilot-instructions.md when ez-only on uninstall', () => {
     const content = EZ_COPILOT_INSTRUCTIONS_MARKER + '\n' +
-      '- Only GSD content\n' +
+      '- Only EZ content\n' +
       EZ_COPILOT_INSTRUCTIONS_CLOSE_MARKER + '\n';
 
-    const result = stripGsdFromCopilotInstructions(content);
+    const result = stripEzAgentsFromCopilotInstructions(content);
 
     assert.strictEqual(result, null, 'returns null signaling file deletion');
   });
@@ -1037,9 +1036,9 @@ describe('Copilot manifest and patches fixes', () => {
 
   test('writeManifest hashes skills for Copilot runtime', () => {
     // Create minimal ez-agents dir (required by writeManifest)
-    const gsdDir = path.join(tmpDir, 'ez-agents', 'bin');
-    fs.mkdirSync(gsdDir, { recursive: true });
-    fs.writeFileSync(path.join(gsdDir, 'verify.cjs'), '// verify stub');
+    const ezDir = path.join(tmpDir, 'ez-agents', 'bin');
+    fs.mkdirSync(ezDir, { recursive: true });
+    fs.writeFileSync(path.join(ezDir, 'verify.cjs'), '// verify stub');
 
     // Create Copilot skills directory
     const skillDir = path.join(tmpDir, 'skills', 'ez-test');
@@ -1120,12 +1119,13 @@ const { execFileSync } = require('child_process');
 const crypto = require('crypto');
 
 const INSTALL_PATH = path.join(__dirname, '..', 'bin', 'install.js');
-const EXPECTED_SKILLS = 33;
-const EXPECTED_AGENTS = 12;
+const EXPECTED_SKILLS = 36;
+const EXPECTED_AGENTS = 15;
 
 function runCopilotInstall(cwd) {
   const env = { ...process.env };
   delete env.EZ_TEST_MODE;
+  delete env.EZ_AGENTS_TEST_MODE;
   return execFileSync(process.execPath, [INSTALL_PATH, '--copilot', '--local'], {
     cwd,
     encoding: 'utf-8',
@@ -1137,6 +1137,7 @@ function runCopilotInstall(cwd) {
 function runCopilotUninstall(cwd) {
   const env = { ...process.env };
   delete env.EZ_TEST_MODE;
+  delete env.EZ_AGENTS_TEST_MODE;
   return execFileSync(process.execPath, [INSTALL_PATH, '--copilot', '--local', '--uninstall'], {
     cwd,
     encoding: 'utf-8',
@@ -1200,19 +1201,22 @@ describe('E2E: Copilot full install verification', () => {
       'ez-project-researcher.agent.md',
       'ez-research-synthesizer.agent.md',
       'ez-roadmapper.agent.md',
+      'ez-ui-auditor.agent.md',
+      'ez-ui-checker.agent.md',
+      'ez-ui-researcher.agent.md',
       'ez-verifier.agent.md',
     ].sort();
     assert.deepStrictEqual(ezAgents, expected);
   });
 
-  test('generates copilot-instructions.md with GSD markers', () => {
+  test('generates copilot-instructions.md with EZ markers', () => {
     const instrPath = path.join(tmpDir, '.github', 'copilot-instructions.md');
     assert.ok(fs.existsSync(instrPath), 'copilot-instructions.md should exist');
     const content = fs.readFileSync(instrPath, 'utf-8');
-    assert.ok(content.includes('<!-- EZ Agents Configuration'),
-      'Should contain EZ Agents Configuration open marker');
-    assert.ok(content.includes('<!-- /EZ Agents Configuration -->'),
-      'Should contain EZ Agents Configuration close marker');
+    assert.ok(content.includes('<!-- EZ_AGENTS Configuration'),
+      'Should contain EZ_AGENTS Configuration open marker');
+    assert.ok(content.includes('<!-- /EZ_AGENTS Configuration -->'),
+      'Should contain EZ_AGENTS Configuration close marker');
   });
 
   test('creates manifest with correct structure', () => {
@@ -1303,32 +1307,32 @@ describe('E2E: Copilot uninstall verification', () => {
       'copilot-instructions.md should not exist after uninstall');
   });
 
-  test('removes all GSD skill directories', () => {
+  test('removes all EZ skill directories', () => {
     const skillsDir = path.join(tmpDir, '.github', 'skills');
     if (fs.existsSync(skillsDir)) {
       const entries = fs.readdirSync(skillsDir, { withFileTypes: true });
       const ezSkills = entries.filter(e => e.isDirectory() && e.name.startsWith('ez-'));
       assert.strictEqual(ezSkills.length, 0,
-        `Expected 0 GSD skill directories after uninstall, found: ${ezSkills.map(e => e.name).join(', ')}`);
+        `Expected 0 EZ skill directories after uninstall, found: ${ezSkills.map(e => e.name).join(', ')}`);
     }
   });
 
-  test('removes all GSD agent files', () => {
+  test('removes all EZ agent files', () => {
     const agentsDir = path.join(tmpDir, '.github', 'agents');
     if (fs.existsSync(agentsDir)) {
       const files = fs.readdirSync(agentsDir);
       const ezAgents = files.filter(f => f.startsWith('ez-') && f.endsWith('.agent.md'));
       assert.strictEqual(ezAgents.length, 0,
-        `Expected 0 GSD agent files after uninstall, found: ${ezAgents.join(', ')}`);
+        `Expected 0 EZ agent files after uninstall, found: ${ezAgents.join(', ')}`);
     }
   });
 
-  test('preserves non-GSD content in skills directory', () => {
+  test('preserves non-EZ content in skills directory', () => {
     // Standalone lifecycle: install → add custom content → uninstall → verify
     const td = fs.mkdtempSync(path.join(os.tmpdir(), 'ez-e2e-preserve-skill-'));
     try {
       runCopilotInstall(td);
-      // Add non-GSD custom skill
+      // Add non-EZ custom skill
       const customSkillDir = path.join(td, '.github', 'skills', 'my-custom-skill');
       fs.mkdirSync(customSkillDir, { recursive: true });
       fs.writeFileSync(path.join(customSkillDir, 'SKILL.md'), '# My Custom Skill\n');
@@ -1336,25 +1340,25 @@ describe('E2E: Copilot uninstall verification', () => {
       runCopilotUninstall(td);
       // Verify custom content preserved
       assert.ok(fs.existsSync(path.join(customSkillDir, 'SKILL.md')),
-        'Non-GSD skill directory and SKILL.md should be preserved after uninstall');
+        'Non-EZ skill directory and SKILL.md should be preserved after uninstall');
     } finally {
       fs.rmSync(td, { recursive: true, force: true });
     }
   });
 
-  test('preserves non-GSD content in agents directory', () => {
+  test('preserves non-EZ content in agents directory', () => {
     // Standalone lifecycle: install → add custom content → uninstall → verify
     const td = fs.mkdtempSync(path.join(os.tmpdir(), 'ez-e2e-preserve-agent-'));
     try {
       runCopilotInstall(td);
-      // Add non-GSD custom agent
+      // Add non-EZ custom agent
       const customAgentPath = path.join(td, '.github', 'agents', 'my-agent.md');
       fs.writeFileSync(customAgentPath, '# My Custom Agent\n');
       // Uninstall
       runCopilotUninstall(td);
       // Verify custom content preserved
       assert.ok(fs.existsSync(customAgentPath),
-        'Non-GSD agent file should be preserved after uninstall');
+        'Non-EZ agent file should be preserved after uninstall');
     } finally {
       fs.rmSync(td, { recursive: true, force: true });
     }

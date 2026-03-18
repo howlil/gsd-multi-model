@@ -1,5 +1,5 @@
 /**
- * GSD Agent Frontmatter Tests
+ * EZ Agent Frontmatter Tests
  *
  * Validates that all agent .md files have correct frontmatter fields:
  * - Anti-heredoc instruction present in file-writing agents
@@ -15,7 +15,7 @@ const path = require('path');
 
 const AGENTS_DIR = path.join(__dirname, '..', 'agents');
 const WORKFLOWS_DIR = path.join(__dirname, '..', 'ez-agents', 'workflows');
-const COMMANDS_DIR = path.join(__dirname, '..', 'commands', 'gsd');
+const COMMANDS_DIR = path.join(__dirname, '..', 'commands', 'ez');
 
 const ALL_AGENTS = fs.readdirSync(AGENTS_DIR)
   .filter(f => f.startsWith('ez-') && f.endsWith('.md'))
