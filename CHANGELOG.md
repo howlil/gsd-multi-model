@@ -6,6 +6,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [3.4.1] - 2026-03-18
+
+### Fixed
+
+- **npm Publish** - Re-published to ensure npm registry is up to date
+
+### Changed
+
+- Version bump to 3.4.1 to trigger npm publish workflow
+
 ## [3.4.0] - 2026-03-18
 
 ### Added
