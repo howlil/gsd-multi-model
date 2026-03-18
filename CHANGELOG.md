@@ -6,6 +6,36 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [3.4.2] - 2026-03-18
+
+### Changed
+
+- **npm Registry Installation** - Package now published to npm registry for professional installation
+- **Installation Command** - Single source of truth: `npm i -g @howlil/ez-agents@latest`
+- **Update Command** - Use npm's built-in update: `npm update -g @howlil/ez-agents`
+
+### Removed
+
+- **ez-agents-update Command** - Removed in favor of npm's native update mechanism
+- Git-based installation (`git+https://...`) deprecated in documentation
+
+### Migration
+
+If you installed via git:
+```bash
+# Uninstall old version
+npm uninstall -g ez-agents
+
+# Install from npm
+npm i -g @howlil/ez-agents@latest
+```
+
+### Technical Details
+
+- Package scoped to `@howlil/ez-agents` on npm registry
+- No breaking changes - all existing workflows and commands unchanged
+- Backward compatible with v3.4.1 configurations
+
 ## [3.4.1] - 2026-03-18
 
 ### Fixed
