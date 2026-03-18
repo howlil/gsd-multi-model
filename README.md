@@ -106,6 +106,45 @@ You'll answer a few questions about what you're building, then EZ Agents generat
 └─────────────────────────┘
 ```
 
+### Parallel Execution with Git Commits
+
+Setiap task dijalankan secara paralel (jika tidak ada dependensi), dengan fresh context dan atomic commit:
+
+```
+Phase 1: Foundation
+│
+├─ Wave 1 (Parallel) ───────────────────────────┐
+│  ┌─────────────────┐  ┌─────────────────┐     │
+│  │ Task 1.1:       │  │ Task 1.2:       │     │
+│  │ Database Schema │  │ Next.js Setup   │     │
+│  │                 │  │                 │     │
+│  │ Fresh 200K ctx  │  │ Fresh 200K ctx  │     │
+│  │     ↓           │  │     ↓           │     │
+│  │ git commit      │  │ git commit      │     │
+│  │ "feat: schema"  │  │ "feat: setup"   │     │
+│  └─────────────────┘  └─────────────────┘     │
+└────────────────────────────────────────────────┘
+         │
+         ▼
+├─ Wave 2 (Depends on Wave 1) ──────────────────┐
+│  ┌─────────────────┐                          │
+│  │ Task 1.3:       │                          │
+│  │ Auth Endpoints  │  ← Needs schema + setup  │
+│  │                 │                          │
+│  │ Fresh 200K ctx  │                          │
+│  │     ↓           │                          │
+│  │ git commit      │                          │
+│  │ "feat: auth"    │                          │
+│  └─────────────────┘                          │
+└────────────────────────────────────────────────┘
+```
+
+**Keuntungan:**
+- **Fresh context per task** — AI tidak kehilangan context karena window penuh
+- **Atomic commits** — Setiap commit = satu task, mudah di-revert jika ada masalah
+- **Parallel execution** — Task independen jalan barengan, lebih cepat
+- **Clean git history** — Commit message deskriptif, jelas apa yang berubah
+
 ### What Makes It Different
 
 | Problem | Without EZ Agents | With EZ Agents |

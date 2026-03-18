@@ -42,26 +42,76 @@ Detailed reference for workflows, configuration, and troubleshooting. For quick-
   └────────────────────────────────┘
 ```
 
-### Wave Execution
+### Parallel Execution with Git Commits
 
-Tasks without dependencies run in parallel. Dependent tasks wait:
+EZ Agents executes tasks in **waves** based on dependencies. Each task gets a fresh context window and creates an atomic git commit.
 
 ```
-Wave 1 (parallel)          Wave 2 (parallel)          Wave 3 (sequential)
-┌─────────────────┐        ┌─────────────────┐        ┌─────────────────┐
-│ ┌─────────────┐ │        │ ┌─────────────┐ │        │ ┌─────────────┐ │
-│ │   Plan 01   │ │        │ │   Plan 03   │ │        │ │   Plan 05   │ │
-│ │  User Auth  │ │        │ │ Orders API  │ │        │ │  Checkout   │ │
-│ └─────────────┘ │        │ └─────────────┘ │        │ └─────────────┘ │
-│ ┌─────────────┐ │        │ ┌─────────────┐ │
-│ │   Plan 02   │ │        │ │   Plan 04   │ │
-│ │  Products   │ │        │ │   Cart API  │ │
-│ └─────────────┘ │        │ └─────────────┘ │
-└─────────────────┘        └─────────────────┘
+Phase 1: Foundation
+│
+├─ Wave 1 (Parallel) ─────────────────────────────┐
+│  ┌─────────────────┐    ┌─────────────────┐    │
+│  │ Task 1.1:       │    │ Task 1.2:       │    │
+│  │ Database Schema │    │ Next.js Setup   │    │
+│  │                 │    │                 │    │
+│  │ Fresh 200K ctx  │    │ Fresh 200K ctx  │    │
+│  │     ↓           │    │     ↓           │    │
+│  │ git commit      │    │ git commit      │    │
+│  │ "feat: schema"  │    │ "feat: setup"   │    │
+│  └─────────────────┘    └─────────────────┘    │
+│         ↓                      ↓                │
+│  ┌─────────────────────────────────────────┐   │
+│  │   Both commits pushed, context cleared  │   │
+│  └─────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────┘
+         │
+         ▼
+├─ Wave 2 (Depends on Wave 1) ───────────────────┐
+│  ┌─────────────────┐                           │
+│  │ Task 1.3:       │                           │
+│  │ Auth Endpoints  │  ← Needs schema + setup   │
+│  │                 │                           │
+│  │ Fresh 200K ctx  │                           │
+│  │     ↓           │                           │
+│  │ git commit      │                           │
+│  │ "feat: auth"    │                           │
+│  └─────────────────┘                           │
+└─────────────────────────────────────────────────┘
+```
 
-Plan 03 needs Plan 01 (Orders API needs User Model)
-Plan 04 needs Plan 02 (Cart API needs Product Model)
-Plan 05 needs both (Checkout needs Orders + Cart)
+**Why this matters:**
+
+| Benefit | Explanation |
+|---------|-------------|
+| **Fresh context** | Each task gets full 200K token window — no context degradation |
+| **Atomic commits** | One commit per task, easy to revert if something goes wrong |
+| **Parallel execution** | Independent tasks run simultaneously, faster completion |
+| **Clean history** | Commit messages describe what changed and why |
+| **Debuggable** | When something breaks, you know exactly which task caused it |
+
+### How Wave Execution Works
+
+1. **Analyze dependencies** — EZ Agents reads all PLAN.md files and builds a dependency graph
+2. **Wave 1** — All tasks with no dependencies run in parallel
+3. **Commit & clear** — Each task commits independently, context is cleared
+4. **Wave 2+** — Tasks wait for their dependencies to complete before starting
+5. **Verify** — After all waves complete, `/ez:verify-work` checks everything works
+
+### Example: E-commerce Platform
+
+```
+Milestone v1.0: MVP
+│
+├─ Phase 1: Foundation
+│  ├─ Wave 1: User Model, Product Model (parallel)
+│  └─ Wave 2: Auth API (needs User Model)
+│
+├─ Phase 2: Core Features
+│  ├─ Wave 1: Cart API, Order API (parallel)
+│  └─ Wave 2: Checkout UI (needs Cart + Order)
+│
+└─ Phase 3: Payments
+   └─ Wave 1: Stripe Integration (needs Checkout)
 ```
 
 ### Existing Codebases
