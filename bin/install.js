@@ -1540,8 +1540,66 @@ function copyCommandsAsKimiSkills(srcDir, skillsDir, prefix, pathPrefix, runtime
 }
 
 /**
+ * Copy Claude commands as Qwen Code commands — flat structure in commands/ez/.
+ * Qwen Code uses ~/.qwen/commands/ez/*.md (like Claude Code ~/.claude/commands/ez/)
+ */
+function copyCommandsAsQwenCommands(srcDir, commandsDir, prefix, pathPrefix, runtime) {
+  if (!fs.existsSync(srcDir)) {
+    return;
+  }
+
+  fs.mkdirSync(commandsDir, { recursive: true });
+
+  // Remove previous EZ Qwen commands
+  const existing = fs.readdirSync(commandsDir, { withFileTypes: true });
+  for (const entry of existing) {
+    if (entry.isFile() && entry.name.startsWith(`${prefix}-`) && entry.name.endsWith('.md')) {
+      fs.rmSync(path.join(commandsDir, entry.name));
+    }
+  }
+
+  function recurse(currentSrcDir, currentPrefix) {
+    const entries = fs.readdirSync(currentSrcDir, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const srcPath = path.join(currentSrcDir, entry.name);
+      if (entry.isDirectory()) {
+        recurse(srcPath, `${currentPrefix}-${entry.name}`);
+        continue;
+      }
+
+      if (!entry.name.endsWith('.md')) {
+        continue;
+      }
+
+      const baseName = entry.name.replace('.md', '');
+      const commandName = `${currentPrefix}-${baseName}`;
+      const commandFile = path.join(commandsDir, `${commandName}.md`);
+
+      let content = fs.readFileSync(srcPath, 'utf8');
+      const globalClaudeRegex = /~\/\.claude\//g;
+      const globalClaudeHomeRegex = /\$HOME\/\.claude\//g;
+      const localClaudeRegex = /\.\/\.claude\//g;
+      const qwenDirRegex = /~\/\.qwen\//g;
+      content = content.replace(globalClaudeRegex, pathPrefix);
+      content = content.replace(globalClaudeHomeRegex, toHomePrefix(pathPrefix));
+      content = content.replace(localClaudeRegex, `./${getDirName(runtime)}/`);
+      content = content.replace(qwenDirRegex, pathPrefix);
+      content = processAttribution(content, getCommitAttribution(runtime));
+      
+      // Qwen Code uses simple markdown commands (no SKILL.md wrapper)
+      // Just copy the content as-is with path replacements
+      fs.writeFileSync(commandFile, content);
+    }
+  }
+
+  recurse(srcDir, prefix);
+}
+
+/**
  * Copy Claude commands as Qwen Code skills — one folder per skill with SKILL.md.
  * Qwen Code uses the same skills/ structure as Codex but with simpler format (no adapters needed).
+ * @deprecated Use copyCommandsAsQwenCommands instead - Qwen Code uses commands/ez/ not skills/
  */
 function copyCommandsAsQwenSkills(srcDir, skillsDir, prefix, pathPrefix, runtime) {
   if (!fs.existsSync(srcDir)) {
@@ -2479,13 +2537,11 @@ function install(isGlobal, runtime = 'claude') {
     } else {
       failures.push('command/ez-*');
     }
-  } else if (isCodex || isQwen || isKimi) {
-    // Codex, Qwen, Kimi: skills structure in skills/ directory
+  } else if (isCodex || isKimi) {
+    // Codex, Kimi: skills structure in skills/ directory
     const skillsDir = path.join(targetDir, 'skills');
     const ezSrc = path.join(src, 'commands', 'ez');
-    if (isQwen) {
-      copyCommandsAsQwenSkills(ezSrc, skillsDir, 'ez', pathPrefix, runtime);
-    } else if (isKimi) {
+    if (isKimi) {
       copyCommandsAsKimiSkills(ezSrc, skillsDir, 'ez', pathPrefix, runtime);
     } else {
       copyCommandsAsCodexSkills(ezSrc, skillsDir, 'ez', pathPrefix, runtime);
@@ -2495,6 +2551,26 @@ function install(isGlobal, runtime = 'claude') {
       console.log(`  ${green}✓${reset} Installed ${installedSkillNames.length} skills to skills/`);
     } else {
       failures.push('skills/ez-*');
+    }
+  } else if (isQwen) {
+    // Qwen Code: commands structure in commands/ez/ directory (like Claude Code/Gemini)
+    // Qwen Code uses ~/.qwen/commands/ez/*.md, NOT ~/.qwen/skills/
+    const commandsDir = path.join(targetDir, 'commands');
+    const ezCommandsDir = path.join(commandsDir, 'ez');
+    fs.mkdirSync(ezCommandsDir, { recursive: true });
+    
+    const ezSrc = path.join(src, 'commands', 'ez');
+    copyCommandsAsQwenCommands(ezSrc, ezCommandsDir, 'ez', pathPrefix, runtime);
+    
+    if (fs.existsSync(ezCommandsDir)) {
+      const count = fs.readdirSync(ezCommandsDir).filter(f => f.endsWith('.md')).length;
+      if (count > 0) {
+        console.log(`  ${green}✓${reset} Installed ${count} commands to commands/ez/`);
+      } else {
+        failures.push('commands/ez/*.md');
+      }
+    } else {
+      failures.push('commands/ez/*.md');
     }
   } else if (isCopilot) {
     const skillsDir = path.join(targetDir, 'skills');
