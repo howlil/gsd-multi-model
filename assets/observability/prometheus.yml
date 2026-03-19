@@ -1,0 +1,33 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+rule_files:
+  - "alerting-rules.yml"
+
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    metrics_path: '/metrics'
+
+  # Node.js application metrics
+  - job_name: 'nodeapp'
+    static_configs:
+      - targets: ['app:3000']
+    metrics_path: '/metrics'
+    scrape_interval: 5s
+
+  # Alternative: scrape from localhost (for local development)
+  - job_name: 'nodeapp-local'
+    static_configs:
+      - targets: ['host.docker.internal:3000']
+    metrics_path: '/metrics'
+    scrape_interval: 5s

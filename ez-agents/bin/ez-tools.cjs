@@ -30,6 +30,14 @@
  *   websearch <query>                  Search web via Brave API (if configured)
  *     [--limit N] [--freshness day|week|month]
  *
+ * Observability Commands:
+ *   setup-observability [stack]        Setup complete observability stack
+ *   setup-metrics                      Setup Prometheus metrics collection
+ *   setup-logging                      Setup structured logging with Pino
+ *   setup-tracing                      Setup distributed tracing with Jaeger
+ *   setup-alerting                     Setup Alertmanager configuration
+ *   setup-error-tracking               Setup Sentry error tracking
+ *
  * Context Access Commands:
  *   context read <pattern>             Read local files using glob patterns
  *   context fetch <url>                Fetch content from URL (HTTPS only, requires confirmation)
@@ -190,7 +198,7 @@ async function main() {
   const command = args[0];
 
   if (!command) {
-    error('Usage: ez-tools <command> [args] [--raw] [--cwd <path>]\nCommands: state, resolve-model, find-phase, commit, verify-summary, verify, frontmatter, template, generate-slug, current-timestamp, list-todos, verify-path-exists, config-ensure-section, init, health, session, resume, export-session, import-session, chain, context');
+    error('Usage: ez-tools <command> [args] [--raw] [--cwd <path>]\nCommands: state, resolve-model, find-phase, commit, verify-summary, verify, frontmatter, template, generate-slug, current-timestamp, list-todos, verify-path-exists, config-ensure-section, setup-observability, setup-metrics, setup-logging, setup-tracing, setup-alerting, setup-error-tracking, init, health, session, resume, export-session, import-session, chain, context');
   }
 
   switch (command) {
@@ -269,6 +277,122 @@ async function main() {
       const health = new HealthCheck();
       const result = health.runAll();
       console.log(JSON.stringify(result, null, 2));
+      break;
+    }
+
+    // Observability setup commands
+    case 'setup-observability': {
+      const stack = args[1] || 'full';
+      console.log('');
+      console.log('EZ Agents - Observability Stack Setup');
+      console.log('======================================');
+      console.log('');
+      console.log('Stack:', stack);
+      console.log('');
+      console.log('Configuration files located in: assets/observability/');
+      console.log('');
+      console.log('Services:');
+      console.log('  - Prometheus  (metrics):  http://localhost:9090');
+      console.log('  - Grafana     (dashboards): http://localhost:3001');
+      console.log('  - Loki        (logs):     http://localhost:3100');
+      console.log('  - Jaeger      (traces):   http://localhost:16686');
+      console.log('  - Alertmanager (alerts):  http://localhost:9093');
+      console.log('');
+      console.log('To start the observability stack:');
+      console.log('  cd assets/observability');
+      console.log('  docker-compose up -d');
+      console.log('');
+      console.log('For more details, see: commands/ez/setup-observability.md');
+      break;
+    }
+
+    case 'setup-metrics': {
+      console.log('');
+      console.log('EZ Agents - Metrics Collection Setup');
+      console.log('=====================================');
+      console.log('');
+      console.log('Metrics collector: ez-agents/bin/lib/metrics-collector.cjs');
+      console.log('');
+      console.log('Usage:');
+      console.log('  const MetricsCollector = require("./ez-agents/bin/lib/metrics-collector.cjs");');
+      console.log('  const metrics = new MetricsCollector({ prefix: "ez_" });');
+      console.log('  app.use(metrics.middleware());');
+      console.log('  app.get("/metrics", metrics.metricsHandler.bind(metrics));');
+      console.log('');
+      console.log('For more details, see: commands/ez/setup-metrics.md');
+      break;
+    }
+
+    case 'setup-logging': {
+      console.log('');
+      console.log('EZ Agents - Structured Logging Setup');
+      console.log('=====================================');
+      console.log('');
+      console.log('Logger: ez-agents/bin/lib/logger-structured.cjs');
+      console.log('');
+      console.log('Usage:');
+      console.log('  const { StructuredLogger } = require("./ez-agents/bin/lib/logger-structured.cjs");');
+      console.log('  const logger = new StructuredLogger({ level: "info" });');
+      console.log('  app.use(logger.middleware());');
+      console.log('');
+      console.log('For more details, see: commands/ez/setup-logging.md');
+      break;
+    }
+
+    case 'setup-tracing': {
+      console.log('');
+      console.log('EZ Agents - Distributed Tracing Setup');
+      console.log('======================================');
+      console.log('');
+      console.log('Tracing SDK: ez-agents/bin/lib/tracing-otel.cjs');
+      console.log('');
+      console.log('Usage:');
+      console.log('  const TracingSDK = require("./ez-agents/bin/lib/tracing-otel.cjs");');
+      console.log('  const tracing = new TracingSDK({ serviceName: "my-app" });');
+      console.log('  await tracing.start();');
+      console.log('');
+      console.log('Jaeger UI: http://localhost:16686');
+      console.log('');
+      console.log('For more details, see: commands/ez/setup-tracing.md');
+      break;
+    }
+
+    case 'setup-alerting': {
+      console.log('');
+      console.log('EZ Agents - Alerting Setup');
+      console.log('===========================');
+      console.log('');
+      console.log('Configuration files:');
+      console.log('  - assets/observability/alertmanager.yml');
+      console.log('  - assets/observability/alerting-rules.yml');
+      console.log('');
+      console.log('Alert rules:');
+      console.log('  - HighErrorRate (critical)');
+      console.log('  - HighLatency (warning)');
+      console.log('  - ServiceDown (critical)');
+      console.log('  - HighMemoryUsage (warning)');
+      console.log('  - HighEventLoopLag (warning)');
+      console.log('');
+      console.log('Alertmanager UI: http://localhost:9093');
+      console.log('');
+      console.log('For more details, see: commands/ez/setup-alerting.md');
+      break;
+    }
+
+    case 'setup-error-tracking': {
+      console.log('');
+      console.log('EZ Agents - Error Tracking Setup');
+      console.log('=================================');
+      console.log('');
+      console.log('Error tracker: ez-agents/bin/lib/error-tracker.cjs');
+      console.log('');
+      console.log('Usage:');
+      console.log('  const ErrorTracker = require("./ez-agents/bin/lib/error-tracker.cjs");');
+      console.log('  const tracker = new ErrorTracker({ dsn: process.env.SENTRY_DSN });');
+      console.log('  app.use(tracker.middleware());');
+      console.log('  app.use(tracker.errorHandler());');
+      console.log('');
+      console.log('For more details, see: commands/ez/setup-error-tracking.md');
       break;
     }
 

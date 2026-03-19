@@ -1,0 +1,14 @@
+apiVersion: 1
+
+providers:
+  - name: 'EZ Agents Dashboards'
+    orgId: 1
+    folder: 'EZ Agents'
+    folderUid: 'ez-agents'
+    type: file
+    disableDeletion: false
+    editable: true
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards

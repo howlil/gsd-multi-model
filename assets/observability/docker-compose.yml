@@ -1,0 +1,145 @@
+version: '3.8'
+
+services:
+  # Prometheus - Metrics collection and storage
+  prometheus:
+    image: prom/prometheus:v2.50.0
+    container_name: ez-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./alerting-rules.yml:/etc/prometheus/alerting-rules.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+    networks:
+      - observability
+    depends_on:
+      - app
+    restart: unless-stopped
+
+  # Grafana - Visualization and dashboards
+  grafana:
+    image: grafana/grafana:10.3.0
+    container_name: ez-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3001
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
+    networks:
+      - observability
+    depends_on:
+      - prometheus
+      - loki
+      - jaeger
+    restart: unless-stopped
+
+  # Loki - Log aggregation
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: ez-loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki-config.yml:/etc/loki/local-config.yaml
+      - loki-data:/loki
+    command: '--config.file=/etc/loki/local-config.yaml'
+    networks:
+      - observability
+    restart: unless-stopped
+
+  # Promtail - Log shipper
+  promtail:
+    image: grafana/promtail:2.9.0
+    container_name: ez-promtail
+    volumes:
+      - ./promtail-config.yml:/etc/promtail/config.yml
+      - /var/log:/var/log
+      - app-logs:/var/log/app
+    command: '--config.file=/etc/promtail/config.yml'
+    networks:
+      - observability
+    depends_on:
+      - loki
+    restart: unless-stopped
+
+  # Jaeger - Distributed tracing
+  jaeger:
+    image: jaegertracing/all-in-one:1.54
+    container_name: ez-jaeger
+    ports:
+      - "16686:16686"  # UI
+      - "14268:14268"  # Collector
+      - "4317:4317"    # OTLP gRPC
+      - "4318:4318"    # OTLP HTTP
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+      - JAEGER_DISABLED=false
+    networks:
+      - observability
+    restart: unless-stopped
+
+  # Alertmanager - Alert routing and notification
+  alertmanager:
+    image: prom/alertmanager:v0.26.0
+    container_name: ez-alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - alertmanager-data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.external-url=http://localhost:9093'
+      - '--cluster.listen-address='
+    networks:
+      - observability
+    restart: unless-stopped
+
+  # Sample Node.js application (for demo purposes)
+  app:
+    image: node:18-alpine
+    container_name: ez-app-demo
+    ports:
+      - "3000:3000"
+    working_dir: /app
+    volumes:
+      - app-logs:/var/log/app
+    command: >
+      sh -c "apk add --no-cache curl &&
+             echo 'Sample app - replace with your application' &&
+             while true; do sleep 3600; done"
+    networks:
+      - observability
+    restart: unless-stopped
+
+networks:
+  observability:
+    driver: bridge
+
+volumes:
+  grafana-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  loki-data:
+    driver: local
+  alertmanager-data:
+    driver: local
+  app-logs:
+    driver: local

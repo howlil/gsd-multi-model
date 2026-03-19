@@ -69,6 +69,13 @@ const ReleaseValidator = require('./release-validator.cjs');
 // Metrics (Phase 34)
 const MetricsTracker = require('./metrics-tracker.cjs');
 
+// Observability (Phase 21)
+const MetricsCollector = require('./metrics-collector.cjs');
+const { StructuredLogger, createPinoHttpMiddleware, generateCorrelationId } = require('./logger-structured.cjs');
+const TracingSDK = require('./tracing-otel.cjs');
+const ErrorTracker = require('./error-tracker.cjs');
+const ObservabilityEngine = require('./observability-engine.cjs');
+
 module.exports = {
   // Core
   Logger,
@@ -125,6 +132,15 @@ module.exports = {
   // Metrics (Phase 34)
   MetricsTracker,
 
+  // Observability (Phase 21)
+  MetricsCollector,
+  StructuredLogger,
+  createPinoHttpMiddleware,
+  generateCorrelationId,
+  TracingSDK,
+  ErrorTracker,
+  ObservabilityEngine,
+
   // Version info
   version: '3.0.0',
   
@@ -143,14 +159,19 @@ module.exports = {
         safePath: 'ok',
         auth: auth.isKeychainAvailable() ? 'keychain' : 'fallback',
         gitUtils: 'ok',
-      gitWorkflowEngine: 'ok',
-      gitErrors: 'ok',
+        gitWorkflowEngine: 'ok',
+        gitErrors: 'ok',
         retry: 'ok',
         circuitBreaker: 'ok',
         fileLock: 'ok',
         tempFile: 'ok',
         modelProvider: 'ok',
-        assistantAdapter: 'ok'
+        assistantAdapter: 'ok',
+        metricsCollector: 'ok',
+        structuredLogger: 'ok',
+        tracingSDK: 'ok',
+        errorTracker: 'ok',
+        observabilityEngine: 'ok'
       }
     };
   }

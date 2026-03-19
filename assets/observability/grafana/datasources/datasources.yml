@@ -1,0 +1,47 @@
+apiVersion: 1
+
+datasources:
+  # Prometheus - Primary metrics datasource
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      httpMethod: POST
+      timeInterval: 5s
+      queryTimeout: 60s
+
+  # Loki - Log aggregation datasource
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    isDefault: false
+    editable: false
+    jsonData:
+      maxLines: 1000
+      derivedFields:
+        - datasourceUid: jaeger
+          matcherRegex: '"traceId":"([a-f0-9]+)"'
+          name: TraceID
+          url: '$${__value.raw}'
+
+  # Jaeger - Distributed tracing datasource
+  - name: Jaeger
+    type: jaeger
+    access: proxy
+    url: http://jaeger:16686
+    isDefault: false
+    editable: false
+    jsonData:
+      tracesToLogs:
+        datasourceUid: loki
+        tags: ['job', 'instance']
+        mappedTags: [{ key: 'service.name', value: 'ez-app' }]
+        mapTagNamesEnabled: true
+        spanStartTimeShift: '1h'
+        spanEndTimeShift: '1h'
+        filterByTraceID: true
+        filterBySpanID: false
