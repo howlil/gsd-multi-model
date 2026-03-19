@@ -55,9 +55,33 @@
   "release": {
     "tier": "mvp",
     "tiers": {
-      "mvp":        { "moscow_scope": ["must"], "coverage": 60, "git": "trunk", "checklist_items": 6 },
-      "medium":     { "moscow_scope": ["must","should"], "coverage": 80, "git": "github-flow", "checklist_items": 18 },
-      "enterprise": { "moscow_scope": ["must","should","could"], "coverage": 95, "git": "gitflow", "checklist_items": 30 }
+      "mvp": {
+        "moscow_scope": [
+          "must"
+        ],
+        "coverage": 60,
+        "git": "trunk",
+        "checklist_items": 6
+      },
+      "medium": {
+        "moscow_scope": [
+          "must",
+          "should"
+        ],
+        "coverage": 80,
+        "git": "github-flow",
+        "checklist_items": 18
+      },
+      "enterprise": {
+        "moscow_scope": [
+          "must",
+          "should",
+          "could"
+        ],
+        "coverage": 95,
+        "git": "gitflow",
+        "checklist_items": 30
+      }
     }
   },
   "agent_discussion": {
@@ -73,26 +97,44 @@
     "show_auto_prefix": true,
     "auto_invoke": {
       "execute_phase": {
-        "pre": ["health"],
-        "post": ["verify-work"],
+        "pre": [
+          "health"
+        ],
+        "post": [
+          "verify-work"
+        ],
         "conditional": {
-          "if_tier_medium_plus_and_no_context": ["discuss-phase"],
-          "if_scope_creep_detected": ["add-todo"]
+          "if_tier_medium_plus_and_no_context": [
+            "discuss-phase"
+          ],
+          "if_scope_creep_detected": [
+            "add-todo"
+          ]
         }
       },
       "plan_phase": {
         "conditional": {
-          "if_phase_touches_sensitive_area": ["discuss-phase"]
+          "if_phase_touches_sensitive_area": [
+            "discuss-phase"
+          ]
         }
       },
       "release": {
         "conditional": {
-          "if_tier_medium": ["verify-work"],
-          "if_tier_enterprise": ["verify-work", "audit-milestone", "arch-review"]
+          "if_tier_medium": [
+            "verify-work"
+          ],
+          "if_tier_enterprise": [
+            "verify-work",
+            "audit-milestone",
+            "arch-review"
+          ]
         }
       },
       "progress": {
-        "pre": ["health"]
+        "pre": [
+          "health"
+        ]
       }
     }
   },
