@@ -235,6 +235,57 @@ Parallel agents analyze your stack, architecture, conventions, and pain points. 
 
 ---
 
+## Context Access Commands
+
+EZ Agents provides commands for gathering context from local files and remote URLs during planning phases.
+
+### `ez-tools context read <pattern>`
+
+Read local files using glob patterns.
+
+**Examples:**
+```bash
+node ez-tools.cjs context read "README.md"
+node ez-tools.cjs context read "src/**/*.ts"
+node ez-tools.cjs context read "*.json" "!package-lock.json"
+```
+
+**Supported patterns:**
+- Single files: `README.md`
+- Glob patterns: `src/**/*.ts`
+- Brace expansion: `*.{ts,js}`
+- Negation: `!*.test.ts`
+
+### `ez-tools context fetch <url>`
+
+Fetch content from URL (HTTPS only, requires user confirmation).
+
+**Examples:**
+```bash
+node ez-tools.cjs context fetch https://example.com/spec.md
+node ez-tools.cjs context fetch https://raw.githubusercontent.com/user/repo/main/README.md
+```
+
+**Security:**
+- Only HTTPS URLs allowed
+- User confirmation required before fetching
+- Content scanned for XSS/malware before use
+
+### `ez-tools context request`
+
+Interactive mode for requesting multiple context sources. Enter file patterns or URLs one per line, then press Enter on an empty line to finish.
+
+**Example:**
+```bash
+node ez-tools.cjs context request
+> README.md
+> src/**/*.ts
+> https://example.com/api-docs.md
+> 
+```
+
+---
+
 ## Setup
 
 ### Prerequisites

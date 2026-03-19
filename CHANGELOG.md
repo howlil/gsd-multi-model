@@ -6,6 +6,57 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [Unreleased] - Phase 16: Context & File Access
+
+### Added
+
+- **CONTEXT-01**: File reading support for /ez:new-project phase
+- **CONTEXT-02**: File reading support for /ez:new-milestone phase
+- **CONTEXT-03**: URL fetching during planning phases
+- **CONTEXT-04**: Session-only context caching
+- **CONTEXT-05**: URL validation (HTTPS only)
+- **CONTEXT-06**: XSS/malware content scanning
+- **CONTEXT-07**: Agent command for requesting additional context
+- **CONTEXT-08**: Context source tracking in STATE.md
+
+### New Modules
+
+- `ez-agents/bin/lib/file-access.cjs` - File reading with glob pattern support
+- `ez-agents/bin/lib/url-fetch.cjs` - Secure URL fetching with HTTPS validation
+- `ez-agents/bin/lib/content-scanner.cjs` - XSS/malware detection
+- `ez-agents/bin/lib/context-cache.cjs` - Session-only temporary cache
+- `ez-agents/bin/lib/context-manager.cjs` - Context orchestration
+- `ez-agents/bin/lib/context-errors.cjs` - Structured error classes
+
+### New Commands
+
+- `ez-tools context read <pattern>` - Read local files using glob patterns
+- `ez-tools context fetch <url>` - Fetch content from URL (HTTPS only)
+- `ez-tools context request` - Interactive context gathering mode
+
+### Dependencies
+
+- Added `micromatch@^4.0.5` for glob pattern matching
+
+### Security
+
+- Content security scanner detects script tags, JavaScript URLs, event handlers
+- URL validation rejects HTTP, file, data, javascript, and vbscript protocols
+- Localhost URLs blocked for security
+- Content size limits (1MB max) prevent memory exhaustion
+
+### Workflows
+
+- `/ez:new-project` - Integrated context gathering in Step 0a
+- `/ez:new-milestone` - Integrated context gathering in Step 0a
+
+### Tests
+
+- 90+ unit, integration, and security tests added
+- XSS detection test suite with 50+ pattern variations
+
+---
+
 ## [3.4.2] - 2026-03-18
 
 ### Changed
