@@ -30,6 +30,11 @@
  *   websearch <query>                  Search web via Brave API (if configured)
  *     [--limit N] [--freshness day|week|month]
  *
+ * Context Access Commands:
+ *   context read <pattern>             Read local files using glob patterns
+ *   context fetch <url>                Fetch content from URL (HTTPS only, requires confirmation)
+ *   context request                    Interactive context gathering mode
+ *
  * Phase Operations:
  *   phase next-decimal <phase>         Calculate next decimal phase number
  *   phase add <description>            Append new phase to roadmap + create dir
@@ -141,6 +146,9 @@ const init = require('./lib/init.cjs');
 const frontmatter = require('./lib/frontmatter.cjs');
 const HealthCheck = require('./lib/health-check.cjs');
 const auth = require('./lib/auth.cjs');
+const FileAccessService = require('./lib/file-access.cjs');
+const URLFetchService = require('./lib/url-fetch.cjs');
+const ContextManager = require('./lib/context-manager.cjs');
 
 // ─── CLI Router ───────────────────────────────────────────────────────────────
 
@@ -706,6 +714,103 @@ async function main() {
         freshness: freshnessIdx !== -1 ? args[freshnessIdx + 1] : null,
       }, raw);
       break;
+    }
+
+    case 'context': {
+      const subcommand = args[1];
+      
+      if (subcommand === 'read') {
+        const patterns = args.slice(2);
+        if (patterns.length === 0) {
+          console.error('Usage: ez-tools context read <pattern1> [pattern2...]');
+          console.error('Example: node ez-tools.cjs context read "README.md" "src/**/*.ts"');
+          process.exit(1);
+        }
+        const fileAccess = new FileAccessService(cwd);
+        const results = fileAccess.readFiles(patterns);
+        results.forEach(file => {
+          console.log(`\n--- ${file.path} ---\n`);
+          console.log(file.content);
+        });
+        break;
+      }
+      
+      if (subcommand === 'fetch') {
+        const url = args[2];
+        if (!url) {
+          console.error('Usage: ez-tools context fetch <url>');
+          console.error('Example: node ez-tools.cjs context fetch https://example.com/doc.md');
+          process.exit(1);
+        }
+        const urlFetch = new URLFetchService();
+        const validated = urlFetch.validateUrl(url);
+        if (!validated.valid) {
+          console.error(`Invalid URL: ${validated.error}`);
+          process.exit(1);
+        }
+        const confirmed = await URLFetchService.confirmUrlFetch(url);
+        if (!confirmed) {
+          console.log('Fetch cancelled by user');
+          process.exit(0);
+        }
+        const result = await urlFetch.fetchUrl(url);
+        console.log(result.content);
+        break;
+      }
+      
+      if (subcommand === 'request') {
+        const contextManager = new ContextManager(cwd);
+        console.log('Context Request Mode');
+        console.log('Enter file patterns or URLs (one per line, empty line to finish):\n');
+
+        const readline = require('readline');
+        const rl = readline.createInterface({
+          input: process.stdin,
+          output: process.stdout
+        });
+        
+        const files = [];
+        const urls = [];
+
+        console.log('> ');
+        for await (const line of rl) {
+          if (!line.trim()) break;
+          if (line.startsWith('http')) {
+            urls.push(line);
+          } else {
+            files.push(line);
+          }
+          console.log('> ');
+        }
+
+        const result = await contextManager.requestContext({ files, urls });
+        console.log('\n=== Aggregated Context ===\n');
+        console.log(result.context);
+        console.log(`\n\nSources: ${result.sources.length}`);
+        if (result.errors.length > 0) {
+          console.log(`Errors: ${result.errors.length}`);
+          result.errors.forEach(e => console.error(`  - ${e.source}: ${e.message}`));
+        }
+        break;
+      }
+      
+      if (!subcommand) {
+        console.log('Context Access Commands');
+        console.log('═══════════════════════');
+        console.log('');
+        console.log('  context read <pattern>     Read local files using glob patterns');
+        console.log('  context fetch <url>        Fetch content from URL (HTTPS only)');
+        console.log('  context request            Interactive context gathering mode');
+        console.log('');
+        console.log('Examples:');
+        console.log('  node ez-tools.cjs context read "README.md"');
+        console.log('  node ez-tools.cjs context read "src/**/*.ts" "!*.test.ts"');
+        console.log('  node ez-tools.cjs context fetch https://example.com/spec.md');
+        console.log('  node ez-tools.cjs context request');
+        break;
+      }
+      
+      error(`Unknown context subcommand: ${subcommand}\nAvailable: read, fetch, request`);
     }
 
     default:
