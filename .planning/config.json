@@ -1,0 +1,55 @@
+{
+  "git": {
+    "branching_strategy": "phase",
+    "phase_branch_template": "phase/{N}-{slug}",
+    "milestone_branch_template": "ez/{milestone}-{slug}",
+    "auto_create_phase_branches": true,
+    "auto_merge_after_verification": true,
+    "squash_milestone_branches": true,
+    "merge_strategies": {
+      "feature": "squash",
+      "fix": "squash",
+      "docs": "squash",
+      "refactor": "squash",
+      "phase": "merge",
+      "release": "merge",
+      "hotfix": "squash"
+    },
+    "validation": {
+      "pre_commit": {
+        "format": true,
+        "lint": true,
+        "test": false,
+        "secret_detection": true,
+        "validate_planning": true
+      },
+      "pre_merge": {
+        "test_suite": "standard",
+        "verify_planning_committed": true,
+        "check_secrets": true,
+        "validate_branch_naming": true
+      },
+      "pre_release": {
+        "test_suite": "full",
+        "security_scan": true,
+        "performance_test": false,
+        "dependency_audit": true
+      }
+    },
+    "enterprise_mode": {
+      "require_pull_request": false,
+      "require_code_review": false,
+      "required_reviewers": 1,
+      "require_status_checks": true
+    }
+  },
+  "workflow": {
+    "_auto_chain_active": false
+  },
+  "packageManager": {
+    "default": "npm",
+    "autoDetect": true,
+    "respectLockfile": true,
+    "frozenLockfileInCI": true
+  }
+}
