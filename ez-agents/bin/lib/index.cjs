@@ -50,6 +50,12 @@ const modelProvider = require('./model-provider.cjs');
 // Adapters
 const assistantAdapter = require('./assistant-adapter.cjs');
 
+// Package Manager
+const PackageManagerService = require('./package-manager-service.cjs');
+const PackageManagerDetector = require('./package-manager-detector.cjs');
+const PackageManagerExecutor = require('./package-manager-executor.cjs');
+const LockfileValidator = require('./lockfile-validator.cjs');
+
 module.exports = {
   // Core
   Logger,
@@ -86,7 +92,13 @@ module.exports = {
   
   // Adapters
   ...assistantAdapter,
-  
+
+  // Package Manager
+  PackageManagerService,
+  PackageManagerDetector,
+  PackageManagerExecutor,
+  LockfileValidator,
+
   // Version info
   version: '2.0.0',
   
