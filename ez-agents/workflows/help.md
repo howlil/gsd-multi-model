@@ -221,6 +221,54 @@ Create context handoff when pausing work mid-phase.
 
 Usage: `/ez:pause-work`
 
+**`/ez:resume`**
+Resume from last session or navigate session chain (Phase 18+).
+
+- Loads most recent session from `.planning/sessions/`
+- Shows formatted summary with model, phase, plan, duration
+- Displays incomplete items, decisions, file changes
+- Offers options: Continue, Show transcript, Export, Navigate chain, Start fresh
+- Supports navigation: `--previous`, `--next`, `--chain`
+
+Usage: `/ez:resume`
+Usage: `/ez:resume session-20260319-143052`
+Usage: `/ez:resume --previous`
+
+**`/ez:export-session`**
+Export session for model handoff or archival.
+
+- Exports last session by default (or specified session)
+- Supports markdown (human-readable) and JSON formats
+- Includes: summary, tasks, decisions, file changes, open questions, blockers
+- Output to `.planning/sessions/export-{session_id}.{ext}`
+
+Usage: `/ez:export-session`
+Usage: `/ez:export-session session-20260319-143052 --format json`
+Usage: `/ez:export-session --output /path/to/file.md`
+
+**`/ez:import-session`**
+Import session from exported file.
+
+- Validates session structure and chain integrity
+- Supports model-specific adapters (claude, qwen, openai, kimi)
+- Creates new session with imported context
+- Offers to resume imported session
+
+Usage: `/ez:import-session /path/to/session.json`
+Usage: `/ez:import-session session.json --source-model claude`
+
+**`/ez:list-sessions`**
+List all sessions with metadata and disk usage.
+
+- Shows: session_id, started_at, ended_at, model, phase, plan, status
+- Sorted by date (newest first)
+- Displays disk usage summary
+- Supports `--limit N` and `--json` flags
+
+Usage: `/ez:list-sessions`
+Usage: `/ez:list-sessions --limit 10`
+Usage: `/ez:list-sessions --json`
+
 ### Debugging
 
 **`/ez:debug [issue description]`**
@@ -482,6 +530,21 @@ Example config:
 /clear
 /ez:debug                                    # Resume from where you left off
 ```
+
+## Flags
+
+### --skip-discussion
+Skips the DISCUSSION.md pre-flight check and proceeds directly to execution.
+
+Usage: ez execute-phase <phase> --skip-discussion
+
+⚠️ Warning: Pre-flight discussion skipped via --skip-discussion
+
+### Migration Guide (v2.x → v3.0)
+If upgrading from v2.x:
+- `agent_discussion` is now enabled by default (was disabled)
+- Use `--skip-discussion` to preserve v2.x behavior during transition
+- Set `"agent_discussion": { "enabled": false }` in config.json to permanently disable
 
 ## Getting Help
 
