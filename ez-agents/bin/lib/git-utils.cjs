@@ -20,6 +20,8 @@ const { promisify } = require('util');
 const execFileAsync = promisify(execFile);
 const Logger = require('./logger.cjs');
 const logger = new Logger();
+const { BranchExistsError, BranchNotFoundError } = require('./git-errors.cjs');
+const { MergeConflictError } = require('./git-errors.cjs');
 
 class GitUtils {
   constructor(cwd) {
@@ -135,6 +137,122 @@ class GitUtils {
     await this.exec(['checkout', '-b', name, from]);
     logger.info('Branch created', { name, from });
     return name;
+  }
+
+  /**
+   * Check if branch exists
+   */
+  async branchExists(branchName) {
+    try {
+      await this.exec(['rev-parse', '--verify', branchName]);
+      return true;
+    } catch (err) {
+      return false;
+    }
+  }
+
+  /**
+   * List branches matching pattern
+   */
+  async listBranches(pattern = '*') {
+    const { stdout } = await this.exec(['branch', '--list', pattern]);
+    return stdout.split('\n')
+      .map(b => b.trim().replace(/^\*\s*/, '').replace(/^\+\s*/, ''))
+      .filter(b => b);
+  }
+
+  /**
+   * Delete branch
+   */
+  async deleteBranch(branchName, force = false) {
+    const exists = await this.branchExists(branchName);
+    if (!exists) {
+      throw new BranchNotFoundError(branchName);
+    }
+    const args = force ? ['branch', '-D', branchName] : ['branch', '-d', branchName];
+    await this.exec(args);
+    logger.info('Branch deleted', { branch: branchName, force });
+  }
+
+  /**
+   * Get branch point (merge base with HEAD)
+   */
+  async getBranchPoint(branchName) {
+    const { stdout } = await this.exec(['merge-base', 'HEAD', branchName]);
+    return stdout;
+  }
+
+  /**
+   * Check if merge would have conflicts
+   */
+  async hasConflicts(sourceBranch, targetBranch) {
+    try {
+      await this.exec(['merge-tree', targetBranch, sourceBranch]);
+      return false;
+    } catch (err) {
+      if (err.stdout?.includes('conflict')) {
+        return true;
+      }
+      return false;
+    }
+  }
+
+  /**
+   * Merge with strategy (merge, squash, rebase)
+   */
+  async mergeWithStrategy(source, target, strategy = 'merge') {
+    const currentBranch = await this.getCurrentBranch();
+
+    try {
+      await this.checkout(target);
+
+      if (strategy === 'squash') {
+        await this.exec(['merge', '--squash', source]);
+        await this.exec(['commit', '-m', `Merge '${source}' into '${target}'`]);
+      } else if (strategy === 'rebase') {
+        await this.exec(['rebase', source]);
+      } else {
+        await this.exec(['merge', source, '--no-edit']);
+      }
+
+      logger.info('Merge completed', { source, target, strategy });
+      return { success: true, strategy };
+    } catch (err) {
+      if (err.message?.includes('conflict')) {
+        throw new MergeConflictError(source, target);
+      }
+      throw err;
+    } finally {
+      if (currentBranch !== target) {
+        await this.checkout(currentBranch);
+      }
+    }
+  }
+
+  /**
+   * Squash merge with custom commit message
+   */
+  async squashMerge(source, target, commitMessage) {
+    await this.checkout(target);
+    await this.exec(['merge', '--squash', source]);
+    await this.exec(['commit', '-m', commitMessage]);
+    logger.info('Squash merge completed', { source, target, message: commitMessage });
+  }
+
+  /**
+   * Abort merge
+   */
+  async abortMerge() {
+    await this.exec(['merge', '--abort']);
+    logger.info('Merge aborted');
+  }
+
+  /**
+   * Revert commit
+   */
+  async revertCommit(commitHash) {
+    await this.exec(['revert', commitHash, '--no-edit']);
+    logger.info('Commit reverted', { hash: commitHash });
   }
 
   /**

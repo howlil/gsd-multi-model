@@ -29,6 +29,8 @@ const auditExec = require('./audit-exec.cjs');
 
 // Git
 const GitUtils = require('./git-utils.cjs');
+const GitWorkflowEngine = require('./git-workflow-engine.cjs');
+const GitErrors = require('./git-errors.cjs');
 
 // Reliability
 const retry = require('./retry.cjs');
@@ -64,6 +66,8 @@ module.exports = {
   
   // Git
   GitUtils,
+  GitWorkflowEngine,
+  GitErrors,
   
   // Reliability
   ...retry,
@@ -101,6 +105,8 @@ module.exports = {
         safePath: 'ok',
         auth: auth.isKeychainAvailable() ? 'keychain' : 'fallback',
         gitUtils: 'ok',
+      gitWorkflowEngine: 'ok',
+      gitErrors: 'ok',
         retry: 'ok',
         circuitBreaker: 'ok',
         fileLock: 'ok',
