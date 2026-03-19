@@ -1,5 +1,7 @@
 <purpose>
 Initialize a new project through unified flow: questioning, research (optional), requirements, roadmap. This is the most leveraged moment in any project — deep questioning here means better plans, better execution, better outcomes. One workflow takes you from idea to ready-for-planning.
+
+**GSD-2 Enhanced:** Includes health check, cost tracking, crash recovery, fresh context, and stuck detection for production-grade reliability.
 </purpose>
 
 <required_reading>
@@ -41,12 +43,81 @@ The document should describe what you want to build.
 
 <process>
 
-## 1. Setup
+## 0. Pre-Flight Health Check (GSD-2 Pattern)
 
-**MANDATORY FIRST STEP — Execute these checks before ANY user interaction:**
+**MANDATORY FIRST STEP — Validate environment before ANY operation:**
 
 ```bash
-INIT=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" init new-project)
+# Run health check
+HEALTH=$(node "$HOME/.qwen/ez-agents/bin/ez-tools.cjs" doctor --json)
+```
+
+**Check:**
+- ✅ Node.js version >= 16.7.0
+- ✅ AI tools available (Claude, OpenCode, etc.)
+- ✅ Config valid (`.planning/config.json` or create default)
+- ✅ Git repo initialized (or auto-init)
+- ✅ API keys configured
+
+**If any check fails:**
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ EZ ► HEALTH CHECK FAILED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+❌ [Failed check description]
+
+Fix:
+  [suggested command]
+
+Example:
+  $ [example command]
+
+Resolve before continuing with project initialization.
+```
+
+**Abort project init until resolved.**
+
+---
+
+## 0a. Gather Initial Context (CONTEXT-01, CONTEXT-02)
+
+**Initialize ContextManager for context gathering:**
+
+```javascript
+const ContextManager = require('../bin/lib/context-manager.cjs');
+const contextManager = new ContextManager(process.cwd());
+```
+
+**Request initial project context:**
+
+```javascript
+const context = await contextManager.requestContext({
+  files: ['README.md', 'package.json'],
+  urls: []
+});
+```
+
+**Agent can request additional context using:**
+- `ez-tools context read <pattern>` — Read local files
+- `ez-tools context fetch <url>` — Fetch URL content (requires user confirmation)
+
+**Update STATE.md with context sources:**
+
+```javascript
+await contextManager.updateStateMd();
+```
+
+**Continue to Setup (Step 1) with gathered context.**
+
+---
+
+## 1. Setup with Lock File (GSD-2 Pattern)
+
+**Execute initialization with crash recovery:**
+
+```bash
+INIT=$(node "$HOME/.qwen/ez-agents/bin/ez-tools.cjs" init new-project)
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 ```
 
@@ -54,10 +125,34 @@ Parse JSON for: `researcher_model`, `synthesizer_model`, `roadmapper_model`, `co
 
 **If `project_exists` is true:** Error — project already initialized. Use `/ez:progress`.
 
+**Create lock file for crash recovery:**
+
+```bash
+# Create auto.lock
+node "$HOME/.qwen/ez-agents/bin/ez-tools.cjs" lock-create \
+  --operation="new-project" \
+  --project-path="$project_path"
+```
+
+**Create `.planning/auto.lock`:**
+```json
+{
+  "pid": 12345,
+  "operation": "new-project",
+  "project_path": "/path/to/project",
+  "started_at": "2026-03-18T12:00:00.000Z",
+  "last_heartbeat": "2026-03-18T12:00:00.000Z",
+  "state": "setup"
+}
+```
+
 **If `has_git` is false:** Initialize git:
 ```bash
 git init
+node "$HOME/.qwen/ez-agents/bin/ez-tools.cjs" lock-update --state="git_initialized"
 ```
+
+---
 
 ## 2. Brownfield Offer
 
@@ -79,6 +174,13 @@ Run `/ez:map-codebase` first, then return to `/ez:new-project`
 Exit command.
 
 **If "Skip mapping" OR `needs_codebase_map` is false:** Continue to Step 3.
+
+**Update lock file state:**
+```bash
+node "$HOME/.qwen/ez-agents/bin/ez-tools.cjs" lock-update --state="brownfield_check_complete"
+```
+
+---
 
 ## 2a. Auto Mode Config (auto mode only)
 
@@ -190,16 +292,23 @@ Create `.planning/config.json` with mode set to "yolo":
 
 ```bash
 mkdir -p .planning
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" commit "chore: add project config" --files .planning/config.json
+node "$HOME/.qwen/ez-agents/bin/ez-tools.cjs" commit "chore: add project config" --files .planning/config.json
 ```
 
 **Persist auto-advance chain flag to config (survives context compaction):**
 
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" config-set workflow._auto_chain_active true
+node "$HOME/.qwen/ez-agents/bin/ez-tools.cjs" config-set workflow._auto_chain_active true
+```
+
+**Update lock file state:**
+```bash
+node "$HOME/.qwen/ez-agents/bin/ez-tools.cjs" lock-update --state="config_complete"
 ```
 
 Proceed to Step 4 (skip Steps 3 and 5).
+
+---
 
 ## 3. Deep Questioning
 
@@ -256,6 +365,13 @@ When you could write a clear PROJECT.md, use AskUserQuestion:
 If "Keep exploring" — ask what they want to add, or identify gaps and probe naturally.
 
 Loop until "Create PROJECT.md" selected.
+
+**Update lock file state:**
+```bash
+node "$HOME/.qwen/ez-agents/bin/ez-tools.cjs" lock-update --state="questioning_complete"
+```
+
+---
 
 ## 4. Write PROJECT.md
 
@@ -340,8 +456,15 @@ Do not compress. Capture everything gathered.
 
 ```bash
 mkdir -p .planning
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" commit "docs: initialize project" --files .planning/PROJECT.md
+node "$HOME/.qwen/ez-agents/bin/ez-tools.cjs" commit "docs: initialize project" --files .planning/PROJECT.md
 ```
+
+**Update lock file state:**
+```bash
+node "$HOME/.qwen/ez-agents/bin/ez-tools.cjs" lock-update --state="project_defined"
+```
+
+---
 
 ## 5. Workflow Preferences
 
@@ -415,13 +538,7 @@ questions: [
 
 **Round 2 — Workflow agents:**
 
-These spawn additional agents during planning/execution. They add tokens and time but improve quality.
-
-| Agent | When it runs | What it does |
-|-------|--------------|--------------|
-| **Researcher** | Before planning each phase | Investigates domain, finds patterns, surfaces gotchas |
-| **Plan Checker** | After plan is created | Verifies plan actually achieves the phase goal |
-| **Verifier** | After phase execution | Confirms must-haves were delivered |
+These spawn additional agents during planning/execution. They add tokens and time but improve quality. They add tokens and time but improve quality.
 
 All recommended for important projects. Skip for quick experiments.
 
@@ -495,16 +612,23 @@ Create `.planning/config.json` with all settings:
 **Commit config.json:**
 
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" commit "chore: add project config" --files .planning/config.json
+node "$HOME/.qwen/ez-agents/bin/ez-tools.cjs" commit "chore: add project config" --files .planning/config.json
 ```
 
 **Note:** Run `/ez:settings` anytime to update these preferences.
+
+**Update lock file state:**
+```bash
+node "$HOME/.qwen/ez-agents/bin/ez-tools.cjs" lock-update --state="config_complete"
+```
 
 ## 5.5. Resolve Model Profile
 
 Use models from init: `researcher_model`, `synthesizer_model`, `roadmapper_model`.
 
-## 6. Research Decision
+---
+
+## 6. Research Decision (with Fresh Context - GSD-2 Pattern)
 
 **If auto mode:** Default to "Research first" without asking.
 
@@ -512,7 +636,7 @@ Use AskUserQuestion:
 - header: "Research"
 - question: "Research the domain ecosystem before defining requirements?"
 - options:
-  - "Research first (Recommended)" — Discover standard stacks, expected features, architecture patterns
+  - "Research first (Recommended)" — Discover standard stack, expected features, architecture patterns
   - "Skip research" — I know this domain well, go straight to requirements
 
 **If "Research first":**
@@ -546,22 +670,34 @@ Display spawning indicator:
   → Pitfalls research
 ```
 
-Spawn 4 parallel ez-project-researcher agents with path references:
+**Spawn 4 parallel ez-project-researcher agents with FRESH CONTEXT (GSD-2 Pattern):**
+
+Each uses this template with dimension-specific fields:
 
 ```
-Task(prompt="<research_type>
-Project Research — Stack dimension for [domain].
-</research_type>
+Task(prompt="
+<research_type>Project Research — {DIMENSION} for [domain].</research_type>
+
+<fresh_context>
+CONTEXT RESET: This is a fresh 200K session.
+No accumulated garbage from prior tasks.
+Only relevant context pre-loaded below.
+</fresh_context>
+
+<pre_loaded_context>
+- .planning/PROJECT.md excerpt (core value, goals)
+- .planning/config.json (workflow settings)
+</pre_loaded_context>
 
 <milestone_context>
-[greenfield OR subsequent]
+{greenfield_or_subsequent}
 
 Greenfield: Research the standard stack for building [domain] from scratch.
 Subsequent: Research what's needed to add [target features] to an existing [domain] app. Don't re-research the existing system.
 </milestone_context>
 
 <question>
-What's the standard 2025 stack for [domain]?
+{QUESTION}
 </question>
 
 <files_to_read>
@@ -569,146 +705,34 @@ What's the standard 2025 stack for [domain]?
 </files_to_read>
 
 <downstream_consumer>
-Your STACK.md feeds into roadmap creation. Be prescriptive:
-- Specific libraries with versions
-- Clear rationale for each choice
-- What NOT to use and why
+{CONSUMER}
 </downstream_consumer>
 
 <quality_gate>
-- [ ] Versions are current (verify with Context7/official docs, not training data)
-- [ ] Rationale explains WHY, not just WHAT
-- [ ] Confidence levels assigned to each recommendation
+{GATES}
 </quality_gate>
 
 <output>
-Write to: .planning/research/STACK.md
-Use template: ~/.claude/ez-agents/templates/research-project/STACK.md
+Write to: .planning/research/{FILE}
+Use template: ~/.qwen/ez-agents/templates/research-project/{FILE}
 </output>
-", subagent_type="ez-project-researcher", model="{researcher_model}", description="Stack research")
-
-Task(prompt="<research_type>
-Project Research — Features dimension for [domain].
-</research_type>
-
-<milestone_context>
-[greenfield OR subsequent]
-
-Greenfield: What features do [domain] products have? What's table stakes vs differentiating?
-Subsequent: How do [target features] typically work? What's expected behavior?
-</milestone_context>
-
-<question>
-What features do [domain] products have? What's table stakes vs differentiating?
-</question>
-
-<files_to_read>
-- {project_path} (Project context)
-</files_to_read>
-
-<downstream_consumer>
-Your FEATURES.md feeds into requirements definition. Categorize clearly:
-- Table stakes (must have or users leave)
-- Differentiators (competitive advantage)
-- Anti-features (things to deliberately NOT build)
-</downstream_consumer>
-
-<quality_gate>
-- [ ] Categories are clear (table stakes vs differentiators vs anti-features)
-- [ ] Complexity noted for each feature
-- [ ] Dependencies between features identified
-</quality_gate>
-
-<output>
-Write to: .planning/research/FEATURES.md
-Use template: ~/.claude/ez-agents/templates/research-project/FEATURES.md
-</output>
-", subagent_type="ez-project-researcher", model="{researcher_model}", description="Features research")
-
-Task(prompt="<research_type>
-Project Research — Architecture dimension for [domain].
-</research_type>
-
-<milestone_context>
-[greenfield OR subsequent]
-
-Greenfield: How are [domain] systems typically structured? What are major components?
-Subsequent: How do [target features] integrate with existing [domain] architecture?
-</milestone_context>
-
-<question>
-How are [domain] systems typically structured? What are major components?
-</question>
-
-<files_to_read>
-- {project_path} (Project context)
-</files_to_read>
-
-<downstream_consumer>
-Your ARCHITECTURE.md informs phase structure in roadmap. Include:
-- Component boundaries (what talks to what)
-- Data flow (how information moves)
-- Suggested build order (dependencies between components)
-</downstream_consumer>
-
-<quality_gate>
-- [ ] Components clearly defined with boundaries
-- [ ] Data flow direction explicit
-- [ ] Build order implications noted
-</quality_gate>
-
-<output>
-Write to: .planning/research/ARCHITECTURE.md
-Use template: ~/.claude/ez-agents/templates/research-project/ARCHITECTURE.md
-</output>
-", subagent_type="ez-project-researcher", model="{researcher_model}", description="Architecture research")
-
-Task(prompt="<research_type>
-Project Research — Pitfalls dimension for [domain].
-</research_type>
-
-<milestone_context>
-[greenfield OR subsequent]
-
-Greenfield: What do [domain] projects commonly get wrong? Critical mistakes?
-Subsequent: What are common mistakes when adding [target features] to [domain]?
-</milestone_context>
-
-<question>
-What do [domain] projects commonly get wrong? Critical mistakes?
-</question>
-
-<files_to_read>
-- {project_path} (Project context)
-</files_to_read>
-
-<downstream_consumer>
-Your PITFALLS.md prevents mistakes in roadmap/planning. For each pitfall:
-- Warning signs (how to detect early)
-- Prevention strategy (how to avoid)
-- Which phase should address it
-</downstream_consumer>
-
-<quality_gate>
-- [ ] Pitfalls are specific to this domain (not generic advice)
-- [ ] Prevention strategies are actionable
-- [ ] Phase mapping included where relevant
-</quality_gate>
-
-<output>
-Write to: .planning/research/PITFALLS.md
-Use template: ~/.claude/ez-agents/templates/research-project/PITFALLS.md
-</output>
-", subagent_type="ez-project-researcher", model="{researcher_model}", description="Pitfalls research")
+", subagent_type="ez-project-researcher", model="{researcher_model}", description="{DIMENSION} research")
 ```
 
-After all 4 agents complete, spawn synthesizer to create SUMMARY.md:
+**Dimension-specific fields:**
+
+| Field | Stack | Features | Architecture | Pitfalls |
+|-------|-------|----------|-------------|----------|
+| QUESTION | What's the standard 2025 stack for [domain]? | What features do [domain] products have? | How are [domain] systems typically structured? | What do [domain] projects commonly get wrong? |
+| CONSUMER | Specific libraries with versions, clear rationale, what NOT to use | Table stakes vs differentiators vs anti-features | Component boundaries, data flow, build order | Warning signs, prevention strategy, phase mapping |
+| GATES | Versions current (verify with Context7), rationale explains WHY | Categories clear, complexity noted, dependencies identified | Components clearly defined, data flow explicit | Pitfalls specific to domain, prevention actionable |
+| FILE | STACK.md | FEATURES.md | ARCHITECTURE.md | PITFALLS.md |
+
+After all 4 complete, spawn synthesizer to create SUMMARY.md:
 
 ```
 Task(prompt="
-<task>
 Synthesize research outputs into SUMMARY.md.
-</task>
 
 <files_to_read>
 - .planning/research/STACK.md
@@ -717,11 +741,9 @@ Synthesize research outputs into SUMMARY.md.
 - .planning/research/PITFALLS.md
 </files_to_read>
 
-<output>
 Write to: .planning/research/SUMMARY.md
-Use template: ~/.claude/ez-agents/templates/research-project/SUMMARY.md
+Use template: ~/.qwen/ez-agents/templates/research-project/SUMMARY.md
 Commit after writing.
-</output>
 ", subagent_type="ez-research-synthesizer", model="{synthesizer_model}", description="Synthesize research")
 ```
 
@@ -740,7 +762,14 @@ Display research complete banner and key findings:
 Files: `.planning/research/`
 ```
 
+**Update lock file state:**
+```bash
+node "$HOME/.qwen/ez-agents/bin/ez-tools.cjs" lock-update --state="research_complete"
+```
+
 **If "Skip research":** Continue to Step 7.
+
+---
 
 ## 7. Define Requirements
 
@@ -852,29 +881,19 @@ Good requirements are:
 - **Atomic:** One capability per requirement (not "User can login and manage profile")
 - **Independent:** Minimal dependencies on other requirements
 
-Reject vague requirements. Push for specificity:
-- "Handle authentication" → "User can log in with email/password and stay logged in across sessions"
-- "Support sharing" → "User can share post via link that opens in recipient's browser"
+Reject vague requirements. Push for specificity.
 
-**Present full requirements list (interactive mode only):**
-
-Show every requirement (not counts) for user confirmation:
+Present FULL requirements list for confirmation:
 
 ```
-## v1 Requirements
+## Project Requirements
 
-### Authentication
-- [ ] **AUTH-01**: User can create account with email/password
-- [ ] **AUTH-02**: User can log in and stay logged in across sessions
-- [ ] **AUTH-03**: User can log out from any page
+### [Category 1]
+- [ ] **CAT1-01**: User can do X
+- [ ] **CAT1-02**: User can do Y
 
-### Content
-- [ ] **CONT-01**: User can create posts with text
-- [ ] **CONT-02**: User can edit their own posts
-
-[... full list ...]
-
----
+### [Category 2]
+- [ ] **CAT2-01**: User can do Z
 
 Does this capture what you're building? (yes / adjust)
 ```
@@ -882,12 +901,18 @@ Does this capture what you're building? (yes / adjust)
 If "adjust": Return to scoping.
 
 **Commit requirements:**
-
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" commit "docs: define v1 requirements" --files .planning/REQUIREMENTS.md
+node "$HOME/.qwen/ez-agents/bin/ez-tools.cjs" commit "docs: define project requirements" --files .planning/REQUIREMENTS.md
 ```
 
-## 8. Create Roadmap
+**Update lock file state:**
+```bash
+node "$HOME/.qwen/ez-agents/bin/ez-tools.cjs" lock-update --state="requirements_defined"
+```
+
+---
+
+## 8. Create Roadmap (with Stuck Detection - GSD-2 Pattern)
 
 Display stage banner:
 ```
@@ -898,59 +923,90 @@ Display stage banner:
 ◆ Spawning roadmapper...
 ```
 
-Spawn ez-roadmapper agent with path references:
+**Initialize stuck detection:**
+
+```bash
+# Start stuck watcher
+node "$HOME/.qwen/ez-agents/bin/ez-tools.cjs" stuck-watch start \
+  --operation="roadmap-creation" \
+  --max-retries=1 \
+  --timeout=300
+```
 
 ```
 Task(prompt="
 <planning_context>
-
 <files_to_read>
-- .planning/PROJECT.md (Project context)
-- .planning/REQUIREMENTS.md (v1 Requirements)
-- .planning/research/SUMMARY.md (Research findings - if exists)
-- .planning/config.json (Granularity and mode settings)
+- .planning/PROJECT.md
+- .planning/REQUIREMENTS.md
+- .planning/research/SUMMARY.md (if exists)
+- .planning/config.json
 </files_to_read>
-
 </planning_context>
 
 <instructions>
-Create roadmap:
-1. Derive phases from requirements (don't impose structure)
-2. Map every v1 requirement to exactly one phase
-3. Derive 2-5 success criteria per phase (observable user behaviors)
-4. Validate 100% coverage
-5. Write files immediately (ROADMAP.md, STATE.md, update REQUIREMENTS.md traceability)
-6. Return ROADMAP CREATED with summary
+Create roadmap for new project:
+1. Start phase numbering from 1
+2. Derive phases from requirements
+3. Map every requirement to exactly one phase
+4. Derive 2-5 success criteria per phase (observable user behaviors)
+5. Validate 100% coverage
+6. Write files immediately (ROADMAP.md, STATE.md, update REQUIREMENTS.md traceability)
+7. Return ROADMAP CREATED with summary
 
-Write files first, then return. This ensures artifacts persist even if context is lost.
+Write files first, then return.
 </instructions>
 ", subagent_type="ez-roadmapper", model="{roadmapper_model}", description="Create roadmap")
 ```
 
-**Handle roadmapper return:**
+**Handle return:**
 
 **If `## ROADMAP BLOCKED`:**
-- Present blocker information
-- Work with user to resolve
-- Re-spawn when resolved
+1. Log error type and location
+2. Retry ONCE with diagnostic context:
+```
+Task(prompt="
+<retry_context>
+PREVIOUS ATTEMPT FAILED
+Error Type: [error_type]
+Error Location: [location]
+Suggested Fix: [fix]
 
-**If `## ROADMAP CREATED`:**
+CONTEXT SNAPSHOT FOR DEBUGGING:
+[snapshot of files read]
 
-Read the created ROADMAP.md and present it nicely inline:
+Please try again with this diagnostic information.
+</retry_context>
+", subagent_type="ez-roadmapper", model="{roadmapper_model}", description="Create roadmap (retry)")
+```
+3. If fails again → STOP with exact failure report:
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ EZ ► ROADMAP CREATION FAILED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Error Type: [type]
+Error Location: [file:line]
+Suggested Fix: [action]
+
+Context Snapshot: .planning/logs/stuck-snapshot-[timestamp].json
+
+Next Steps:
+1. Review context snapshot
+2. Fix [specific issue]
+3. Run: /ez:new-project --retry
+```
+
+**If `## ROADMAP CREATED`:** Read ROADMAP.md, present inline:
 
 ```
----
-
 ## Proposed Roadmap
 
-**[N] phases** | **[X] requirements mapped** | All v1 requirements covered ✓
+**[N] phases** | **[X] requirements mapped** | All covered ✓
 
 | # | Phase | Goal | Requirements | Success Criteria |
 |---|-------|------|--------------|------------------|
 | 1 | [Name] | [Goal] | [REQ-IDs] | [count] |
-| 2 | [Name] | [Goal] | [REQ-IDs] | [count] |
-| 3 | [Name] | [Goal] | [REQ-IDs] | [count] |
-...
 
 ### Phase Details
 
@@ -960,154 +1016,92 @@ Requirements: [REQ-IDs]
 Success criteria:
 1. [criterion]
 2. [criterion]
-3. [criterion]
+```
 
-**Phase 2: [Name]**
-Goal: [goal]
-Requirements: [REQ-IDs]
-Success criteria:
-1. [criterion]
-2. [criterion]
+**Ask for approval** via AskUserQuestion:
+- "Approve" — Commit and continue
+- "Adjust phases" — Tell me what to change
+- "Review full file" — Show raw ROADMAP.md
 
-[... continue for all phases ...]
+**If "Adjust":** Get notes, re-spawn roadmapper with revision context, loop until approved.
+**If "Review":** Display raw ROADMAP.md, re-ask.
+
+**Commit roadmap** (after approval):
+```bash
+node "$HOME/.qwen/ez-agents/bin/ez-tools.cjs" commit "docs: create project roadmap ([N] phases)" --files .planning/ROADMAP.md .planning/STATE.md .planning/REQUIREMENTS.md
+```
+
+**Update lock file state:**
+```bash
+node "$HOME/.qwen/ez-agents/bin/ez-tools.cjs" lock-update --state="roadmap_created"
+```
 
 ---
-```
 
-**If auto mode:** Skip approval gate — auto-approve and commit directly.
+## 9. Release Lock File
 
-**CRITICAL: Ask for approval before committing (interactive mode only):**
-
-Use AskUserQuestion:
-- header: "Roadmap"
-- question: "Does this roadmap structure work for you?"
-- options:
-  - "Approve" — Commit and continue
-  - "Adjust phases" — Tell me what to change
-  - "Review full file" — Show raw ROADMAP.md
-
-**If "Approve":** Continue to commit.
-
-**If "Adjust phases":**
-- Get user's adjustment notes
-- Re-spawn roadmapper with revision context:
-  ```
-  Task(prompt="
-  <revision>
-  User feedback on roadmap:
-  [user's notes]
-
-  <files_to_read>
-  - .planning/ROADMAP.md (Current roadmap to revise)
-  </files_to_read>
-
-  Update the roadmap based on feedback. Edit files in place.
-  Return ROADMAP REVISED with changes made.
-  </revision>
-  ", subagent_type="ez-roadmapper", model="{roadmapper_model}", description="Revise roadmap")
-  ```
-- Present revised roadmap
-- Loop until user approves
-
-**If "Review full file":** Display raw `cat .planning/ROADMAP.md`, then re-ask.
-
-**Commit roadmap (after approval or auto mode):**
+**Project initialization complete:**
 
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" commit "docs: create roadmap ([N] phases)" --files .planning/ROADMAP.md .planning/STATE.md .planning/REQUIREMENTS.md
+node "$HOME/.qwen/ez-agents/bin/ez-tools.cjs" lock-release
 ```
 
-## 9. Done
+---
 
-Present completion summary:
+## 10. Done
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  EZ ► PROJECT INITIALIZED ✓
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-**[Project Name]**
+**Project: [Project Name]**
 
 | Artifact       | Location                    |
 |----------------|-----------------------------|
 | Project        | `.planning/PROJECT.md`      |
-| Config         | `.planning/config.json`     |
 | Research       | `.planning/research/`       |
 | Requirements   | `.planning/REQUIREMENTS.md` |
 | Roadmap        | `.planning/ROADMAP.md`      |
+| Config         | `.planning/config.json`     |
 
 **[N] phases** | **[X] requirements** | Ready to build ✓
-```
-
-**If auto mode:**
-
-```
-╔══════════════════════════════════════════╗
-║  AUTO-ADVANCING → DISCUSS PHASE 1        ║
-╚══════════════════════════════════════════╝
-```
-
-Exit skill and invoke SlashCommand("/ez:discuss-phase 1 --auto")
-
-**If interactive mode:**
-
-```
-───────────────────────────────────────────────────────────────
 
 ## ▶ Next Up
 
-**Phase 1: [Phase Name]** — [Goal from ROADMAP.md]
+**Phase 1: [Phase Name]** — [Goal]
 
-/ez:discuss-phase 1 — gather context and clarify approach
+`/ez:discuss-phase 1` — gather context and clarify approach
 
-<sub>/clear first → fresh context window</sub>
+<sub>`/clear` first → fresh context window</sub>
 
----
-
-**Also available:**
-- /ez:plan-phase 1 — skip discussion, plan directly
-
-───────────────────────────────────────────────────────────────
+Also: `/ez:plan-phase 1` — skip discussion, plan directly
 ```
 
 </process>
 
-<output>
-
-- `.planning/PROJECT.md`
-- `.planning/config.json`
-- `.planning/research/` (if research selected)
-  - `STACK.md`
-  - `FEATURES.md`
-  - `ARCHITECTURE.md`
-  - `PITFALLS.md`
-  - `SUMMARY.md`
-- `.planning/REQUIREMENTS.md`
-- `.planning/ROADMAP.md`
-- `.planning/STATE.md`
-
-</output>
-
 <success_criteria>
-
-- [ ] .planning/ directory created
-- [ ] Git repo initialized
-- [ ] Brownfield detection completed
-- [ ] Deep questioning completed (threads followed, not rushed)
-- [ ] PROJECT.md captures full context → **committed**
-- [ ] config.json has workflow mode, granularity, parallelization → **committed**
-- [ ] Research completed (if selected) — 4 parallel agents spawned → **committed**
-- [ ] Requirements gathered (from research or conversation)
-- [ ] User scoped each category (v1/v2/out of scope)
-- [ ] REQUIREMENTS.md created with REQ-IDs → **committed**
-- [ ] ez-roadmapper spawned with context
+- [ ] Pre-flight health check passed (all systems go)
+- [ ] Lock file created and maintained throughout
+- [ ] PROJECT.md created with clear core value
+- [ ] REQUIREMENTS.md created with REQ-IDs
+- [ ] ROADMAP.md created with phased execution plan
+- [ ] STATE.md initialized
+- [ ] Config.json created with workflow preferences
+- [ ] Research completed (if selected) — 4 parallel agents with fresh context
+- [ ] Requirements gathered and scoped per category
+- [ ] ez-roadmapper spawned with stuck detection
 - [ ] Roadmap files written immediately (not draft)
 - [ ] User feedback incorporated (if any)
-- [ ] ROADMAP.md created with phases, requirement mappings, success criteria
-- [ ] STATE.md initialized
-- [ ] REQUIREMENTS.md traceability updated
-- [ ] User knows next step is `/ez:discuss-phase 1`
+- [ ] All commits made (if planning docs committed)
+- [ ] Lock file released on completion
+- [ ] User knows next step: `/ez:discuss-phase 1`
 
-**Atomic commits:** Each phase commits its artifacts immediately. If context is lost, artifacts persist.
+**Atomic commits:** Each artifact committed immediately after creation.
 
+**GSD-2 Reliability:**
+- ✅ Health check pre-flight validation
+- ✅ Crash recovery via lock files
+- ✅ Fresh context per researcher/agent
+- ✅ Stuck detection with diagnostics during roadmap creation
 </success_criteria>
