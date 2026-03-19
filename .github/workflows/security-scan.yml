@@ -1,0 +1,75 @@
+name: Security Scan
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly scan on Sunday at midnight
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Semgrep
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/security
+            p/secrets
+            p/nodejs
+
+      - name: Upload Semgrep results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: semgrep-results
+          path: semgrep.json
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Run npm audit
+        id: audit
+        run: |
+          echo "::group::Running npm audit"
+          npm audit --audit-level=moderate --json > npm-audit-results.json || true
+          echo "::endgroup::"
+          
+          # Display summary
+          if [ -f npm-audit-results.json ]; then
+            echo "Audit results saved to artifact"
+          fi
+
+      - name: Upload npm audit results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: npm-audit-results
+          path: npm-audit-results.json
+          if-no-files-found: ignore
+          retention-days: 7

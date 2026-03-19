@@ -22,11 +22,11 @@ Routes to the resume-project workflow which handles:
   </objective>
 
 <execution_context>
-@~/.claude/ez-agents/workflows/resume-project.md
+@~/.qwen/ez-agents/workflows/resume-project.md
 </execution_context>
 
 <process>
-**Follow the resume-project workflow** from `@~/.claude/ez-agents/workflows/resume-project.md`.
+**Follow the resume-project workflow** from `@~/.qwen/ez-agents/workflows/resume-project.md`.
 
 The workflow handles all resumption logic including:
 

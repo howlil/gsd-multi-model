@@ -22,7 +22,7 @@ This command:
 </objective>
 
 <execution_context>
-@~/.claude/ez-agents/workflows/resume-session.md
+@~/.qwen/ez-agents/workflows/resume-session.md
 </execution_context>
 
 <context>
@@ -32,7 +32,7 @@ Session ID is optional. If not provided, the last session is loaded.
 </context>
 
 <process>
-**Follow the resume-session workflow** from @~/.claude/ez-agents/workflows/resume-session.md.
+**Follow the resume-session workflow** from @~/.qwen/ez-agents/workflows/resume-session.md.
 
 The workflow handles all resumption logic including:
 

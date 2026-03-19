@@ -1,0 +1,91 @@
+name: CD Production
+
+on:
+  push:
+    branches:
+      - main
+  release:
+    types: [published]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  deploy-production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    needs: [ci]
+
+    environment:
+      name: production
+      url: https://npmjs.com/package/@howlil/ez-agents
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build hooks
+        run: npm run build:hooks
+
+      - name: Get previous version
+        id: prev-version
+        run: |
+          PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "version=${PREV_TAG#v}" >> $GITHUB_OUTPUT
+          echo "Previous version: ${PREV_TAG}"
+
+      - name: Deploy to production
+        id: deploy
+        run: |
+          echo "Deploying to production environment..."
+          node commands/deploy.cjs production
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "version=${CURRENT_VERSION}" >> $GITHUB_OUTPUT
+          echo "Deployed version: ${CURRENT_VERSION}"
+
+      - name: Post-deployment health check
+        id: health-check
+        run: |
+          echo "Running post-deployment health check..."
+          if node commands/health-check.cjs production; then
+            echo "success=true" >> $GITHUB_OUTPUT
+            echo "Health check passed"
+          else
+            echo "success=false" >> $GITHUB_OUTPUT
+            echo "Health check failed"
+          fi
+
+      - name: Auto-rollback on failure
+        if: steps.health-check.outputs.success == 'false'
+        run: |
+          echo "::error::Health check failed, initiating rollback"
+          echo "Rolling back to version: ${{ steps.prev-version.outputs.version }}"
+          node commands/rollback.cjs production ${{ steps.prev-version.outputs.version }}
+          echo "::notice::Rollback completed successfully"
+          exit 1
+
+      - name: Deployment status notification
+        if: always()
+        run: |
+          if [ "${{ steps.health-check.outputs.success }}" == "true" ]; then
+            echo "::notice::Deployment to production successful (v${{ steps.deploy.outputs.version }})"
+            echo "Package URL: https://npmjs.com/package/@howlil/ez-agents/v/${{ steps.deploy.outputs.version }}"
+          else
+            echo "::error::Deployment to production failed - rolled back to previous version"
+          fi

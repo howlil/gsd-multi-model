@@ -1,0 +1,64 @@
+name: CD Staging
+
+on:
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  deploy-staging:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    environment:
+      name: staging
+      url: https://staging.ez-agents.dev
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build hooks
+        run: npm run build:hooks
+
+      - name: Deploy to staging
+        id: deploy
+        run: |
+          echo "Deploying to staging environment..."
+          node commands/deploy.cjs staging
+          echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: Post-deployment health check
+        id: health-check
+        run: |
+          echo "Running post-deployment health check..."
+          if node commands/health-check.cjs staging; then
+            echo "success=true" >> $GITHUB_OUTPUT
+            echo "Health check passed"
+          else
+            echo "success=false" >> $GITHUB_OUTPUT
+            echo "Health check failed"
+            exit 1
+          fi
+
+      - name: Deployment notification
+        if: always()
+        run: |
+          if [ "${{ steps.health-check.outputs.success }}" == "true" ]; then
+            echo "::notice::Deployment to staging successful (v${{ steps.deploy.outputs.version }})"
+          else
+            echo "::error::Deployment to staging failed"
+          fi

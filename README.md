@@ -4,7 +4,11 @@
 
 **Turn AI coding assistants into reliable development teammates.**
 
+[![CI Pipeline](https://github.com/howlil/ez-agents/actions/workflows/ci.yml/badge.svg)](https://github.com/howlil/ez-agents/actions/workflows/ci.yml)
+[![Tests](https://github.com/howlil/ez-agents/actions/workflows/test.yml/badge.svg)](https://github.com/howlil/ez-agents/actions/workflows/test.yml)
+[![CodeQL](https://github.com/howlil/ez-agents/actions/workflows/codeql.yml/badge.svg)](https://github.com/howlil/ez-agents/actions/workflows/codeql.yml)
 [![npm](https://img.shields.io/npm/v/@howlil/ez-agents?style=for-the-badge&logo=npm)](https://www.npmjs.com/package/@howlil/ez-agents)
+[![npm](https://img.shields.io/npm/dm/@howlil/ez-agents.svg)](https://npmjs.com/package/@howlil/ez-agents)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/howlil/ez-agents?style=for-the-badge&logo=github)](https://github.com/howlil/ez-agents/stargazers)
 
@@ -196,6 +200,38 @@ Phase 1: Foundation
 - **Cross-Platform** — Pure JavaScript. Works on Windows, macOS, Linux (no Unix dependencies)
 - **Error Handling** — Retry logic with backoff, circuit breaker for failing operations
 - **Git Safety** — Atomic commits, branch automation, merge strategies
+
+### CI/CD Pipeline
+
+EZ Agents includes comprehensive CI/CD automation for enterprise-grade quality:
+
+**Pipeline Stages:**
+```
+Push → Lint → Test → Security Scan → Build → Deploy Staging → Deploy Production
+```
+
+**Security Scanning:**
+- **CodeQL** - Semantic code analysis for vulnerabilities (SAST)
+- **Semgrep** - Fast pattern-based security scanning
+- **npm audit** - Dependency vulnerability detection
+- **Dependabot** - Automated dependency updates
+
+**Environment Promotion:**
+- **Develop branch** → Auto-deploy to staging
+- **Main branch** → Deploy to production (requires manual approval)
+- **Health checks** - Post-deployment validation
+- **Auto-rollback** - Automatic rollback on health check failure
+
+**Coverage Enforcement:**
+- Minimum 70% code coverage threshold
+- Coverage reports uploaded as artifacts
+- Optional Codecov integration
+
+**View Pipeline Status:**
+- [CI Pipeline](https://github.com/howlil/ez-agents/actions/workflows/ci.yml)
+- [Tests](https://github.com/howlil/ez-agents/actions/workflows/test.yml)
+- [CodeQL](https://github.com/howlil/ez-agents/actions/workflows/codeql.yml)
+- [Security Scan](https://github.com/howlil/ez-agents/actions/workflows/security-scan.yml)
 
 ### For Existing Codebases
 

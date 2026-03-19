@@ -13,17 +13,17 @@ See `.planning/milestones/` for full archives.
 
 ## Current Milestone
 
-**v2.0 Full SDLC Coverage: Deployment, Operations & Security** — Phase 15 Complete
+**v2.0 Full SDLC Coverage: Deployment, Operations & Security** — Phase 20 Complete
 
-**Phase 15 completed:**
+**Phases completed:**
 - ✅ **Phase 15:** Phase-Based Git Workflow (20 requirements) — PHASE-GIT-01 to PHASE-GIT-20 — Complete 2026-03-19
+- ✅ **Phase 16:** Context & File Access (8 requirements) — CONTEXT-01 to CONTEXT-08 — Complete 2026-03-19
+- ✅ **Phase 17:** Package Manager Flexibility (8 requirements) — PKG-01 to PKG-08 — Complete 2026-03-19
+- ✅ **Phase 18:** Session Memory & Model Continuity (10 requirements) — SESSION-01 to SESSION-10 — Complete 2026-03-20
+- ✅ **Phase 19:** Deployment & Operations (10 requirements) — DEPLOY-01 to DEPLOY-10 — Complete 2026-03-20 (placeholder scripts)
+- ✅ **Phase 20:** CI/CD Pipeline Automation (10 requirements) — CICD-01 to CICD-10 — Complete 2026-03-20
 
-**Remaining phases (16-29):**
-- **Phase 16:** Context & File Access (8 requirements) — CONTEXT-01 to CONTEXT-08
-- **Phase 17:** Package Manager Flexibility (8 requirements) — PKG-01 to PKG-08
-- **Phase 18:** Session Memory & Model Continuity (10 requirements) — SESSION-01 to SESSION-10
-- **Phase 19:** Deployment & Operations (10 requirements) — DEPLOY-01 to DEPLOY-10
-- **Phase 20:** CI/CD Pipeline Automation (10 requirements) — CICD-01 to CICD-10
+**Remaining phases (21-29):**
 - **Phase 21:** Observability & Monitoring (10 requirements) — OBSERVE-01 to OBSERVE-10
 - **Phase 22:** Disaster Recovery & Business Continuity (8 requirements) — RECOVER-01 to RECOVER-08
 - **Phase 23:** Security Operations (8 requirements) — SECOPS-01 to SECOPS-08
@@ -34,7 +34,7 @@ See `.planning/milestones/` for full archives.
 - **Phase 28:** Cost Optimization / FinOps (6 requirements) — COST-01 to COST-06
 - **Phase 29:** GSD-2 Reliability Patterns Implementation (37 requirements) — GSD-01 to GSD-37
 
-**Total:** 145 requirements across 14 phases (Phase 15 complete)
+**Total:** 145 requirements across 14 phases (Phases 15-20 complete)
 
 **Branch Hierarchy:**
 ```
@@ -63,7 +63,7 @@ Use `/ez:new-milestone` to start v2.0 implementation.
 ## Progress
 
 **Execution History:**
-Phases executed in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12 → 13 → 14 → 15
+Phases executed in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12 → 13 → 14 → 15 → 16 → 17 → 18 → 19 → 20
 
 | Phase | Name | Plans | Status | Completed |
 |-------|------|-------|--------|-----------|
@@ -81,18 +81,18 @@ Phases executed in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 �
 | 12 | Gap Closure — Multi-Model Runtime Wiring | 4/4 | Complete | 2026-03-18 |
 | 13 | Gap Closure — Retry, Circuit Breaker & Error UX | 4/4 | Complete | 2026-03-18 |
 | 14 | Gap Closure — Decoupling, Plugins & Config Paths | 4/4 | Complete | 2026-03-18 |
-| 15 | Phase-Based Git Workflow | Complete    | 2026-03-19 | 2026-03-19 |
+| 15 | Phase-Based Git Workflow | Complete | 2026-03-19 | 2026-03-19 |
+| 16 | Context & File Access | Complete | 2026-03-19 | 2026-03-19 |
+| 17 | Package Manager Flexibility | Complete | 2026-03-19 | 2026-03-19 |
+| 18 | Session Memory & Model Continuity | Complete | 2026-03-20 | 2026-03-20 |
+| 19 | Deployment & Operations | Complete | 2026-03-20 | 2026-03-20 |
+| 20 | CI/CD Pipeline Automation | Complete | 2026-03-20 | 2026-03-20 |
 
-**Total:** 15 phases, 59 plans, 100% complete
+**Total:** 20 phases, 65 plans, 100% complete
 
 **Planned:**
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
-| 16 | Context & File Access | Complete    | 2026-03-19 |
-| 17 | 1/1 | Complete   | 2026-03-19 |
-| 18 | 1/1 | Complete   | 2026-03-19 |
-| 19 | Deployment & Operations | 10 | Pending |
-| 20 | CI/CD Pipeline Automation | 10 | Pending |
 | 21 | Observability & Monitoring | 10 | Pending |
 | 22 | Disaster Recovery & Business Continuity | 8 | Pending |
 | 23 | Security Operations | 8 | Pending |
@@ -110,4 +110,4 @@ Plans:
 - [ ] TBD (run /ez-plan-phase 1 to break down)
 
 ---
-*Last updated: 2026-03-19 — Phase 15 completed (20 requirements implemented, enterprise Git workflow ready)*
+*Last updated: 2026-03-20 — Phase 20 completed (CI/CD Pipeline Automation with security scanning, deployment workflows, and rollback automation)*
