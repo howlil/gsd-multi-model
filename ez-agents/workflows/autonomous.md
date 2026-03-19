@@ -1,6 +1,8 @@
 <purpose>
 
-Drive all remaining milestone phases autonomously. For each incomplete phase: discuss → plan → execute using Skill() flat invocations. Pauses only for explicit user decisions (grey area acceptance, blockers, validation requests). Re-reads ROADMAP.md after each phase to catch dynamically inserted phases.
+Drive all remaining milestone phases autonomously. For each incomplete phase: discuss → plan → execute **ALL tasks in loop** using Skill() flat invocations. Pauses only for explicit user decisions (grey area acceptance, blockers, validation requests). Re-reads ROADMAP.md after each phase to catch dynamically inserted phases.
+
+**Key:** Execute-phase loops through ALL task plans within a phase, not just the phase as a whole.
 
 </purpose>
 
@@ -28,7 +30,7 @@ fi
 Bootstrap via milestone-level init:
 
 ```bash
-INIT=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" init milestone-op)
+INIT=$(node "$HOME/.qwen/ez-agents/bin/ez-tools.cjs" init milestone-op)
 ```
 
 Parse JSON for: `milestone_version`, `milestone_name`, `phase_count`, `completed_phases`, `roadmap_exists`, `state_exists`, `commit_docs`.
@@ -58,7 +60,7 @@ If `FROM_PHASE` is set, display: `Starting from phase ${FROM_PHASE}`
 Run phase discovery:
 
 ```bash
-ROADMAP=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" roadmap analyze)
+ROADMAP=$(node "$HOME/.qwen/ez-agents/bin/ez-tools.cjs" roadmap analyze)
 ```
 
 Parse the JSON `phases` array.
@@ -86,27 +88,27 @@ Exit cleanly.
 ```
 ## Phase Plan
 
-| # | Phase | Status |
-|---|-------|--------|
-| 5 | Skill Scaffolding & Phase Discovery | In Progress |
-| 6 | Smart Discuss | Not Started |
-| 7 | Auto-Chain Refinements | Not Started |
-| 8 | Lifecycle Orchestration | Not Started |
+| # | Phase | Status | Tasks |
+|---|-------|--------|-------|
+| 5 | Skill Scaffolding & Phase Discovery | In Progress | [count] |
+| 6 | Smart Discuss | Not Started | [count] |
+| 7 | Auto-Chain Refinements | Not Started | [count] |
+| 8 | Lifecycle Orchestration | Not Started | [count] |
 ```
 
 **Fetch details for each phase:**
 
 ```bash
-DETAIL=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" roadmap get-phase ${PHASE_NUM})
+DETAIL=$(node "$HOME/.qwen/ez-agents/bin/ez-tools.cjs" roadmap get-phase ${PHASE_NUM})
 ```
 
-Extract `phase_name`, `goal`, `success_criteria` from each. Store for use in execute_phase and transition messages.
+Extract `phase_name`, `goal`, `success_criteria`, `task_count` from each. Store for use in execute_phase and transition messages.
 
 </step>
 
 <step name="execute_phase">
 
-## 3. Execute Phase
+## 3. Execute Phase (with Task Loop)
 
 For the current phase, display the progress banner:
 
@@ -114,16 +116,18 @@ For the current phase, display the progress banner:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  EZ ► AUTONOMOUS ▸ Phase {N}/{T}: {Name} [████░░░░] {P}%
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ Phase {N} has {task_count} tasks to execute
 ```
 
-Where N = current phase number (from the ROADMAP, e.g., 6), T = total milestone phases (from `phase_count` parsed in initialize step, e.g., 8), P = percentage of all milestone phases completed so far. Calculate P as: (number of phases with `disk_status` "complete" from the latest `roadmap analyze` / T × 100). Use █ for filled and ░ for empty segments in the progress bar (8 characters wide).
+Where N = current phase number (from the ROADMAP, e.g., 6), T = total milestone phases (from `phase_count` parsed in initialize step, e.g., 8), P = percentage of all milestone phases completed so far.
 
 **3a. Smart Discuss**
 
 Check if CONTEXT.md already exists for this phase:
 
 ```bash
-PHASE_STATE=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" init phase-op ${PHASE_NUM})
+PHASE_STATE=$(node "$HOME/.qwen/ez-agents/bin/ez-tools.cjs" init phase-op ${PHASE_NUM})
 ```
 
 Parse `has_context` from JSON.
@@ -141,7 +145,7 @@ Proceed to 3b.
 After smart_discuss completes, verify context was written:
 
 ```bash
-PHASE_STATE=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" init phase-op ${PHASE_NUM})
+PHASE_STATE=$(node "$HOME/.qwen/ez-agents/bin/ez-tools.cjs" init phase-op ${PHASE_NUM})
 ```
 
 Check `has_context`. If false → go to handle_blocker: "Smart discuss for phase ${PHASE_NUM} did not produce CONTEXT.md."
@@ -154,15 +158,95 @@ Skill(skill="ez:plan-phase", args="${PHASE_NUM}")
 
 Verify plan produced output — re-run `init phase-op` and check `has_plans`. If false → go to handle_blocker: "Plan phase ${PHASE_NUM} did not produce any plans."
 
-**3c. Execute**
+**Get task list for loop:**
+
+```bash
+PLANS=$(node "$HOME/.qwen/ez-agents/bin/ez-tools.cjs" phase-list-plans ${PHASE_NUM})
+```
+
+Parse JSON for: `plans` array with `plan_number`, `plan_name`, `task_description`, `status` for each plan.
+
+**Filter to incomplete plans:** Keep only plans where `status !== "complete"`.
+
+**Store for task loop:** `plan_list` = array of incomplete plans.
+
+**3c. Execute ALL Tasks in Loop**
+
+Display task execution banner:
 
 ```
-Skill(skill="ez:execute-phase", args="${PHASE_NUM} --no-transition")
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ EZ ► AUTONOMOUS ▸ Phase {N} Task Execution
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ {task_count} tasks to execute in Phase {N}
 ```
 
-**3d. Post-Execution Routing**
+**For each plan in `plan_list` (loop through ALL tasks):**
 
-After execute-phase returns, read the verification result:
+```
+FOR EACH plan IN plan_list:
+```
+
+**3c-i. Display task progress:**
+
+```
+Task {plan.plan_number}/{task_count}: {plan.plan_name}
+[████░░░░] {completed_tasks}/{total_tasks} completed
+```
+
+**3c-ii. Execute single task:**
+
+```
+Skill(skill="ez:execute-phase", args="${PHASE_NUM} --plan ${plan.plan_number} --no-transition")
+```
+
+**3c-iii. Verify task completion:**
+
+```bash
+TASK_STATUS=$(node "$HOME/.qwen/ez-agents/bin/ez-tools.cjs" phase-get-task-status ${PHASE_NUM} ${plan.plan_number})
+```
+
+Parse `status` from JSON (values: "complete", "in_progress", "blocked", "failed").
+
+**If `complete`:**
+- Display: `✅ Task ${plan.plan_number}: ${plan.plan_name} — Complete`
+- Mark task as completed in local tracking
+- Continue to next task in loop
+
+**If `in_progress`:**
+- Display: `⚠ Task ${plan.plan_number}: ${plan.plan_name} — Still in progress`
+- Retry status check once (wait 30 seconds)
+- If still `in_progress` → go to handle_blocker: "Task ${plan.plan_number} did not complete"
+
+**If `blocked` or `failed`:**
+- Read error/blocker details from task status
+- Go to handle_blocker with: "Task ${plan.plan_number} (${plan.plan_name}) ${status}: {details}"
+
+**3c-iv. After each task completes, update phase progress:**
+
+```bash
+node "$HOME/.qwen/ez-agents/bin/ez-tools.cjs" phase-update-progress ${PHASE_NUM}
+```
+
+**End loop** (continue to next plan in plan_list)
+
+**After ALL tasks complete:**
+
+Display phase completion banner:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ EZ ► AUTONOMOUS ▸ Phase {N} Complete ✅
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ All {task_count} tasks completed successfully
+ Phase {N}: {phase_name} — DONE
+```
+
+**3d. Post-Execution Verification**
+
+After all tasks in the phase complete, read the verification result:
 
 ```bash
 VERIFY_STATUS=$(grep "^status:" "${PHASE_DIR}"/*-VERIFICATION.md 2>/dev/null | head -1 | cut -d: -f2 | tr -d ' ')
@@ -171,7 +255,7 @@ VERIFY_STATUS=$(grep "^status:" "${PHASE_DIR}"/*-VERIFICATION.md 2>/dev/null | h
 Where `PHASE_DIR` comes from the `init phase-op` call already made in step 3a. If the variable is not in scope, re-fetch:
 
 ```bash
-PHASE_STATE=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" init phase-op ${PHASE_NUM})
+PHASE_STATE=$(node "$HOME/.qwen/ez-agents/bin/ez-tools.cjs" init phase-op ${PHASE_NUM})
 ```
 
 Parse `phase_dir` from the JSON.
@@ -185,6 +269,7 @@ Go to handle_blocker: "Execute phase ${PHASE_NUM} did not produce verification r
 Display:
 ```
 Phase ${PHASE_NUM} ✅ ${PHASE_NAME} — Verification passed
+All {task_count} tasks verified
 ```
 
 Proceed to iterate step.
@@ -194,7 +279,7 @@ Proceed to iterate step.
 Read the human_verification section from VERIFICATION.md to get the count and items requiring manual testing.
 
 Display the items, then ask user via AskUserQuestion:
-- **question:** "Phase ${PHASE_NUM} has items needing manual verification. Validate now or continue to next phase?"
+- **question:** "Phase ${PHASE_NUM} has {N} items needing manual verification. Validate now or continue to next phase?"
 - **options:** "Validate now" / "Continue without validation"
 
 On **"Validate now"**: Present the specific items from VERIFICATION.md's human_verification section. After user reviews, ask:
@@ -213,6 +298,7 @@ Read gap summary from VERIFICATION.md (score and missing items). Display:
 ```
 ⚠ Phase ${PHASE_NUM}: ${PHASE_NAME} — Gaps Found
 Score: {N}/{M} must-haves verified
+{gap_count} tasks have gaps
 ```
 
 Ask user via AskUserQuestion:
@@ -227,9 +313,15 @@ Skill(skill="ez:plan-phase", args="${PHASE_NUM} --gaps")
 
 Verify gap plans were created — re-run `init phase-op ${PHASE_NUM}` and check `has_plans`. If no new gap plans → go to handle_blocker: "Gap closure planning for phase ${PHASE_NUM} did not produce plans."
 
-Re-execute:
+**Re-execute ALL gap tasks in loop:**
+
+```bash
+GAP_PLANS=$(node "$HOME/.qwen/ez-agents/bin/ez-tools.cjs" phase-list-plans ${PHASE_NUM} --gap-only)
 ```
-Skill(skill="ez:execute-phase", args="${PHASE_NUM} --no-transition")
+
+For each gap plan in GAP_PLANS:
+```
+Skill(skill="ez:execute-phase", args="${PHASE_NUM} --plan ${gap_plan.number} --no-transition")
 ```
 
 Re-read verification status:
@@ -265,7 +357,7 @@ Run smart discuss for the current phase. Proposes grey area answers in batch tab
 **Inputs:** `PHASE_NUM` from execute_phase. Run init to get phase paths:
 
 ```bash
-PHASE_STATE=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" init phase-op ${PHASE_NUM})
+PHASE_STATE=$(node "$HOME/.qwen/ez-agents/bin/ez-tools.cjs" init phase-op ${PHASE_NUM})
 ```
 
 Parse from JSON: `phase_dir`, `phase_slug`, `padded_phase`, `phase_name`.
@@ -354,10 +446,10 @@ Read the 3-5 most relevant files to understand existing patterns.
 **Get phase details:**
 
 ```bash
-DETAIL=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" roadmap get-phase ${PHASE_NUM})
+DETAIL=$(node "$HOME/.qwen/ez-agents/bin/ez-tools.cjs" roadmap get-phase ${PHASE_NUM})
 ```
 
-Extract `goal`, `requirements`, `success_criteria` from the JSON response.
+Extract `goal`, `requirements`, `success_criteria`, `task_count` from the JSON response.
 
 **Infrastructure detection — check FIRST before generating grey areas:**
 
@@ -526,7 +618,7 @@ Write the file.
 **Commit:**
 
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" commit "docs(${PADDED_PHASE}): smart discuss context" --files "${phase_dir}/${padded_phase}-CONTEXT.md"
+node "$HOME/.qwen/ez-agents/bin/ez-tools.cjs" commit "docs(${PADDED_PHASE}): smart discuss context" --files "${phase_dir}/${padded_phase}-CONTEXT.md"
 ```
 
 Display confirmation:
@@ -542,10 +634,10 @@ Decisions captured: {count} across {area_count} areas
 
 ## 4. Iterate
 
-After each phase completes, re-read ROADMAP.md to catch phases inserted mid-execution (decimal phases like 5.1):
+After each phase completes (ALL tasks executed), re-read ROADMAP.md to catch phases inserted mid-execution (decimal phases like 5.1):
 
 ```bash
-ROADMAP=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" roadmap analyze)
+ROADMAP=$(node "$HOME/.qwen/ez-agents/bin/ez-tools.cjs" roadmap analyze)
 ```
 
 Re-filter incomplete phases using the same logic as discover_phases:
@@ -563,7 +655,7 @@ Check for blockers in the Blockers/Concerns section. If blockers are found, go t
 
 If incomplete phases remain: proceed to next phase, loop back to execute_phase.
 
-If all phases complete, proceed to lifecycle step.
+If all phases complete: proceed to lifecycle step.
 
 </step>
 
@@ -674,6 +766,7 @@ Display final completion banner:
  Milestone: {milestone_version} — {milestone_name}
  Status: Complete ✅
  Lifecycle: audit ✅ → complete ✅ → cleanup ✅
+ All Tasks: {total_tasks} executed across {phase_count} phases
 
  Ship it! 🚀
 ```
@@ -686,16 +779,16 @@ Display final completion banner:
 
 When any phase operation fails or a blocker is detected, present 3 options via AskUserQuestion:
 
-**Prompt:** "Phase {N} ({Name}) encountered an issue: {description}"
+**Prompt:** "Phase {N} ({Name}), Task {task_num} encountered an issue: {description}"
 
 **Options:**
-1. **"Fix and retry"** — Re-run the failed step (discuss, plan, or execute) for this phase
-2. **"Skip this phase"** — Mark phase as skipped, continue to the next incomplete phase
+1. **"Fix and retry"** — Re-run the failed step (discuss, plan, or execute) for this task
+2. **"Skip this task"** — Mark task as skipped, continue to next task in same phase
 3. **"Stop autonomous mode"** — Display summary of progress so far and exit cleanly
 
 **On "Fix and retry":** Loop back to the failed step within execute_phase. If the same step fails again after retry, re-present these options.
 
-**On "Skip this phase":** Log `Phase {N} ⏭ {Name} — Skipped by user` and proceed to iterate.
+**On "Skip this task":** Log `Phase {N}, Task {task_num} ⏭ {task_name} — Skipped by user` and continue to next task in the phase loop.
 
 **On "Stop autonomous mode":** Display progress summary:
 
@@ -704,11 +797,12 @@ When any phase operation fails or a blocker is detected, present 3 options via A
  EZ ► AUTONOMOUS ▸ STOPPED
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
- Completed: {list of completed phases}
- Skipped: {list of skipped phases}
- Remaining: {list of remaining phases}
+ Completed Phases: {list of completed phases}
+ In Progress: Phase {N}, Task {task_num}
+ Skipped Tasks: {list of skipped tasks}
+ Remaining Tasks: {count} tasks in {count} phases
 
- Resume with: /ez:autonomous --from {next_phase}
+ Resume with: /ez:autonomous --from {current_phase}
 ```
 
 </step>
@@ -719,16 +813,23 @@ When any phase operation fails or a blocker is detected, present 3 options via A
 - [ ] All incomplete phases executed in order (smart discuss → plan → execute each)
 - [ ] Smart discuss proposes grey area answers in tables, user accepts or overrides per area
 - [ ] Progress banners displayed between phases
-- [ ] Execute-phase invoked with --no-transition (autonomous manages transitions)
+- [ ] Execute-phase loops through ALL task plans within each phase
+- [ ] Each task plan executed individually with --plan {N} flag
+- [ ] Task progress displayed during loop ([████░░░░] X/Y completed)
+- [ ] Task completion verified after each execution
+- [ ] Failed/blocked tasks route to handle_blocker
+- [ ] After ALL tasks complete, phase verification runs
 - [ ] Post-execution verification reads VERIFICATION.md and routes on status
 - [ ] Passed verification → automatic continue to next phase
 - [ ] Human-needed verification → user prompted to validate or skip
 - [ ] Gaps-found → user offered gap closure, continue, or stop
+- [ ] Gap closure re-executes ALL gap tasks in loop
 - [ ] Gap closure limited to 1 retry (prevents infinite loops)
 - [ ] Plan-phase and execute-phase failures route to handle_blocker
 - [ ] ROADMAP.md re-read after each phase (catches inserted phases)
 - [ ] STATE.md checked for blockers before each phase
 - [ ] Blockers handled via user choice (retry / skip / stop)
+- [ ] Task-level blocker handling (skip task vs skip phase)
 - [ ] Final completion or stop summary displayed
 - [ ] After all phases complete, lifecycle step is invoked (not manual suggestion)
 - [ ] Lifecycle transition banner displayed before audit
@@ -737,7 +838,7 @@ When any phase operation fails or a blocker is detected, present 3 options via A
 - [ ] Audit technical failure (no file/no status) routes to handle_blocker
 - [ ] Complete-milestone invoked via Skill() with ${milestone_version} arg
 - [ ] Cleanup invoked via Skill() — internal confirmation is acceptable (CTRL-01)
-- [ ] Final completion banner displayed after lifecycle
+- [ ] Final completion banner displays total task count
 - [ ] Progress bar uses phase number / total milestone phases (not position among incomplete)
 - [ ] Smart discuss documents relationship to discuss-phase with CTRL-03 note
 </success_criteria>
