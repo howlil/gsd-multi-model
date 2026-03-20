@@ -114,21 +114,16 @@ Turn any project requirement into structured, parallel, auditable delivery — f
 - ✓ IAC-01 to IAC-08: Pulumi IaC templates, multi-environment, auto-scaling — v2.0
 - ✓ GSD-17 to GSD-37: Fresh context, stuck detection, health check command — v2.0
 
-### Active (v3.0 AI App Builder — "Improve Accuracy")
+### Active (v2.1 Gap Closure — "Close the Gaps")
 
-- [ ] ORCH-01 to ORCH-07: Orchestrator Core & Chief Strategist pattern
-- [ ] INTAKE-01 to INTAKE-04: Intake & Triage layer
-- [ ] CTXE-01 to CTXE-05: Context Engine enhancement (codebase mapping, stack detection)
-- [ ] RQNM-01 to RQNM-06: Requirement Normalization engine
-- [ ] GRAPH-01 to GRAPH-04: Task Graph Builder (DAG, parallel classification)
-- [ ] MODE-01 to MODE-05: Operation Modes (Greenfield/MVP/Existing/Scale-up/Maintenance)
-- [ ] POOL-01 to POOL-05: Specialist Agent Pool (layered, standardized output)
-- [ ] GATE-01 to GATE-07: Quality Gates system (7 gates)
-- [ ] RECON-01 to RECON-03: Reconciliation & cross-agent conflict resolution
-- [ ] EDGE-01 to EDGE-06: Edge case handling (overengineering, hallucination, production bugs)
+- [ ] GSD-01 to GSD-06: Wire crash-recovery.cjs and cost-tracker.cjs to CLI (real data, not mock)
+- [ ] DEPLOY-01 to DEPLOY-10: One-command deploy feature (phase never executed in v2.0)
+- [ ] PERF-01 to PERF-08: Performance tooling — route wiring + missing lib files
+- [ ] ANALYTICS-01 to ANALYTICS-06: Product analytics lib (feature usage, NPS, funnels, cohorts)
+- [ ] COST-01 to COST-06: FinOps lib (budget alerts, rightsizing, cost reporting)
 
-**Deferred from v2.0 (v2.1 backlog, tracked separately):**
-- [ ] DEPLOY-01 to DEPLOY-10, PERF-01 to PERF-08, ANALYTICS-01 to ANALYTICS-06, COST-01 to COST-06, GSD-01 to GSD-16, CICD-06
+**Next Milestone (v3.0 AI App Builder — deferred until v2.1 complete):**
+- [ ] ORCH-01 to ORCH-07, INTAKE-01 to INTAKE-04, CTXE-01 to CTXE-05, RQNM-01 to RQNM-06, GRAPH-01 to GRAPH-04, MODE-01 to MODE-05, POOL-01 to POOL-05, GATE-01 to GATE-07, RECON-01 to RECON-03, EDGE-01 to EDGE-06
 
 ### Out of Scope
 
@@ -197,7 +192,10 @@ Intake → Context Discovery → Requirement Normalization → Strategy & Archit
 - **v2.0 Full SDLC Coverage** (shipped 2026-03-20): 15 phases, 173 requirements
 
 **Current Milestone:**
-- **v3.0 AI App Builder** (started 2026-03-20): 8 phases, 52 requirements — Orchestrator pattern, specialist agents, quality gates, operation modes
+- **v2.1 Gap Closure** (started 2026-03-20): 4 phases, 36 requirements — GSD wiring, Deploy operations, Performance tooling, Analytics + FinOps
+
+**Next Milestone (deferred):**
+- **v3.0 AI App Builder**: 8 phases, 52 requirements — Orchestrator pattern, specialist agents, quality gates, operation modes (phases renumbered after v2.1)
 
 ## Constraints
 
@@ -224,4 +222,4 @@ Intake → Context Discovery → Requirement Normalization → Strategy & Archit
 | Anti-overengineering guardrails | Minimum ceremony for task complexity | ✓ Good — prevents process bloat |
 
 ---
-*Last updated: 2026-03-20 after v3.0 milestone start — 29 phases shipped, 4 milestones total. v3.0 adds AI App Builder layer: Orchestrator, agent pool, quality gates, operation modes. 52 new requirements, 8 phases (30–37).*
+*Last updated: 2026-03-20 after v2.1 milestone start — closing v2.0 known gaps before resuming v3.0 AI App Builder. 36 requirements across 4 areas: GSD, Deploy, Perf, Analytics+FinOps.*

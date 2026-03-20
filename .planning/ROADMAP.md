@@ -9,7 +9,8 @@ EZ Agents is a meta-prompting, context engineering, and spec-driven development 
 - ✅ **v1.0 EZ Multi-Model** — Phases 1–8 (shipped 2026-03-18)
 - ✅ **v1.1 Gap Closure Sprint** — Phases 9–14 (shipped 2026-03-18)
 - ✅ **v2.0 Full SDLC Coverage** — Phases 15–29 (shipped 2026-03-20)
-- ◆ **v3.0 AI App Builder** — Phases 30–37 (started 2026-03-20)
+- ◆ **v2.1 Gap Closure** — Phases 30–33 (started 2026-03-20)
+- ○ **v3.0 AI App Builder** — Phases 34–41 (deferred until v2.1 complete)
 
 See `.planning/milestones/` for full archives.
 
@@ -62,103 +63,73 @@ See `.planning/milestones/` for full archives.
 
 </details>
 
-### 📋 v3.0 AI App Builder — "Improve Accuracy" (Active)
+### 📋 v2.1 Gap Closure — "Close the Gaps" (Active)
 
-**Started:** 2026-03-20 | **Phases:** 30–37 | **Requirements:** 52
+**Started:** 2026-03-20 | **Phases:** 30–33 | **Requirements:** 36
 
-- [ ] Phase 30: Orchestrator Core & Intake Layer — Chief Strategist pattern, work classification, mode routing
-- [ ] Phase 31: Context Engine Enhancement — codebase mapping, stack detection, debt hotspots
-- [ ] Phase 32: Requirement Normalization Engine — informal → structured, NFR, acceptance criteria
-- [ ] Phase 33: Task Graph Builder — DAG generation, parallel classification, execution models
-- [ ] Phase 34: Operation Modes — Greenfield/Existing/MVP/Scale-up/Maintenance flows
-- [ ] Phase 35: Specialist Agent Pool — layered agents with standardized output format
-- [ ] Phase 36: Quality Gates System — 7-gate enforcement (requirement to release)
-- [ ] Phase 37: Reconciliation & Edge Cases — cross-agent consistency, overengineering/hallucination guards
+- [ ] Phase 30: GSD Gap Closure — wire crash-recovery.cjs + cost-tracker.cjs, real CLI data
+- [ ] Phase 31: Deploy Operations — one-command deploy (detect, run, rollback, status, audit, health check)
+- [ ] Phase 32: Performance Tooling — perf-analyzer, db-optimizer, frontend-perf, api-monitor, regression-detector
+- [ ] Phase 33: Analytics & FinOps — usage collection, NPS, funnels, cohorts, budget alerts, rightsizing, cost reports
 
 **Phase Details:**
 
-**Phase 30: Orchestrator Core & Intake Layer**
-Goal: Establish the Chief Strategist pattern and work intake/triage system
-Requirements: ORCH-01–07, INTAKE-01–04
+**Phase 30: GSD Gap Closure**
+Goal: Wire crash recovery and cost tracking to CLI with real data (replace all mock stubs)
+Requirements: GSD-01–06
 Success criteria:
-1. Orchestrator meta-prompt defines Chief Strategist role clearly
-2. Any work input is classified into one of 8 work types within intake workflow
-3. Scale (tiny→enterprise) and risk (low→critical) scores are produced
-4. System routes to correct operation mode automatically
-5. Anti-overengineering rules are enforced in plan/execute workflows
+1. `crash-recovery.cjs` creates lock files with real PID, detects orphaned processes
+2. `cost-tracker.cjs` records real token counts and USD costs per operation
+3. `/ez:cost` shows live phase-by-phase cost data
+4. `ez-tools doctor` reports accurate system state (no hardcoded stubs)
+5. Budget ceiling alert fires at configured threshold
 
-**Phase 31: Context Engine Enhancement**
-Goal: System understands existing codebase before proposing any changes
-Requirements: CTXE-01–05
+**Phase 31: Deploy Operations**
+Goal: Ship the one-command deploy feature that never executed in v2.0
+Requirements: DEPLOY-01–10
 Success criteria:
-1. Existing project flow triggers codebase mapping before planning
-2. Stack and framework detected from project files without user prompt
-3. Technical debt hotspots identified in context report
-4. Project context report includes architecture snapshot and dependency map
-5. Greenfield flow produces actor map and business flow diagram
+1. `ez-tools deploy` detects environment and selects appropriate deploy strategy
+2. Pre-deploy validation (tests + lint) blocks deploy on failure
+3. Deploy executes and polls status until completion or timeout
+4. Rollback restores previous version on command or on failure
+5. Deploy audit log written to `.planning/logs/deploy-{timestamp}.log`
+6. Post-deploy health check confirms deployment success
 
-**Phase 32: Requirement Normalization Engine**
-Goal: Any informal brief can be transformed into structured, testable requirements
-Requirements: RQNM-01–06
+**Phase 32: Performance Tooling**
+Goal: Complete performance tooling — route existing stubs to CLI and add missing analyzers
+Requirements: PERF-01–08
 Success criteria:
-1. Informal brief produces functional requirements in user-centric format
-2. NFRs (performance, security, compliance) extracted automatically
-3. Constraints documented with rationale
-4. Each requirement has acceptance criteria (observable behavior)
-5. Out-of-scope list generated with reasoning
-6. Unresolved questions flagged and assigned
+1. `ez-tools perf analyze` runs and returns performance report
+2. `db-optimizer.cjs` produces query analysis with index recommendations
+3. `frontend-performance.cjs` produces bundle size and render analysis
+4. `api-monitor.cjs` tracks endpoint latency and stores baseline
+5. `regression-detector.cjs` compares against baseline and flags regressions
 
-**Phase 33: Task Graph Builder**
-Goal: Phase objectives decompose into dependency-aware, execution-optimized task DAGs
-Requirements: GRAPH-01–04
+**Phase 33: Analytics & FinOps**
+Goal: Implement product analytics and FinOps libs (all missing from disk)
+Requirements: ANALYTICS-01–06, COST-01–06
 Success criteria:
-1. Phase objective → task DAG with explicit dependency edges
-2. Every task has complete metadata (input/output/dependency/priority/owner/criteria)
-3. Parallel-eligible tasks are identified and marked
-4. Execution model selected per phase with justification
+1. Feature usage events collected and stored locally
+2. NPS survey mechanism functional
+3. Funnel and cohort analysis produce human-readable reports
+4. Budget alerts fire at real threshold (not mock)
+5. Rightsizing recommendations generated from resource analysis
+6. `/ez:cost` extended with FinOps subcommands (budget, report, rightsizing)
 
-**Phase 34: Operation Modes**
-Goal: System selects right-sized workflow for any project type
-Requirements: MODE-01–05
-Success criteria:
-1. Greenfield project triggers stack selection and foundation planning
-2. Existing codebase triggers mapping-first, minimal-risk flow
-3. MVP request triggers strict scope enforcement and low-ceremony flow
-4. Scale-up request triggers modularity and governance checklist
-5. Maintenance request triggers triage and hotfix path
+---
 
-**Phase 35: Specialist Agent Pool**
-Goal: Domain expertise available via well-defined specialist agents
-Requirements: POOL-01–05
-Success criteria:
-1. 7 core agent definitions exist and are usable
-2. Analyst Layer agents defined (Business Analyst, System Analyst, Data Architect)
-3. Engineering Layer agents defined (Solution Architect, Backend, Frontend, Mobile, DevOps)
-4. QA/Governance Layer agents defined (API Tester, Security Reviewer, Reality Checker, Release Manager)
-5. All agents use standardized output template
+### ○ v3.0 AI App Builder — "Improve Accuracy" (Deferred)
 
-**Phase 36: Quality Gates System**
-Goal: Consistent quality enforcement at every delivery milestone
-Requirements: GATE-01–07
-Success criteria:
-1. Requirement completeness gate blocks planning if acceptance criteria missing
-2. Architecture sanity gate checks complexity proportionality
-3. Code quality gate integrated into execute workflow
-4. Test coverage gate verifies critical paths
-5. Security gate checks auth, secrets, injection
-6. Documentation gate verifies setup/API/decisions/known-issues
-7. Release readiness gate confirms rollback plan and monitoring
+**Deferred:** 2026-03-20 | **Phases:** 34–41 (renumbered) | **Requirements:** 52
 
-**Phase 37: Reconciliation & Edge Cases**
-Goal: Multi-agent system produces consistent output and handles failure modes gracefully
-Requirements: RECON-01–03, EDGE-01–06
-Success criteria:
-1. API contract vs implementation validated at integration checkpoint
-2. Cross-agent output checked for design/backend/frontend/QA alignment
-3. Conflicts generate targeted revision requests to affected agents
-4. Ambiguous requirements trigger assumption list rather than guessing
-5. Overengineering patterns detected and flagged
-6. Agents produce facts/assumptions/decisions distinction in output
+- [ ] Phase 34: Orchestrator Core & Intake Layer — Chief Strategist pattern, work classification, mode routing
+- [ ] Phase 35: Context Engine Enhancement — codebase mapping, stack detection, debt hotspots
+- [ ] Phase 36: Requirement Normalization Engine — informal → structured, NFR, acceptance criteria
+- [ ] Phase 37: Task Graph Builder — DAG generation, parallel classification, execution models
+- [ ] Phase 38: Operation Modes — Greenfield/Existing/MVP/Scale-up/Maintenance flows
+- [ ] Phase 39: Specialist Agent Pool — layered agents with standardized output format
+- [ ] Phase 40: Quality Gates System — 7-gate enforcement (requirement to release)
+- [ ] Phase 41: Reconciliation & Edge Cases — cross-agent consistency, overengineering/hallucination guards
 
 ## Progress
 
@@ -167,3 +138,5 @@ Success criteria:
 | 1–8 | v1.0 | ✅ Complete | 2026-03-17/18 |
 | 9–14 | v1.1 | ✅ Complete | 2026-03-18 |
 | 15–29 | v2.0 | ✅ Complete (with known gaps) | 2026-03-19/20 |
+| 30–33 | v2.1 | ◆ In Progress | — |
+| 34–41 | v3.0 | ○ Deferred | — |

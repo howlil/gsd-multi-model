@@ -1,22 +1,29 @@
 # Milestones
 
-## v3.0 AI App Builder — "Improve Accuracy" (Started: 2026-03-20)
+## v2.1 Gap Closure — "Close the Gaps" (Started: 2026-03-20)
 
 **Status:** In Progress
-**Phases:** 30–37 (8 phases)
+**Phases:** 30–33 (4 phases)
+**Requirements:** 36 (GSD-01–06, DEPLOY-01–10, PERF-01–08, ANALYTICS-01–06, COST-01–06)
+
+**Goal:** Close all v2.0 known gaps before advancing to v3.0 — wire crash recovery and cost tracking to CLI, ship the deploy feature that never executed, complete performance tooling, and implement analytics + FinOps libs.
+
+**Target features:**
+- GSD: crash-recovery.cjs + cost-tracker.cjs wired with real data
+- Deploy: one-command deploy (detect, run, rollback, status, audit)
+- Performance: perf-analyzer, db-optimizer, frontend-performance, api-monitor, regression-detector
+- Analytics: usage collection, NPS, funnels, cohorts, reports
+- FinOps: budget alerts, rightsizing, cost reports, spot management
+
+---
+
+## v3.0 AI App Builder — "Improve Accuracy" (Deferred: 2026-03-20)
+
+**Status:** Deferred — resumes after v2.1 completes
+**Phases:** TBD (was 30–37, will renumber to ~34–41)
 **Requirements:** 52 (ORCH-01–07, INTAKE-01–04, CTXE-01–05, RQNM-01–06, GRAPH-01–04, MODE-01–05, POOL-01–05, GATE-01–07, RECON-01–03, EDGE-01–06)
 
 **Goal:** Build EZ Agents as a disciplined AI App Builder — Chief Strategist Orchestrator, layered specialist agents, shared state, quality gates, and a 10-phase SDLC workflow. Stack-agnostic, requirement-first, anti-overengineering.
-
-**Target features:**
-- Orchestrator Core & work classification
-- Context Engine (codebase mapping, stack detection)
-- Requirement Normalization engine
-- Task Graph Builder with DAG and parallel models
-- Operation Modes (Greenfield/MVP/Existing/Scale-up/Maintenance)
-- Specialist Agent Pool (layered, standardized output)
-- Quality Gates system (7 gates)
-- Reconciliation & edge case handling
 
 ---
 
