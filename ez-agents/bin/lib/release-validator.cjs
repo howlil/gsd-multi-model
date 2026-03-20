@@ -189,7 +189,10 @@ const MVP_CHECKLIST = [
   { id: 'health_endpoint', label: 'Health endpoint returns 200', auto: true },
   { id: 'no_secrets', label: 'No secrets in committed files', auto: true },
   { id: 'app_starts', label: 'Application starts without errors', auto: true },
-  { id: 'rollback_documented', label: 'Rollback procedure documented', auto: true }
+  { id: 'rollback_documented', label: 'Rollback procedure documented', auto: true },
+  { id: 'security_scan', label: 'Baseline security scan completed', auto: true },
+  { id: 'audit_logging', label: 'Audit logging enabled for security-sensitive actions', auto: true },
+  { id: 'compliance_evidence', label: 'Required compliance checklist/evidence files present', auto: false }
 ];
 
 const MEDIUM_EXTRA = [

@@ -178,5 +178,97 @@
       "dsn": "",
       "environment": "production"
     }
+  },
+  "documentation": {
+    "enabled": true,
+    "auto_generate": {
+      "changelog": true,
+      "adr_index": true,
+      "api_docs": false,
+      "user_docs": false
+    },
+    "directories": {
+      "adr": "docs/adr",
+      "runbooks": "docs/runbooks",
+      "troubleshooting": "docs/troubleshooting",
+      "api": "docs/api",
+      "user_guide": "docs/user-guide",
+      "schema": "docs/schema",
+      "integrations": "docs/integrations"
+    },
+    "retention": {
+      "changelog_versions": 10,
+      "adr_retain_deprecated": true,
+      "runbook_history": 20
+    },
+    "validation": {
+      "min_health_score": 70,
+      "check_staleness_days": 30,
+      "required_files": [
+        "CHANGELOG.md",
+        "docs/adr/README.md"
+      ]
+    }
+  },
+  "analytics": {
+    "provider": "posthog",
+    "apiKey": "${POSTHOG_API_KEY}",
+    "apiHost": "https://app.posthog.com",
+    "consentRequired": true,
+    "defaultConsent": {
+      "analytics": false,
+      "marketing": false,
+      "functional": true
+    },
+    "funnels": {
+      "user_onboarding": {
+        "stages": [
+          { "name": "page_view", "event": "landing_page_viewed", "optional": false },
+          { "name": "signup", "event": "user_signed_up", "optional": false },
+          { "name": "activation", "event": "onboarding_completed", "optional": false },
+          { "name": "conversion", "event": "purchase_completed", "optional": false }
+        ]
+      }
+    }
+  },
+  "experiments": {
+    "provider": "posthog",
+    "apiKey": "${POSTHOG_API_KEY}",
+    "apiHost": "https://app.posthog.com",
+    "experiments": {
+      "pricing_page_test": {
+        "goalEvent": "purchase_completed",
+        "variants": ["control", "variant_a", "variant_b"],
+        "minimumSampleSize": 1000,
+        "significanceLevel": 0.05,
+        "trafficAllocation": 0.5,
+        "hypothesis": "Changing pricing display will increase conversions"
+      }
+    }
+  },
+  "featureFlags": {
+    "provider": "flagsmith",
+    "apiKey": "${FLAGSMITH_API_KEY}",
+    "apiHost": "https://edge.api.flagsmith.com/api/v1/",
+    "enableLocalEvaluation": true,
+    "flags": {
+      "new_checkout_flow": {
+        "enabled": true,
+        "rolloutPercentage": 50,
+        "targeting": {
+          "country": ["US", "CA", "UK"],
+          "plan": ["pro", "enterprise"]
+        }
+      },
+      "dark_mode": {
+        "enabled": true,
+        "rolloutPercentage": 100,
+        "multivariate": {
+          "control": "#FFFFFF",
+          "variant_a": "#1A1A1A",
+          "variant_b": "#0D1117"
+        }
+      }
+    }
   }
 }

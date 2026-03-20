@@ -215,7 +215,6 @@ async function cmdInitNewProject(cwd, raw) {
   const result = {
     // Models
     researcher_model: resolveModelInternal(cwd, 'ez-project-researcher'),
-    synthesizer_model: resolveModelInternal(cwd, 'ez-research-synthesizer'),
     roadmapper_model: resolveModelInternal(cwd, 'ez-roadmapper'),
 
     // Config
@@ -252,7 +251,6 @@ function cmdInitNewMilestone(cwd, raw) {
   const result = {
     // Models
     researcher_model: resolveModelInternal(cwd, 'ez-project-researcher'),
-    synthesizer_model: resolveModelInternal(cwd, 'ez-research-synthesizer'),
     roadmapper_model: resolveModelInternal(cwd, 'ez-roadmapper'),
 
     // Config

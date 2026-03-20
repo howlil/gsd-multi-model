@@ -30,14 +30,6 @@
  *   websearch <query>                  Search web via Brave API (if configured)
  *     [--limit N] [--freshness day|week|month]
  *
- * Observability Commands:
- *   setup-observability [stack]        Setup complete observability stack
- *   setup-metrics                      Setup Prometheus metrics collection
- *   setup-logging                      Setup structured logging with Pino
- *   setup-tracing                      Setup distributed tracing with Jaeger
- *   setup-alerting                     Setup Alertmanager configuration
- *   setup-error-tracking               Setup Sentry error tracking
- *
  * Context Access Commands:
  *   context read <pattern>             Read local files using glob patterns
  *   context fetch <url>                Fetch content from URL (HTTPS only, requires confirmation)
@@ -472,6 +464,20 @@ async function main() {
       console.log('══════════════════════');
       console.log('');
 
+      // Check analytics config
+      let analyticsConfig = { ok: false, message: 'Not configured' };
+      try {
+        const configPath = path.join(cwd, '.planning', 'config.json');
+        if (fs.existsSync(configPath)) {
+          const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+          if (config.analytics && config.analytics.provider) {
+            analyticsConfig = { ok: true, provider: config.analytics.provider };
+          }
+        }
+      } catch (err) {
+        analyticsConfig = { ok: false, message: 'Config read error' };
+      }
+
       const checks = {
         node_version: { ok: true, value: process.version },
         ai_tools: { ok: true, available: ['claude'] },
@@ -479,7 +485,8 @@ async function main() {
         git: { ok: true, clean: true },
         api_keys: { ok: false, missing: ['ANTHROPIC_API_KEY'] },
         dependencies: { ok: true },
-        planning_dir: { ok: true }
+        planning_dir: { ok: true },
+        analytics: analyticsConfig
       };
 
       if (jsonFlag) {
@@ -500,11 +507,19 @@ async function main() {
       console.log(`API Keys             ⚠️  Missing: ${checks.api_keys.missing.join(', ')}`);
       console.log(`Dependencies         ✅ All packages installed`);
       console.log(`Planning Directory   ✅ Structure complete`);
+      if (analyticsConfig.ok) {
+        console.log(`Analytics Config     ✅ Provider: ${analyticsConfig.provider}`);
+      } else {
+        console.log(`Analytics Config     ⚠️  ${analyticsConfig.message} (run: analytics-init)`);
+      }
       console.log('');
       console.log('Status: WARNING - 1 issue found');
       console.log('');
       console.log('Suggestions:');
       console.log('  - Set ANTHROPIC_API_KEY environment variable or create ~/.ez/anthropic_api_key');
+      if (!analyticsConfig.ok) {
+        console.log('  - Run analytics-init to configure product analytics');
+      }
       console.log('');
 
       if (fixFlag) {
@@ -557,122 +572,6 @@ async function main() {
       console.log('  kimi      $1.00   (8%)');
       console.log('');
 
-      break;
-    }
-
-    // Observability setup commands
-    case 'setup-observability': {
-      const stack = args[1] || 'full';
-      console.log('');
-      console.log('EZ Agents - Observability Stack Setup');
-      console.log('======================================');
-      console.log('');
-      console.log('Stack:', stack);
-      console.log('');
-      console.log('Configuration files located in: assets/observability/');
-      console.log('');
-      console.log('Services:');
-      console.log('  - Prometheus  (metrics):  http://localhost:9090');
-      console.log('  - Grafana     (dashboards): http://localhost:3001');
-      console.log('  - Loki        (logs):     http://localhost:3100');
-      console.log('  - Jaeger      (traces):   http://localhost:16686');
-      console.log('  - Alertmanager (alerts):  http://localhost:9093');
-      console.log('');
-      console.log('To start the observability stack:');
-      console.log('  cd assets/observability');
-      console.log('  docker-compose up -d');
-      console.log('');
-      console.log('For more details, see: commands/ez/setup-observability.md');
-      break;
-    }
-
-    case 'setup-metrics': {
-      console.log('');
-      console.log('EZ Agents - Metrics Collection Setup');
-      console.log('=====================================');
-      console.log('');
-      console.log('Metrics collector: ez-agents/bin/lib/metrics-collector.cjs');
-      console.log('');
-      console.log('Usage:');
-      console.log('  const MetricsCollector = require("./ez-agents/bin/lib/metrics-collector.cjs");');
-      console.log('  const metrics = new MetricsCollector({ prefix: "ez_" });');
-      console.log('  app.use(metrics.middleware());');
-      console.log('  app.get("/metrics", metrics.metricsHandler.bind(metrics));');
-      console.log('');
-      console.log('For more details, see: commands/ez/setup-metrics.md');
-      break;
-    }
-
-    case 'setup-logging': {
-      console.log('');
-      console.log('EZ Agents - Structured Logging Setup');
-      console.log('=====================================');
-      console.log('');
-      console.log('Logger: ez-agents/bin/lib/logger-structured.cjs');
-      console.log('');
-      console.log('Usage:');
-      console.log('  const { StructuredLogger } = require("./ez-agents/bin/lib/logger-structured.cjs");');
-      console.log('  const logger = new StructuredLogger({ level: "info" });');
-      console.log('  app.use(logger.middleware());');
-      console.log('');
-      console.log('For more details, see: commands/ez/setup-logging.md');
-      break;
-    }
-
-    case 'setup-tracing': {
-      console.log('');
-      console.log('EZ Agents - Distributed Tracing Setup');
-      console.log('======================================');
-      console.log('');
-      console.log('Tracing SDK: ez-agents/bin/lib/tracing-otel.cjs');
-      console.log('');
-      console.log('Usage:');
-      console.log('  const TracingSDK = require("./ez-agents/bin/lib/tracing-otel.cjs");');
-      console.log('  const tracing = new TracingSDK({ serviceName: "my-app" });');
-      console.log('  await tracing.start();');
-      console.log('');
-      console.log('Jaeger UI: http://localhost:16686');
-      console.log('');
-      console.log('For more details, see: commands/ez/setup-tracing.md');
-      break;
-    }
-
-    case 'setup-alerting': {
-      console.log('');
-      console.log('EZ Agents - Alerting Setup');
-      console.log('===========================');
-      console.log('');
-      console.log('Configuration files:');
-      console.log('  - assets/observability/alertmanager.yml');
-      console.log('  - assets/observability/alerting-rules.yml');
-      console.log('');
-      console.log('Alert rules:');
-      console.log('  - HighErrorRate (critical)');
-      console.log('  - HighLatency (warning)');
-      console.log('  - ServiceDown (critical)');
-      console.log('  - HighMemoryUsage (warning)');
-      console.log('  - HighEventLoopLag (warning)');
-      console.log('');
-      console.log('Alertmanager UI: http://localhost:9093');
-      console.log('');
-      console.log('For more details, see: commands/ez/setup-alerting.md');
-      break;
-    }
-
-    case 'setup-error-tracking': {
-      console.log('');
-      console.log('EZ Agents - Error Tracking Setup');
-      console.log('=================================');
-      console.log('');
-      console.log('Error tracker: ez-agents/bin/lib/error-tracker.cjs');
-      console.log('');
-      console.log('Usage:');
-      console.log('  const ErrorTracker = require("./ez-agents/bin/lib/error-tracker.cjs");');
-      console.log('  const tracker = new ErrorTracker({ dsn: process.env.SENTRY_DSN });');
-      console.log('  app.use(tracker.middleware());');
-      console.log('  app.use(tracker.errorHandler());');
-      console.log('');
-      console.log('For more details, see: commands/ez/setup-error-tracking.md');
       break;
     }
 
@@ -1106,195 +1005,6 @@ async function main() {
     case 'progress': {
       const subcommand = args[1] || 'json';
       commands.cmdProgressRender(cwd, subcommand, raw);
-      break;
-    }
-
-    case 'recovery': {
-      const RecoveryManager = require('./lib/recovery-manager.cjs');
-      const recoveryManager = new RecoveryManager(cwd);
-      const subcommand = args[1];
-
-      if (!subcommand) {
-        error('Usage: ez-tools recovery <backup|list-backups|verify-backup>\nSubcommands: backup, list-backups, verify-backup');
-      }
-
-      switch (subcommand) {
-        case 'backup': {
-          const labelIdx = args.indexOf('--label');
-          const label = labelIdx !== -1 ? args[labelIdx + 1] : 'manual';
-          
-          try {
-            const result = await recoveryManager.backup({ label });
-            console.log(JSON.stringify(result, null, 2));
-          } catch (err) {
-            error('Backup failed: ' + err.message);
-          }
-          break;
-        }
-
-        case 'list-backups': {
-          try {
-            const backups = await recoveryManager.listBackups();
-            console.log(JSON.stringify({ backups, count: backups.length }, null, 2));
-          } catch (err) {
-            error('Failed to list backups: ' + err.message);
-          }
-          break;
-        }
-
-        case 'verify-backup': {
-          const backupId = args[2];
-          if (!backupId) {
-            error('Usage: ez-tools recovery verify-backup <backup-id>');
-          }
-
-          try {
-            const result = await recoveryManager.verifyBackup(backupId);
-            console.log(JSON.stringify(result, null, 2));
-          } catch (err) {
-            error('Verification failed: ' + err.message);
-          }
-          break;
-        }
-
-        case 'drill': {
-          const backupIdx = args.indexOf('--backup');
-          const backupId = backupIdx !== -1 ? args[backupIdx + 1] : null;
-          const cleanup = !args.includes('--no-cleanup');
-
-          try {
-            const result = await recoveryManager.runDrill(backupId || 'latest', { cleanup });
-            console.log('');
-            if (result.status === 'success') {
-              console.log('✅ Restore Drill Complete');
-              console.log('');
-              console.log(`Drill ID: ${result.drill_id}`);
-              console.log(`Backup: ${result.backup_id}`);
-              console.log(`Status: SUCCESS`);
-              const passedChecks = result.checks.filter(c => c.passed).length;
-              console.log(`Checks Passed: ${passedChecks}/${result.checks.length}`);
-              console.log('');
-              console.log(`Drill Report: .planning/recovery/drills/${result.drill_id}.json`);
-            } else {
-              console.log('❌ Restore Drill Failed');
-              console.log('');
-              console.log(`Drill ID: ${result.drill_id}`);
-              console.log(`Backup: ${result.backup_id}`);
-              console.log(`Status: ${result.status.toUpperCase()}`);
-              console.log('');
-              const failedChecks = result.checks.filter(c => !c.passed);
-              if (failedChecks.length > 0) {
-                console.log('Failed Checks:');
-                failedChecks.forEach(c => console.log(`  - ${c.name}: ${c.details}`));
-              }
-              if (result.error) {
-                console.log(`Error: ${result.error}`);
-              }
-              console.log('');
-              console.log(`Drill Report: .planning/recovery/drills/${result.drill_id}.json`);
-              process.exit(1);
-            }
-          } catch (err) {
-            error('Drill failed: ' + err.message);
-          }
-          break;
-        }
-
-        case 'list-drills': {
-          try {
-            const drills = await recoveryManager.listDrills();
-            console.log('');
-            if (drills.length === 0) {
-              console.log('No drills found. Run a drill with: ez-tools recovery drill');
-            } else {
-              console.log(`Found ${drills.length} drill${drills.length !== 1 ? 's' : ''}:`);
-              console.log('');
-              drills.forEach((drill, idx) => {
-                const statusIcon = drill.status === 'success' ? '✅' : drill.status === 'failed' ? '❌' : '⚠️';
-                console.log(`[${idx + 1}] ${statusIcon} ${drill.drill_id}`);
-                console.log(`    Backup: ${drill.backup_id}`);
-                console.log(`    Completed: ${drill.completed_at}`);
-                console.log('');
-              });
-            }
-          } catch (err) {
-            error('Failed to list drills: ' + err.message);
-          }
-          break;
-        }
-
-        default:
-          error('Unknown recovery subcommand. Available: backup, list-backups, verify-backup, drill, list-drills');
-      }
-      break;
-    }
-
-    case 'infrastructure': {
-      const InfrastructureService = require('./lib/infrastructure-service.cjs');
-      const InfrastructureValidator = require('./lib/infrastructure-validator.cjs');
-      const CostEstimator = require('./lib/cost-estimator.cjs');
-      
-      const infraService = new InfrastructureService(cwd);
-      const infraValidator = new InfrastructureValidator(cwd);
-      const costEstimator = new CostEstimator(cwd);
-      
-      const subcommand = args[1];
-
-      if (!subcommand) {
-        error('Usage: ez-tools infrastructure <generate|validate|estimate>\nSubcommands: generate, validate, estimate');
-      }
-
-      switch (subcommand) {
-        case 'generate': {
-          const providerIdx = args.indexOf('--provider');
-          const provider = providerIdx !== -1 ? args[providerIdx + 1] : 'aws';
-
-          try {
-            const result = infraService.generateInfrastructure({ provider });
-            console.log(JSON.stringify(result, null, 2));
-          } catch (err) {
-            error('Infrastructure generation failed: ' + err.message);
-          }
-          break;
-        }
-
-        case 'validate': {
-          const typeIdx = args.indexOf('--type');
-          const type = typeIdx !== -1 ? args[typeIdx + 1] : 'all';
-          const pathIdx = args.indexOf('--path');
-          const infraPath = pathIdx !== -1 ? args[pathIdx + 1] : 'infrastructure';
-
-          try {
-            let result;
-            if (type === 'all') {
-              result = infraValidator.validateAll(infraPath);
-            } else {
-              result = infraValidator.validate({ type, path: infraPath });
-            }
-            console.log(JSON.stringify(result, null, 2));
-          } catch (err) {
-            error('Validation failed: ' + err.message);
-          }
-          break;
-        }
-
-        case 'estimate': {
-          const pathIdx = args.indexOf('--path');
-          const infraPath = pathIdx !== -1 ? args[pathIdx + 1] : 'infrastructure';
-          const detailed = args.includes('--detailed');
-
-          try {
-            const result = costEstimator.estimate({ path: infraPath, detailed });
-            console.log(JSON.stringify(result, null, 2));
-          } catch (err) {
-            error('Cost estimation failed: ' + err.message);
-          }
-          break;
-        }
-
-        default:
-          error('Unknown infrastructure subcommand. Available: generate, validate, estimate');
-      }
       break;
     }
 

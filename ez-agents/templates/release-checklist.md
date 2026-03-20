@@ -4,7 +4,7 @@ Tier-parameterized checklist for `/ez:release`. Items marked `[AUTO]` can be che
 
 ---
 
-## MVP Checklist (6 items)
+## MVP Checklist (9 items)
 
 Use when: First public release, early access, startup MVP
 
@@ -21,12 +21,15 @@ Date: {date}
 | 4 | No secrets in committed files | AUTO | |
 | 5 | Application starts without errors (`npm start` or equivalent) | AUTO | |
 | 6 | Rollback procedure documented | AUTO | |
+| 7 | Baseline security scan completed | AUTO | |
+| 8 | Audit logging enabled for security-sensitive actions | AUTO | |
+| 9 | Required compliance checklist/evidence files present | HUMAN | |
 
-**Gate:** All 6 items must pass for MVP release.
+**Gate:** All 9 items must pass for MVP release.
 
 ---
 
-## Medium Checklist (18 items)
+## Medium Checklist (21 items)
 
 Use when: General availability, paying customers, production SLA
 
@@ -39,21 +42,21 @@ Date: {date}
 
 | # | Item | Type | Result |
 |---|------|------|--------|
-| 1-6 | All MVP items | AUTO | |
-| 7 | All @should BDD scenarios passing | AUTO | |
-| 8 | Test coverage ≥ 80% | AUTO | |
-| 9 | Staging environment parity verified | HUMAN | |
-| 10 | Monitoring/alerts configured (uptime, error rate) | HUMAN | |
-| 11 | Structured logging in place (no console.log in prod) | AUTO | |
-| 12 | Performance baseline documented | HUMAN | |
-| 13 | Error tracking configured (Sentry, Rollbar, or equivalent) | HUMAN | |
-| 14 | Database migrations tested on staging copy | HUMAN | |
-| 15 | API documentation current (README or OpenAPI) | HUMAN | |
-| 16 | Environment variables documented (.env.example up to date) | AUTO | |
-| 17 | Graceful shutdown handled (SIGTERM, connection draining) | AUTO | |
-| 18 | Rate limiting on public API endpoints | AUTO | |
+| 1-9 | All MVP items | AUTO | |
+| 10 | All @should BDD scenarios passing | AUTO | |
+| 11 | Test coverage ≥ 80% | AUTO | |
+| 12 | Staging environment parity verified | HUMAN | |
+| 13 | Monitoring/alerts configured (uptime, error rate) | HUMAN | |
+| 14 | Structured logging in place (no console.log in prod) | AUTO | |
+| 15 | Performance baseline documented | HUMAN | |
+| 16 | Error tracking configured (Sentry, Rollbar, or equivalent) | HUMAN | |
+| 17 | Database migrations tested on staging copy | HUMAN | |
+| 18 | API documentation current (README or OpenAPI) | HUMAN | |
+| 19 | Environment variables documented (.env.example up to date) | AUTO | |
+| 20 | Graceful shutdown handled (SIGTERM, connection draining) | AUTO | |
+| 21 | Rate limiting on public API endpoints | AUTO | |
 
-**Gate:** Items 1-12 must pass. Items 13-18 advisory for Medium.
+**Gate:** Items 1-15 must pass. Items 16-21 advisory for Medium.
 
 ---
 

@@ -22,15 +22,10 @@ const MODEL_PROFILES = {
   'ez-executor':             { quality: 'opus', balanced: 'sonnet', budget: 'sonnet' },
   'ez-phase-researcher':     { quality: 'opus', balanced: 'sonnet', budget: 'haiku' },
   'ez-project-researcher':   { quality: 'opus', balanced: 'sonnet', budget: 'haiku' },
-  'ez-research-synthesizer': { quality: 'sonnet', balanced: 'sonnet', budget: 'haiku' },
   'ez-debugger':             { quality: 'opus', balanced: 'sonnet', budget: 'sonnet' },
   'ez-codebase-mapper':      { quality: 'sonnet', balanced: 'haiku', budget: 'haiku' },
   'ez-verifier':             { quality: 'sonnet', balanced: 'sonnet', budget: 'haiku' },
   'ez-plan-checker':         { quality: 'sonnet', balanced: 'sonnet', budget: 'haiku' },
-  'ez-integration-checker':  { quality: 'sonnet', balanced: 'sonnet', budget: 'haiku' },
-  'ez-nyquist-auditor':      { quality: 'sonnet', balanced: 'sonnet', budget: 'haiku' },
-  'ez-ui-researcher':        { quality: 'opus', balanced: 'sonnet', budget: 'haiku' },
-  'ez-ui-checker':           { quality: 'sonnet', balanced: 'sonnet', budget: 'haiku' },
   'ez-ui-auditor':           { quality: 'sonnet', balanced: 'sonnet', budget: 'haiku' },
 };
 

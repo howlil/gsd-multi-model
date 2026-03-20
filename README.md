@@ -2,7 +2,7 @@
 
 # EZ Agents
 
-**Turn AI coding assistants into reliable development teammates.**
+**Build any app — from MVP to enterprise — with coordinated AI agents.**
 
 [![CI Pipeline](https://github.com/howlil/ez-agents/actions/workflows/ci.yml/badge.svg)](https://github.com/howlil/ez-agents/actions/workflows/ci.yml)
 [![Tests](https://github.com/howlil/ez-agents/actions/workflows/test.yml/badge.svg)](https://github.com/howlil/ez-agents/actions/workflows/test.yml)
@@ -24,20 +24,20 @@ npm i -g @howlil/ez-agents@latest
 
 ---
 
-> **What is this?** EZ Agents adds structure to AI coding. Instead of asking Claude to "build a login system" and hoping for the best, you get a repeatable workflow: plan it out, build it in pieces, verify it works. Every change is committed with context, so you (or your team) can pick up where the AI left off.
+> **What is this?** EZ Agents is an AI App Builder. An Orchestrator (Chief Strategist) takes your project brief, decomposes it into a dependency-aware task graph, delegates work to Specialist Agents in parallel, enforces quality gates, and delivers implementation-ready output — code, tests, docs, and release artifacts. Works for new projects, existing codebases, rapid MVPs, and enterprise-scale products.
 
 ---
 
 ## Why EZ Agents Exists
 
-AI coding tools are great at writing code. But real development work needs more than that:
+AI agents are capable — but capability without coordination produces chaos. Real software delivery requires:
 
-- **Context gets lost** between sessions
-- **No one reviews** whether the code actually fits the plan
-- **Important decisions** about architecture happen implicitly
-- **Testing is an afterthought**
+- **Coordination** — agents need to share state and hand off work cleanly
+- **Context discipline** — decisions, contracts, and requirements must persist across sessions
+- **Quality gates** — code that passes tests is not the same as code that ships safely
+- **Structure without ceremony** — the right amount of process for the project size
 
-EZ Agents fixes this by adding a lightweight orchestration layer. Think of it as a project manager for your AI assistants.
+EZ Agents provides a Chief Strategist Orchestrator that coordinates a pool of Specialist Agents through a 10-phase SDLC workflow — from intake to post-release loop. Stack-agnostic and requirement-driven.
 
 ---
 

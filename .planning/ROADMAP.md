@@ -4,104 +4,166 @@
 
 EZ Agents is a meta-prompting, context engineering, and spec-driven development system for AI coding assistants. The project provides structured context management, multi-agent orchestration, and atomic git workflows to prevent context rot in AI-assisted development.
 
-## Archived Milestones
+## Milestones
 
-- ✅ **v1.0 EZ Multi-Model** — Phases 1-8 (shipped 2026-03-18)
-- ✅ **v1.1 Gap Closure Sprint** — Phases 9-14 (shipped 2026-03-18)
+- ✅ **v1.0 EZ Multi-Model** — Phases 1–8 (shipped 2026-03-18)
+- ✅ **v1.1 Gap Closure Sprint** — Phases 9–14 (shipped 2026-03-18)
+- ✅ **v2.0 Full SDLC Coverage** — Phases 15–29 (shipped 2026-03-20)
+- ◆ **v3.0 AI App Builder** — Phases 30–37 (started 2026-03-20)
 
 See `.planning/milestones/` for full archives.
 
-## Current Milestone
+## Phases
 
-**v2.0 Full SDLC Coverage: Deployment, Operations & Security** — Phase 23 Complete
+<details>
+<summary>✅ v1.0 EZ Multi-Model (Phases 1–8) — SHIPPED 2026-03-18</summary>
 
-**Phases completed:**
-- ✅ **Phase 15:** Phase-Based Git Workflow (20 requirements) — PHASE-GIT-01 to PHASE-GIT-20 — Complete 2026-03-19
-- ✅ **Phase 16:** Context & File Access (8 requirements) — CONTEXT-01 to CONTEXT-08 — Complete 2026-03-19
-- ✅ **Phase 17:** Package Manager Flexibility (8 requirements) — PKG-01 to PKG-08 — Complete 2026-03-19
-- ✅ **Phase 18:** Session Memory & Model Continuity (10 requirements) — SESSION-01 to SESSION-10 — Complete 2026-03-20
-- ✅ **Phase 19:** Deployment & Operations (10 requirements) — DEPLOY-01 to DEPLOY-10 — Complete 2026-03-20 (placeholder scripts)
-- ✅ **Phase 20:** CI/CD Pipeline Automation (10 requirements) — CICD-01 to CICD-10 — Complete 2026-03-20
-- ✅ **Phase 21:** Observability & Monitoring (10 requirements) — OBSERVE-01 to OBSERVE-10 — Complete 2026-03-20
-- ✅ **Phase 22:** Disaster Recovery & Business Continuity (8 requirements) — RECOVER-01 to RECOVER-08 — Complete 2026-03-20
-- ✅ **Phase 23:** Security Operations (8 requirements) — SECOPS-01 to SECOPS-08 — Complete 2026-03-20
+- [x] Phase 1: Foundation & Safety Nets (4/4 plans) — completed 2026-03-17
+- [x] Phase 2: Security Hardening (4/4 plans) — completed 2026-03-17
+- [x] Phase 3: Git Workflow & Pre-commit Automation (6/6 plans) — completed 2026-03-17
+- [x] Phase 4: Cross-Platform Compatibility (4/4 plans) — completed 2026-03-17
+- [x] Phase 5: Multi-Model Support (4/4 plans) — completed 2026-03-17
+- [x] Phase 6: Error Handling & Retry Logic (4/4 plans) — completed 2026-03-17
+- [x] Phase 7: Decoupling & Modularity (4/4 plans) — completed 2026-03-17
+- [x] Phase 8: Gap Closure — Foundation & Safety Nets (6/6 plans) — completed 2026-03-18
 
-**Remaining phases (24-29):**
-- **Phase 24:** Infrastructure as Code (8 requirements) — IAC-01 to IAC-08
-- **Phase 25:** Performance Engineering (8 requirements) — PERF-01 to PERF-08
-- **Phase 26:** Documentation Automation (8 requirements) — DOC-01 to DOC-08
-- **Phase 27:** Product Analytics & Feedback (6 requirements) — ANALYTICS-01 to ANALYTICS-06
-- **Phase 28:** Cost Optimization / FinOps (6 requirements) — COST-01 to COST-06
-- **Phase 29:** GSD-2 Reliability Patterns Implementation (37 requirements) — GSD-01 to GSD-37
+</details>
 
-**Total:** 137 requirements across 13 phases (Phases 15-23 complete)
+<details>
+<summary>✅ v1.1 Gap Closure Sprint (Phases 9–14) — SHIPPED 2026-03-18</summary>
 
-**Branch Hierarchy:**
-```
-main (production) ← develop (staging) ← phase/* ← {feature,fix,docs,refactor}/*
-```
+- [x] Phase 9: Gap Closure — Security Hardening (4/4 plans) — completed 2026-03-18
+- [x] Phase 10: Gap Closure — Git Workflow & Hooks (4/4 plans) — completed 2026-03-18
+- [x] Phase 11: Gap Closure — Cross-Platform Compatibility (4/4 plans) — completed 2026-03-18
+- [x] Phase 12: Gap Closure — Multi-Model Runtime Wiring (4/4 plans) — completed 2026-03-18
+- [x] Phase 13: Gap Closure — Retry, Circuit Breaker & Error UX (4/4 plans) — completed 2026-03-18
+- [x] Phase 14: Gap Closure — Decoupling, Plugins & Config Paths (4/4 plans) — completed 2026-03-18
 
-**SDLC Coverage:**
-```
-Requirements → Design → Implementation → Testing → Deployment → Operations → Maintenance
-    ✓✓✓         ✓✓✓         ✓✓✓           ✓✓✓        ✓✓✓         ✓✓✓         ✓✓✓
-```
+</details>
 
-**Key Features:**
-1. Complete GitFlow with feature/fix/docs/refactor branches, auto-commit per task
-2. One-command deployment to Vercel, Netlify, AWS, Docker with auto-rollback
-3. CI/CD pipeline with security scanning, performance testing, environment promotion
-4. Full observability: metrics, logs, traces, dashboards, alerting
-5. Disaster recovery: backup automation, incident runbooks, post-mortems
-6. Security operations: penetration testing, WAF, compliance templates
-7. Infrastructure as Code: Terraform/Pulumi, environment parity, auto-scaling
-8. Performance engineering: load testing, performance budgets, profiling
-9. Cross-model session handoff and resume capability
+<details>
+<summary>✅ v2.0 Full SDLC Coverage (Phases 15–29) — SHIPPED 2026-03-20</summary>
 
-Use `/ez:new-milestone` to start v2.0 implementation.
+- [x] Phase 15: Phase-Based Git Workflow — completed 2026-03-19
+- [x] Phase 16: Context & File Access — completed 2026-03-19
+- [x] Phase 17: Package Manager Flexibility — completed 2026-03-19
+- [x] Phase 18: Session Memory & Model Continuity — completed 2026-03-20
+- [x] Phase 19: Deployment & Operations — completed 2026-03-20 ⚠️ known gaps (DEPLOY-01 to DEPLOY-10)
+- [x] Phase 20: CI/CD Pipeline Automation — completed 2026-03-20 (CICD-06 deferred)
+- [x] Phase 21: Observability & Monitoring — completed 2026-03-20
+- [x] Phase 22: Disaster Recovery & Business Continuity — completed 2026-03-20
+- [x] Phase 23: Security Operations — completed 2026-03-20
+- [x] Phase 24: Infrastructure as Code — completed 2026-03-20
+- [x] Phase 25: Performance Engineering — completed 2026-03-20 ⚠️ PERF-05 to PERF-08 deferred
+- [x] Phase 26: Documentation Automation — completed 2026-03-20
+- [x] Phase 27: Product Analytics & Feedback — completed 2026-03-20 ⚠️ ANALYTICS-02 to ANALYTICS-06 deferred
+- [x] Phase 28: Cost Optimization / FinOps — completed 2026-03-20 ⚠️ COST-02 to COST-06 deferred
+- [x] Phase 29: GSD-2 Reliability Patterns — completed 2026-03-20 ⚠️ GSD-01 to GSD-16 CLI wiring deferred
+
+</details>
+
+### 📋 v3.0 AI App Builder — "Improve Accuracy" (Active)
+
+**Started:** 2026-03-20 | **Phases:** 30–37 | **Requirements:** 52
+
+- [ ] Phase 30: Orchestrator Core & Intake Layer — Chief Strategist pattern, work classification, mode routing
+- [ ] Phase 31: Context Engine Enhancement — codebase mapping, stack detection, debt hotspots
+- [ ] Phase 32: Requirement Normalization Engine — informal → structured, NFR, acceptance criteria
+- [ ] Phase 33: Task Graph Builder — DAG generation, parallel classification, execution models
+- [ ] Phase 34: Operation Modes — Greenfield/Existing/MVP/Scale-up/Maintenance flows
+- [ ] Phase 35: Specialist Agent Pool — layered agents with standardized output format
+- [ ] Phase 36: Quality Gates System — 7-gate enforcement (requirement to release)
+- [ ] Phase 37: Reconciliation & Edge Cases — cross-agent consistency, overengineering/hallucination guards
+
+**Phase Details:**
+
+**Phase 30: Orchestrator Core & Intake Layer**
+Goal: Establish the Chief Strategist pattern and work intake/triage system
+Requirements: ORCH-01–07, INTAKE-01–04
+Success criteria:
+1. Orchestrator meta-prompt defines Chief Strategist role clearly
+2. Any work input is classified into one of 8 work types within intake workflow
+3. Scale (tiny→enterprise) and risk (low→critical) scores are produced
+4. System routes to correct operation mode automatically
+5. Anti-overengineering rules are enforced in plan/execute workflows
+
+**Phase 31: Context Engine Enhancement**
+Goal: System understands existing codebase before proposing any changes
+Requirements: CTXE-01–05
+Success criteria:
+1. Existing project flow triggers codebase mapping before planning
+2. Stack and framework detected from project files without user prompt
+3. Technical debt hotspots identified in context report
+4. Project context report includes architecture snapshot and dependency map
+5. Greenfield flow produces actor map and business flow diagram
+
+**Phase 32: Requirement Normalization Engine**
+Goal: Any informal brief can be transformed into structured, testable requirements
+Requirements: RQNM-01–06
+Success criteria:
+1. Informal brief produces functional requirements in user-centric format
+2. NFRs (performance, security, compliance) extracted automatically
+3. Constraints documented with rationale
+4. Each requirement has acceptance criteria (observable behavior)
+5. Out-of-scope list generated with reasoning
+6. Unresolved questions flagged and assigned
+
+**Phase 33: Task Graph Builder**
+Goal: Phase objectives decompose into dependency-aware, execution-optimized task DAGs
+Requirements: GRAPH-01–04
+Success criteria:
+1. Phase objective → task DAG with explicit dependency edges
+2. Every task has complete metadata (input/output/dependency/priority/owner/criteria)
+3. Parallel-eligible tasks are identified and marked
+4. Execution model selected per phase with justification
+
+**Phase 34: Operation Modes**
+Goal: System selects right-sized workflow for any project type
+Requirements: MODE-01–05
+Success criteria:
+1. Greenfield project triggers stack selection and foundation planning
+2. Existing codebase triggers mapping-first, minimal-risk flow
+3. MVP request triggers strict scope enforcement and low-ceremony flow
+4. Scale-up request triggers modularity and governance checklist
+5. Maintenance request triggers triage and hotfix path
+
+**Phase 35: Specialist Agent Pool**
+Goal: Domain expertise available via well-defined specialist agents
+Requirements: POOL-01–05
+Success criteria:
+1. 7 core agent definitions exist and are usable
+2. Analyst Layer agents defined (Business Analyst, System Analyst, Data Architect)
+3. Engineering Layer agents defined (Solution Architect, Backend, Frontend, Mobile, DevOps)
+4. QA/Governance Layer agents defined (API Tester, Security Reviewer, Reality Checker, Release Manager)
+5. All agents use standardized output template
+
+**Phase 36: Quality Gates System**
+Goal: Consistent quality enforcement at every delivery milestone
+Requirements: GATE-01–07
+Success criteria:
+1. Requirement completeness gate blocks planning if acceptance criteria missing
+2. Architecture sanity gate checks complexity proportionality
+3. Code quality gate integrated into execute workflow
+4. Test coverage gate verifies critical paths
+5. Security gate checks auth, secrets, injection
+6. Documentation gate verifies setup/API/decisions/known-issues
+7. Release readiness gate confirms rollback plan and monitoring
+
+**Phase 37: Reconciliation & Edge Cases**
+Goal: Multi-agent system produces consistent output and handles failure modes gracefully
+Requirements: RECON-01–03, EDGE-01–06
+Success criteria:
+1. API contract vs implementation validated at integration checkpoint
+2. Cross-agent output checked for design/backend/frontend/QA alignment
+3. Conflicts generate targeted revision requests to affected agents
+4. Ambiguous requirements trigger assumption list rather than guessing
+5. Overengineering patterns detected and flagged
+6. Agents produce facts/assumptions/decisions distinction in output
 
 ## Progress
 
-**Execution History:**
-Phases executed in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12 → 13 → 14 → 15 → 16 → 17 → 18 → 19 → 20 → 21 → 22 → 23
-
-| Phase | Name | Plans | Status | Completed |
-|-------|------|-------|--------|-----------|
-| 1 | Foundation & Safety Nets | 4/4 | Complete | 2026-03-17 |
-| 2 | Security Hardening | 4/4 | Complete | 2026-03-17 |
-| 3 | Git Workflow & Pre-commit Automation | 6/6 | Complete | 2026-03-17 |
-| 4 | Cross-Platform Compatibility | 4/4 | Complete | 2026-03-17 |
-| 5 | Multi-Model Support | 4/4 | Complete | 2026-03-17 |
-| 6 | Error Handling & Retry Logic | 4/4 | Complete | 2026-03-17 |
-| 7 | Decoupling & Modularity | 4/4 | Complete | 2026-03-17 |
-| 8 | Gap Closure — Foundation & Safety Nets | 6/6 | Complete | 2026-03-18 |
-| 9 | Gap Closure — Security Hardening | 4/4 | Complete | 2026-03-18 |
-| 10 | Gap Closure — Git Workflow & Hooks | 4/4 | Complete | 2026-03-18 |
-| 11 | Gap Closure — Cross-Platform Compatibility | 4/4 | Complete | 2026-03-18 |
-| 12 | Gap Closure — Multi-Model Runtime Wiring | 4/4 | Complete | 2026-03-18 |
-| 13 | Gap Closure — Retry, Circuit Breaker & Error UX | 4/4 | Complete | 2026-03-18 |
-| 14 | Gap Closure — Decoupling, Plugins & Config Paths | 4/4 | Complete | 2026-03-18 |
-| 15 | Phase-Based Git Workflow | Complete | 2026-03-19 | 2026-03-19 |
-| 16 | Context & File Access | Complete | 2026-03-19 | 2026-03-19 |
-| 17 | Package Manager Flexibility | Complete | 2026-03-19 | 2026-03-19 |
-| 18 | Session Memory & Model Continuity | Complete | 2026-03-20 | 2026-03-20 |
-| 19 | Deployment & Operations | Complete | 2026-03-20 | 2026-03-20 |
-| 20 | CI/CD Pipeline Automation | Complete | 2026-03-20 | 2026-03-20 |
-| 21 | Observability & Monitoring | Complete | 2026-03-20 | 2026-03-20 |
-| 22 | Disaster Recovery & Business Continuity | 1/1 | Complete | 2026-03-20 |
-| 23 | Security Operations | 4/4 | Complete | 2026-03-20 |
-
-**Total:** 23 phases, 80 plans, 100% complete
-
-**Planned:**
-| Phase | Name | Requirements | Status |
-|-------|------|--------------|--------|
-| 24 | Infrastructure as Code | 8 | Pending |
-| 25 | Performance Engineering | 8 | Pending |
-| 26 | Documentation Automation | 8 | Pending |
-| 27 | Product Analytics & Feedback | 6 | Pending |
-| 28 | Cost Optimization / FinOps | 6 | Pending |
-| 29 | GSD-2 Reliability Patterns Implementation | 37 | Pending |
-
----
-*Last updated: 2026-03-20 — Phase 23 completed (Security Operations: 8 requirements, 4 plans, 150 tests — security scanning, headers/rate-limit/WAF generation, compliance templates, secret rotation, RBAC management, audit logging)*
+| Phase | Milestone | Status | Completed |
+|-------|-----------|--------|-----------|
+| 1–8 | v1.0 | ✅ Complete | 2026-03-17/18 |
+| 9–14 | v1.1 | ✅ Complete | 2026-03-18 |
+| 15–29 | v2.0 | ✅ Complete (with known gaps) | 2026-03-19/20 |
