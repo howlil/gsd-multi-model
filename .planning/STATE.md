@@ -1,16 +1,16 @@
 ---
 ez_state_version: 1.0
 milestone: v2.1
-milestone_name: Gap Closure — Close the Gaps
-status: in_progress
-last_updated: "2026-03-20T16:27:09Z"
+milestone_name: Gap Closure — "Close the Gaps"
+status: completed
+stopped_at: Completed 30-03-PLAN.md
+last_updated: "2026-03-20T16:36:47.863Z"
+last_activity: "2026-03-20 — Phase 30 Plan 01 executed: 5 RED test scaffold files created"
 progress:
-  total_phases: 4
-  completed_phases: 0
-  total_plans: 4
-  completed_plans: 1
-current_phase: 30
-current_plan: 2
+  total_phases: 8
+  completed_phases: 5
+  total_plans: 9
+  completed_plans: 9
 ---
 
 # Session State
@@ -31,15 +31,13 @@ main (production) ← develop (staging) ← phase/* ← {feature,fix,docs,refact
 ## Position
 
 **Milestone:** v2.1 Gap Closure — "Close the Gaps"
-**Phase:** 30 — GSD Gap Closure (in progress — Plan 01 complete, Plan 02 next)
-**Status:** Phase 30 Plan 01 complete — TDD test scaffolds shipped
-**Last activity:** 2026-03-20 — Phase 30 Plan 01 executed: 5 RED test scaffold files created
+**Phase:** 30 — GSD Gap Closure (in progress — Plans 01-03 complete, Plan 04 next)
+**Status:** Phase 30 Plan 03 complete — cost-tracker.cjs implemented (7/7 tests GREEN)
+**Last activity:** 2026-03-20 — Phase 30 Plan 03 executed: CostTracker class with record/aggregate/checkBudget/setBudget
 
 ## Next Steps
 
-1. Execute Phase 30 Plan 02 — implement `crash-recovery.cjs` (make crash-recovery tests GREEN)
-2. Execute Phase 30 Plan 03 — implement `cost-tracker.cjs` (make cost-tracker tests GREEN)
-3. Execute Phase 30 Plan 04 — wire CLI commands (cost, lock, doctor) using real libs
+1. Execute Phase 30 Plan 04 — wire CLI commands (cost, lock, doctor) using real libs
 
 ## Roadmap (v2.1)
 
@@ -70,16 +68,22 @@ main (production) ← develop (staging) ← phase/* ← {feature,fix,docs,refact
 - cost-cli tests assert by_phase key (not by_milestone) — this defines the intended real implementation output shape.
 - doctor-cli createHealthyProject() helper writes all 5 required planning files so real doctor can return "healthy" exit 0.
 
+### Phase 30 Plan 03 (2026-03-20)
+- CostTracker.checkBudget() is pure/sync with no process.exit(); callers decide how to react to exceeded/warning status.
+- record() is async (withLock), aggregate()/checkBudget() are sync (read-only, no lock needed for reads).
+- setBudget() writes config.json synchronously; metrics.json is separate from config.
+
 ## Performance Metrics
 
 | Phase | Plan | Duration | Tasks | Files |
 |-------|------|----------|-------|-------|
 | 30 | 01 | 11min | 2 | 5 |
+| 30 | 03 | 2min | 1 | 1 |
 
 ## Session Continuity
 
-Last session: 2026-03-20T16:27:09Z
-**Stopped at:** Completed 30-01-PLAN.md
+Last session: 2026-03-20T16:36:47.859Z
+**Stopped at:** Completed 30-03-PLAN.md
 **Status:** ✅ v2.0 COMPLETE → v2.1 STARTED (v3.0 deferred) — Phase 30 Plan 01 complete
 
 **Session Commands:**
