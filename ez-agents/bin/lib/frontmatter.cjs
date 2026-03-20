@@ -10,7 +10,9 @@ const { safeReadFile, output, error } = require('./core.cjs');
 
 function extractFrontmatter(content) {
   const frontmatter = {};
-  const match = content.match(/^---\n([\s\S]+?)\n---/);
+  // Normalize CRLF to LF so regex works on Windows-converted files
+  const normalized = content.replace(/\r\n/g, '\n');
+  const match = normalized.match(/^---\n([\s\S]+?)\n---/);
   if (!match) return frontmatter;
 
   const yaml = match[1];
