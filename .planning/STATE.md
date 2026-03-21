@@ -3,15 +3,15 @@ ez_state_version: 1.0
 milestone: v2.1
 milestone_name: Gap Closure — "Close the Gaps"
 status: planning
-stopped_at: Completed 37-03-PLAN.md (Tech Debt Hotspot Identification Engine)
-last_updated: "2026-03-21T05:32:18.558Z"
-last_activity: "2026-03-21 — Phase 37 Plan 05 executed: Business Flow Mapping + Archetype Detection Engine"
+stopped_at: Completed 40-03-PLAN.md (Gate 7 Release Readiness Validator)
+last_updated: "2026-03-21T12:45:00.000Z"
+last_activity: "2026-03-21 — Phase 40 Plan 03 executed: Gate 7 Release Readiness validator with smoke tests, rollback validation, and monitoring checks"
 progress:
   total_phases: 16
   completed_phases: 12
   total_plans: 50
-  completed_plans: 49
-  percent: 86
+  completed_plans: 50
+  percent: 88
 ---
 
 ---
@@ -128,6 +128,15 @@ main (production) ← develop (staging) ← phase/* ← {feature,fix,docs,refact
 - Linting errors truncated to first 3 issues to avoid overwhelming output
 - 12 tests passing covering getRequiredDocs, validateSections, and validateDocs functions
 
+### Phase 40 Plan 03 (2026-03-21)
+- Gate 7 validator implements tier-based release requirements (MVP: smoke+rollback, Medium/Enterprise: +monitoring)
+- Performance smoke tests measure response time (p50/p95/p99), error rate, and throughput
+- Rollback plan validation requires 3+ steps and keywords: backup, restore, previous, verify
+- Monitoring checks look for configuration in multiple locations (.planning/observability, monitoring/, prometheus.yml, grafana/, docs/monitoring.md)
+- Test file converted from CommonJS to ES modules using fileURLToPath for __dirname
+- All 12 Gate 7 validator tests passing (100% coverage)
+- Templates created: rollback.template.md (comprehensive rollback procedure), monitoring.template.md (metrics, logging, alerting, dashboards)
+
 ### Phase 30 Plan 01 (2026-03-20)
 - Pre-commit hook runs npm test which includes all test files. Committed RED test scaffolds with --no-verify due to pre-existing failures in SPAWN/copilot-install/verify-commits tests unrelated to Phase 30.
 - cost-cli tests assert by_phase key (not by_milestone) — this defines the intended real implementation output shape.
@@ -167,8 +176,8 @@ main (production) ← develop (staging) ← phase/* ← {feature,fix,docs,refact
 ## Session Continuity
 
 Last session: 2026-03-21T00:00:00.000Z
-**Stopped at:** Completed 37-03-PLAN.md (Tech Debt Hotspot Identification Engine)
-**Status:** ✅ v2.0 COMPLETE → v2.1 STARTED (v3.0 deferred) — Phase 37 Plans 01-03 complete
+**Stopped at:** Completed 40-03-PLAN.md (Gate 7 Release Readiness Validator)
+**Status:** ✅ v2.0 COMPLETE → v2.1 STARTED (v3.0 deferred) — Phase 40 Plan 03 complete
 
 **Session Commands:**
 - `/ez:resume` - Resume from last session
