@@ -1,99 +1,77 @@
-# Requirements: EZ Agents — v2.1 Gap Closure
+# Requirements: EZ Agents v4.0
 
-**Defined:** 2026-03-20
-**Core Value:** Turn any project requirement into structured, parallel, auditable delivery — from MVP to enterprise scale.
-
----
-
-## v2.1 Requirements (Active)
-
-Closing known gaps deferred from v2.0. All lib files confirmed missing on disk.
-
-### GSD — Crash Recovery & Cost Tracking
-
-- [x] **GSD-01**: `crash-recovery.cjs` implemented — creates, heartbeats, detects orphaned, and releases lock files with real PID tracking
-- [x] **GSD-02**: `cost-tracker.cjs` implemented — tracks real token usage and USD cost per phase/operation (not mock data)
-- [ ] **GSD-03**: `/ez:cost` command shows live data from cost-tracker (not hardcoded stubs)
-- [x] **GSD-04**: Lock file operations (create/heartbeat/release/detect-orphan) wired through real crash-recovery lib
-- [ ] **GSD-05**: Health check `doctor` command reports accurate live state (not stubbed responses)
-- [x] **GSD-06**: Budget ceiling enforcement and alert-threshold warnings functional end-to-end
-
-### DEPLOY — Deployment Operations
-
-- [ ] **DEPLOY-01**: `deploy-detector.cjs` detects target deployment environment automatically (Vercel, Railway, Fly.io, EC2, etc.)
-- [ ] **DEPLOY-02**: `deploy-runner.cjs` executes one-command deploy with pre-deploy validation gate
-- [ ] **DEPLOY-03**: `deploy-rollback.cjs` rolls back to previous stable version on command or failure
-- [ ] **DEPLOY-04**: `deploy-status.cjs` polls deployment status and reports result with logs
-- [ ] **DEPLOY-05**: Multi-environment deploy support (dev/staging/prod) with environment-specific config
-- [ ] **DEPLOY-06**: `ez-tools deploy` CLI command wires all deploy lib files with environment flag support
-- [ ] **DEPLOY-07**: Pre-deploy validation runs tests + lint before allowing deploy execution
-- [ ] **DEPLOY-08**: Deploy audit log written to `.planning/logs/deploy-{timestamp}.log`
-- [ ] **DEPLOY-09**: Post-deploy health check verifies deployment success
-- [ ] **DEPLOY-10**: `/ez:deploy` command with progress display and rollback option
-
-### PERF — Performance Tooling
-
-- [ ] **PERF-01**: Performance CLI commands reachable via `ez-tools perf` (route wiring for existing lib stubs)
-- [ ] **PERF-02**: `perf-analyzer.cjs` — core performance analysis coordinator
-- [ ] **PERF-03**: `db-optimizer.cjs` — query analysis and index recommendations
-- [ ] **PERF-04**: `frontend-performance.cjs` — bundle size and render analysis
-- [ ] **PERF-05**: `api-monitor.cjs` — endpoint latency tracking with baseline storage
-- [ ] **PERF-06**: `regression-detector.cjs` — performance regression detection vs. stored baseline
-- [ ] **PERF-07**: Performance reports written to `.planning/logs/perf-{timestamp}.json`
-- [ ] **PERF-08**: `/ez:perf` command with subcommands (analyze, baseline, compare, report)
-
-### ANALYTICS — Product Analytics
-
-- [ ] **ANALYTICS-01**: `analytics-collector.cjs` — feature usage event collection and local storage
-- [ ] **ANALYTICS-02**: `nps-tracker.cjs` — NPS survey prompt and score tracking
-- [ ] **ANALYTICS-03**: `funnel-analyzer.cjs` — user funnel step tracking and drop-off analysis
-- [ ] **ANALYTICS-04**: `cohort-analyzer.cjs` — cohort-based usage pattern analysis
-- [ ] **ANALYTICS-05**: `analytics-reporter.cjs` — aggregated analytics report generation
-- [ ] **ANALYTICS-06**: `ez-tools analytics` CLI command wires all analytics lib with report output
-
-### COST — FinOps & Budget Management
-
-- [ ] **COST-01**: Budget alerts fully wired — real thresholds trigger warnings (not mock alerts)
-- [ ] **COST-02**: `finops-analyzer.cjs` — cloud resource cost analysis and rightsizing recommendations
-- [ ] **COST-03**: `budget-enforcer.cjs` — enforces spending limits and auto-pauses over-budget operations
-- [ ] **COST-04**: `cost-reporter.cjs` — cost breakdown by phase/operation/provider with trend analysis
-- [ ] **COST-05**: `spot-manager.cjs` — spot/preemptible instance management recommendations
-- [ ] **COST-06**: `/ez:cost` extended with FinOps subcommands (budget, report, rightsizing)
+**Defined:** 2026-03-21
+**Core Value:** Prevent overheat/deadlock scenarios and optimize resource usage in AI agent orchestration.
 
 ---
 
-## v3.0 Requirements (Future — deferred, not in v2.1 roadmap)
+## v4.0 Requirements
 
-These requirements were defined for v3.0 AI App Builder. Phases 30–37 will resume after v2.1 completes.
-Phase numbers will be renumbered after v2.1 is scoped.
+### P0 Critical Fixes (Do First)
 
-### ORCH — Orchestrator Core
-- [ ] **ORCH-01** through **ORCH-07**: Chief Strategist pattern, work classification, anti-overengineering guardrails, trade-off reports
+- [ ] **NEST-01**: Implement max agent nesting depth limit (3 levels)
+- [ ] **NEST-02**: Add error message with suggested fix when depth exceeded
+- [ ] **NEST-03**: Track nesting depth in session metadata
+- [ ] **CKPT-01**: Add timeout to checkpoint protocol (1 hour default)
+- [ ] **CKPT-02**: Implement escalation path (slack → email → phone)
+- [ ] **CKPT-03**: Add auto-advance fallback with warning flag
+- [ ] **SESS-01**: Implement atomic session writes (temp file + rename)
+- [ ] **SESS-02**: Add session backup on update (.bak file)
+- [ ] **SESS-03**: Implement session version tracking
+- [ ] **SESS-04**: Add type validation for session updates
 
-### INTAKE — Intake & Triage
-- [ ] **INTAKE-01** through **INTAKE-04**: Diverse input types, normalization, risk scoring, mode recommendation
+### P1 High Priority Fixes
 
-### CTXE — Context Engine Enhanced
-- [x] **CTXE-01** through **CTXE-05**: Codebase mapping, stack detection, tech debt, project report, business flow
+- [ ] **REV-01**: Implement smart revision loop with learning tracking
+- [ ] **REV-02**: Add root cause analysis for revision failures
+- [ ] **REV-03**: Implement early exit if quality degrading
+- [ ] **REV-04**: Preserve learnings across iterations
+- [ ] **LOCK-01**: Add deadlock detection to file lock manager
+- [ ] **LOCK-02**: Replace busy-wait with exponential backoff
+- [ ] **LOCK-03**: Implement lock timeout with proper error
+- [ ] **CIRCUIT-01**: Apply circuit breaker to all agent spawns
+- [ ] **CIRCUIT-02**: Add circuit breaker metrics/tracking
 
-### RQNM — Requirement Normalization
-- [ ] **RQNM-01** through **RQNM-06**: Brief→requirements, NFRs, constraints, acceptance criteria, out-of-scope, open questions
+### P2 Optimizations
 
-### GRAPH — Task Graph Builder
-- [ ] **GRAPH-01** through **GRAPH-04**: Dependency DAG, task metadata schema, parallel classification, execution model selection
+- [ ] **CTX-01**: Implement context relevance scoring
+- [ ] **CTX-02**: Add context compression for large files
+- [ ] **CTX-03**: Implement context deduplication
+- [ ] **CTX-04**: Add context metadata (files included, compression ratio)
+- [ ] **COST-01**: Implement cost tracking per phase/agent
+- [ ] **COST-02**: Add budget threshold alerts (50%, 75%, 90%)
+- [ ] **COST-03**: Implement model downgrade on budget pressure
+- [ ] **WAVE-01**: Replace static wave assignment with dynamic computation
+- [ ] **WAVE-02**: Add resource-aware parallelism (maxParallel config)
+- [ ] **WAVE-03**: Implement failure handling in wave execution
+- [ ] **ERR-01**: Implement unified error classification
+- [ ] **ERR-02**: Add error caching for recurring error detection
+- [ ] **ERR-03**: Implement root cause identification
+- [ ] **GATE-01**: Implement quality gate checks (tests, lint, verification)
+- [ ] **GATE-02**: Add quality gate blocking before commit
+- [ ] **GATE-03**: Track quality gate pass/fail metrics
 
-### MODE — Operation Modes
-- [ ] **MODE-01** through **MODE-05**: Greenfield, Existing Codebase, Rapid MVP, Scale-up, Maintenance flows
+---
 
-### POOL — Specialist Agent Pool
-- [ ] **POOL-01** through **POOL-05**: Core 7 agents, Analyst/Engineering/QA layers, standardized output template
+## v5.0 Requirements (Deferred)
 
-### GATE — Quality Gates
-- [ ] **GATE-01** through **GATE-07**: Requirements completeness, architecture sanity, code quality, test coverage, security, docs, release readiness
+### Cross-Agent Memory
 
-### RECON + EDGE — Reconciliation & Edge Cases
-- [ ] **RECON-01** through **RECON-03**: API contract validation, output reconciliation, conflict resolution
-- [ ] **EDGE-01** through **EDGE-06**: Ambiguity detection, requirement conflict, overengineering, NFR underengineering, production bug routing, hallucination prevention
+- **MEM-01**: Implement shared memory layer per phase
+- **MEM-02**: Add semantic search for relevant learnings
+- **MEM-03**: Persist learnings to MEMORY.json
+
+### Prompt Quality
+
+- **PROMPT-01**: Implement prompt versioning system
+- **PROMPT-02**: Add A/B testing for prompts
+- **PROMPT-03**: Track prompt quality metrics
+
+### Observability
+
+- **OBS-01**: Implement real-time dashboard
+- **OBS-02**: Add token cost tracking per phase
+- **OBS-03**: Implement bottleneck detection
 
 ---
 
@@ -101,12 +79,10 @@ Phase numbers will be renumbered after v2.1 is scoped.
 
 | Feature | Reason |
 |---------|--------|
-| Visual UI / dashboard | CLI and AI assistant-first workflow — no GUI planned |
-| Real-time collaboration | Single-user context management — no multi-user session support |
-| Database persistence | File-based state in `.planning/` is the design constraint |
-| Full LLM training | System improves agent accuracy via prompting/structure, not fine-tuning |
-| Cloud-hosted agents | Self-contained CLI — no cloud agent service |
-| CICD-06 (container scanning) | Explicitly deferred — low severity |
+| Complete rewrite to ES modules | Too disruptive, defer to v5.0+ |
+| Visual UI/dashboard | CLI-first workflow, out of scope |
+| Real-time collaboration | Single-user context management |
+| Database persistence | File-based state sufficient |
 
 ---
 
@@ -114,48 +90,47 @@ Phase numbers will be renumbered after v2.1 is scoped.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| GSD-01 | Phase 30 | Complete |
-| GSD-02 | Phase 30 | Complete |
-| GSD-03 | Phase 30 | Pending |
-| GSD-04 | Phase 30 | Complete |
-| GSD-05 | Phase 30 | Pending |
-| GSD-06 | Phase 30 | Complete |
-| DEPLOY-01 | Phase 31 | Pending |
-| DEPLOY-02 | Phase 31 | Pending |
-| DEPLOY-03 | Phase 31 | Pending |
-| DEPLOY-04 | Phase 31 | Pending |
-| DEPLOY-05 | Phase 31 | Pending |
-| DEPLOY-06 | Phase 31 | Pending |
-| DEPLOY-07 | Phase 31 | Pending |
-| DEPLOY-08 | Phase 31 | Pending |
-| DEPLOY-09 | Phase 31 | Pending |
-| DEPLOY-10 | Phase 31 | Pending |
-| PERF-01 | Phase 32 | Pending |
-| PERF-02 | Phase 32 | Pending |
-| PERF-03 | Phase 32 | Pending |
-| PERF-04 | Phase 32 | Pending |
-| PERF-05 | Phase 32 | Pending |
-| PERF-06 | Phase 32 | Pending |
-| PERF-07 | Phase 32 | Pending |
-| PERF-08 | Phase 32 | Pending |
-| ANALYTICS-01 | Phase 33 | Pending |
-| ANALYTICS-02 | Phase 33 | Pending |
-| ANALYTICS-03 | Phase 33 | Pending |
-| ANALYTICS-04 | Phase 33 | Pending |
-| ANALYTICS-05 | Phase 33 | Pending |
-| ANALYTICS-06 | Phase 33 | Pending |
-| COST-01 | Phase 33 | Pending |
-| COST-02 | Phase 33 | Pending |
-| COST-03 | Phase 33 | Pending |
-| COST-04 | Phase 33 | Pending |
-| COST-05 | Phase 33 | Pending |
-| COST-06 | Phase 33 | Pending |
+| NEST-01 | Phase 40 | Pending |
+| NEST-02 | Phase 40 | Pending |
+| NEST-03 | Phase 40 | Pending |
+| CKPT-01 | Phase 40 | Pending |
+| CKPT-02 | Phase 40 | Pending |
+| CKPT-03 | Phase 40 | Pending |
+| SESS-01 | Phase 41 | Pending |
+| SESS-02 | Phase 41 | Pending |
+| SESS-03 | Phase 41 | Pending |
+| SESS-04 | Phase 41 | Pending |
+| LOCK-01 | Phase 41 | Pending |
+| LOCK-02 | Phase 41 | Pending |
+| LOCK-03 | Phase 41 | Pending |
+| REV-01 | Phase 42 | Pending |
+| REV-02 | Phase 42 | Pending |
+| REV-03 | Phase 42 | Pending |
+| REV-04 | Phase 42 | Pending |
+| CTX-01 | Phase 43 | Pending |
+| CTX-02 | Phase 43 | Pending |
+| CTX-03 | Phase 43 | Pending |
+| CTX-04 | Phase 43 | Pending |
+| COST-01 | Phase 44 | Pending |
+| COST-02 | Phase 44 | Pending |
+| COST-03 | Phase 44 | Pending |
+| CIRCUIT-01 | Phase 44 | Pending |
+| CIRCUIT-02 | Phase 44 | Pending |
+| WAVE-01 | Phase 45 | Pending |
+| WAVE-02 | Phase 45 | Pending |
+| WAVE-03 | Phase 45 | Pending |
+| ERR-01 | Phase 46 | Pending |
+| ERR-02 | Phase 46 | Pending |
+| ERR-03 | Phase 46 | Pending |
+| GATE-01 | Phase 46 | Pending |
+| GATE-02 | Phase 46 | Pending |
+| GATE-03 | Phase 46 | Pending |
 
 **Coverage:**
-- v2.1 requirements: 36 total
-- Mapped to phases: 36
-- Unmapped: 0 ✓
+- v4.0 requirements: 38 total
+- Mapped to phases: 35
+- Unmapped: 3 (CIRCUIT-01, CIRCUIT-02 added to Phase 44) ✓
 
 ---
-*Requirements defined: 2026-03-20*
-*Last updated: 2026-03-20 after v2.1 milestone start — gap closure sprint for v2.0 backlog*
+*Requirements defined: 2026-03-21*
+*Last updated: 2026-03-21 after initial definition*

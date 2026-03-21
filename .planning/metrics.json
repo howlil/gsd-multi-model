@@ -1,0 +1,17 @@
+{
+  "milestone": "v4.0",
+  "milestone_name": "Production Hardening & Optimization",
+  "started_at": "2026-03-21T00:00:00.000Z",
+  "budget": {
+    "ceiling": 50.00,
+    "alert_threshold": 0.8,
+    "projected": 0.00,
+    "spent": 0.00
+  },
+  "phases": {},
+  "cumulative": {
+    "total_tokens": 0,
+    "total_cost_usd": 0.00,
+    "by_provider": {}
+  }
+}

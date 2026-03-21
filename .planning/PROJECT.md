@@ -1,4 +1,19 @@
-# EZ Agents Multi-Model
+# EZ Agents — v3.0 AI App Builder
+
+## Current State (2026-03-21)
+
+**Latest Release:** v3.0 AI App Builder — "Improve Accuracy" ✅ SHIPPED 2026-03-21
+
+**Milestones Complete:**
+- ✅ v1.0 EZ Multi-Model (8 phases, 34 requirements)
+- ✅ v1.1 Gap Closure Sprint (6 phases, 24 requirements)
+- ✅ v2.0 Full SDLC Coverage (15 phases, 173 requirements)
+- ✅ v2.1 Gap Closure (6 phases, 36 requirements)
+- ✅ v3.0 AI App Builder (6 phases, 52 requirements)
+
+**Total:** 41 phases, 319 requirements, 120+ lib files
+
+---
 
 ## What This Is
 
@@ -122,8 +137,20 @@ Turn any project requirement into structured, parallel, auditable delivery — f
 - [ ] ANALYTICS-01 to ANALYTICS-06: Product analytics lib (feature usage, NPS, funnels, cohorts)
 - [ ] COST-01 to COST-06: FinOps lib (budget alerts, rightsizing, cost reporting)
 
-**Next Milestone (v3.0 AI App Builder — deferred until v2.1 complete):**
-- [ ] ORCH-01 to ORCH-07, INTAKE-01 to INTAKE-04, CTXE-01 to CTXE-05, RQNM-01 to RQNM-06, GRAPH-01 to GRAPH-04, MODE-01 to MODE-05, POOL-01 to POOL-05, GATE-01 to GATE-07, RECON-01 to RECON-03, EDGE-01 to EDGE-06
+### Active (v4.0 Production Hardening & Optimization)
+
+**Goal:** Prevent overheat/deadlock scenarios and optimize resource usage.
+
+**Target optimizations:**
+- [ ] Limit agent nesting depth to 3 (prevent context exhaustion)
+- [ ] Checkpoint timeout with escalation (prevent indefinite blocking)
+- [ ] Smart revision loop with learning (reduce repeated failures)
+- [ ] Atomic session writes with versioning (prevent state corruption)
+- [ ] Context compression & relevance scoring (improve token efficiency)
+- [ ] Cost tracking with budget alerts (financial control)
+- [ ] Dynamic wave execution (resource-aware parallelism)
+- [ ] Unified error handling (consistent failure recovery)
+- [ ] Quality gates before commit (block bad merges)
 
 ### Out of Scope
 
@@ -171,13 +198,17 @@ Intake → Context Discovery → Requirement Normalization → Strategy & Archit
 
 ### Current State
 
-**Current State:** v2.0 shipped. Starting v3.0 AI App Builder milestone. This project is the main EZ Agents package containing:
-- 32 user-facing commands in `commands/`
-- 12+ specialized agent definitions in `agents/`
-- 35+ workflow orchestrations in `ez/workflows/`
-- 26+ document templates in `ez/templates/`
-- 500+ tests passing
-- 29 phases shipped across 3 milestones
+**Current State:** v3.0 shipped 2026-03-21. Both v2.1 and v3.0 milestones complete and archived.
+
+**v2.1 Gap Closure** (2026-03-21):
+- 6 phases, 36 requirements, 43 lib files
+- Deploy Operations, Performance Tooling, Analytics & FinOps, Quality Gates
+
+**v3.0 AI App Builder** (2026-03-21):
+- 6 phases, 52 requirements, 31 lib files
+- Chief Strategist, Skill Registry, Context Engine, Multi-Skill Agent Pool
+
+**Total Shipped:** 41 phases, 319 requirements, 120+ lib files across 5 milestones
 
 **Technical Environment:**
 - Node.js 16+ CommonJS modules
