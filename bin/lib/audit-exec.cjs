@@ -52,8 +52,15 @@ function writeAudit(entry) {
     const line = JSON.stringify(entry) + '\n';
     appendFileSync(getAuditFile(), line, 'utf-8');
   } catch (err) {
-    // Silently ignore audit write failures - logging is best-effort
-    // This can happen in temp test directories or when .planning doesn't exist
+    // Log audit failures to stderr - never silently ignore
+    // This ensures security issues are visible even if file write fails
+    console.error('AUDIT LOG FAILURE:', err.message);
+    console.error('Audit entry:', JSON.stringify(entry));
+    
+    // In strict mode, throw to prevent execution without audit trail
+    if (process.env.AUDIT_STRICT === 'true') {
+      throw err;
+    }
   }
 }
 
@@ -85,13 +92,13 @@ async function auditExec(cmd, args = [], options = {}) {
   const startTime = Date.now();
   
   try {
-    const result = await execFileAsync(cmd, args, { 
+    const result = await execFileAsync(cmd, args, {
       timeout,
-      maxBuffer: 10 * 1024 * 1024
+      maxBuffer: 1 * 1024 * 1024 // 1MB buffer (reduced from 10MB for security)
     });
-    
+
     const duration = Date.now() - startTime;
-    
+
     // Log success
     const successEntry = {
       ...entry,
@@ -100,13 +107,13 @@ async function auditExec(cmd, args = [], options = {}) {
       stdout_length: result.stdout?.length || 0
     };
     writeAudit(successEntry);
-    
+
     logger.debug('Audit: command completed', { cmd, duration, context });
-    
+
     return result.stdout.trim();
   } catch (err) {
     const duration = Date.now() - startTime;
-    
+
     // Log failure
     const errorEntry = {
       ...entry,
@@ -117,9 +124,9 @@ async function auditExec(cmd, args = [], options = {}) {
       signal: err.signal
     };
     writeAudit(errorEntry);
-    
+
     logger.error('Audit: command failed', { cmd, error: err.message, duration, context });
-    
+
     throw err;
   }
 }

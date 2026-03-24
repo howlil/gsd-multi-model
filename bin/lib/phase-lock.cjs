@@ -46,6 +46,8 @@
 const fs = require('fs');
 const path = require('path');
 const Logger = require('./logger.cjs');
+const LockLogger = require('./lock-logger.cjs');
+const LockState = require('./lock-state.cjs');
 const logger = new Logger();
 
 /**
@@ -89,6 +91,10 @@ class PhaseLock {
     this._lockInfo = null;
     /** @private */
     this._heartbeatInterval = null;
+    /** @protected */
+    this.lockLogger = new LockLogger();
+    /** @protected */
+    this.lockState = new LockState({ locksDir: this.config.locksDir });
     
     // Ensure locks directory exists
     if (!fs.existsSync(this.config.locksDir)) {
@@ -113,7 +119,7 @@ class PhaseLock {
   async acquire(agentId, agentName, sessionId, options = {}) {
     const timestamp = new Date();
     const expiryMinutes = options.expiryMinutes || this.config.defaultExpiryMinutes;
-    
+
     const lockInfo = {
       phase: this.phase,
       status: 'active',
@@ -125,11 +131,11 @@ class PhaseLock {
       last_heartbeat: timestamp.toISOString(),
       expires_at: new Date(timestamp.getTime() + expiryMinutes * 60000).toISOString()
     };
-    
+
     try {
       // Check for existing lock
       const existingLock = await this._readLockFile();
-      
+
       if (existingLock) {
         // Check if lock is stale
         if (this._isStale(existingLock)) {
@@ -138,19 +144,34 @@ class PhaseLock {
             previousAgent: existingLock.agent_id,
             expiredAt: existingLock.expires_at
           });
-          
+
+          // Log stale detection
+          this.lockLogger.logStale(this.phase, existingLock);
+
           // Remove stale lock and acquire new one
           await this._removeLockFile();
-          return await this._createLockFile(lockInfo);
+          const result = await this._createLockFile(lockInfo);
+          this.lockLogger.logAcquire(this.phase, agentId, result);
+          await this._updateState();
+          return result;
         }
-        
+
         // Lock exists and not stale - return conflict info
         logger.info('Lock conflict', {
           phase: this.phase,
           heldBy: existingLock.agent_id,
           expiresAt: existingLock.expires_at
         });
-        
+
+        // Log conflict
+        this.lockLogger.log('WARN', 'conflict', {
+          phase: this.phase,
+          agent_id: agentId,
+          holder_agent: existingLock.agent_id,
+          holder_name: existingLock.agent_name,
+          expires_at: existingLock.expires_at
+        });
+
         return {
           acquired: false,
           conflict: true,
@@ -160,17 +181,26 @@ class PhaseLock {
           expiresAt: existingLock.expires_at
         };
       }
-      
+
       // No existing lock - acquire new lock
-      return await this._createLockFile(lockInfo);
-      
+      const result = await this._createLockFile(lockInfo);
+      this.lockLogger.logAcquire(this.phase, agentId, result);
+      await this._updateState();
+      return result;
+
     } catch (err) {
       logger.error('Lock acquisition failed', {
         phase: this.phase,
         agentId,
         error: err.message
       });
-      
+
+      this.lockLogger.log('ERROR', 'acquire', {
+        phase: this.phase,
+        agent_id: agentId,
+        error: err.message
+      });
+
       return {
         acquired: false,
         conflict: false,
@@ -190,6 +220,11 @@ class PhaseLock {
 
       if (!lockInfo) {
         logger.warn('Release called on non-existent lock', { phase: this.phase });
+        this.lockLogger.log('INFO', 'release', {
+          phase: this.phase,
+          result: 'not_found',
+          message: 'Lock did not exist'
+        });
         return {
           released: true,
           existed: false,
@@ -202,21 +237,35 @@ class PhaseLock {
 
       await this._removeLockFile();
 
+      const heldDuration = Date.now() - new Date(lockInfo.acquired_at).getTime();
+
       logger.info('Lock released', {
         phase: this.phase,
         agentId: lockInfo.agent_id,
-        heldDuration: Date.now() - new Date(lockInfo.acquired_at).getTime()
+        heldDuration
       });
 
-      return {
+      // Log release
+      const result = {
         released: true,
         existed: true,
         lockInfo,
         message: `Lock released for phase ${this.phase}`
       };
+      this.lockLogger.logRelease(this.phase, lockInfo.agent_id, result);
+
+      // Update STATE.md
+      await this._updateState();
+
+      return result;
 
     } catch (err) {
       logger.error('Lock release failed', {
+        phase: this.phase,
+        error: err.message
+      });
+
+      this.lockLogger.log('ERROR', 'release', {
         phase: this.phase,
         error: err.message
       });
@@ -379,8 +428,31 @@ class PhaseLock {
   }
 
   /**
+   * Update STATE.md with current lock status.
+   * @private
+   */
+  async _updateState() {
+    try {
+      const locks = await this.lockState.getLockStatus();
+      const table = this.lockState.formatLockStatusTable(locks);
+      const result = await this.lockState.updateStateLockSection(table);
+      
+      this.lockLogger.logStateUpdate(locks.length, result);
+      
+      return result;
+    } catch (err) {
+      logger.warn('STATE.md lock update failed', { error: err.message });
+      this.lockLogger.log('WARN', 'state_update', {
+        error: err.message,
+        message: 'Failed to update STATE.md lock section'
+      });
+      return { updated: false, error: err.message };
+    }
+  }
+
+  /**
    * Force acquire a lock (even if locked).
-   * Use with caution - only for stale lock recovery.
+   * Use with caution — only for stale lock recovery.
    * @param {string} agentId - Agent identifier
    * @param {string} agentName - Human-readable agent name
    * @param {string} sessionId - Session identifier

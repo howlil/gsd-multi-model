@@ -81,7 +81,7 @@ function runSecurityGates(cwd = process.cwd()) {
 
   // Gate 2: npm audit
   try {
-    execSync('npm audit --audit-level=critical 2>/dev/null', { cwd, stdio: 'pipe' });
+    execSync('npm audit --audit-level=critical 2>/dev/null', { cwd, stdio: 'pipe', timeout: 60000 });
     gates.push({ name: 'npm_audit', label: 'npm audit — no critical vulnerabilities', passed: true, blocking: true, detail: 'Clean' });
   } catch (err) {
     const output = err.stdout ? err.stdout.toString() : '';

@@ -13,6 +13,9 @@
 
 const Logger = require('./logger.cjs');
 const logger = new Logger();
+const CircuitBreaker = require('./circuit-breaker.cjs');
+const ModelTierManager = require('./model-tier-manager.cjs');
+const CostTracker = require('./cost-tracker.cjs');
 
 /**
  * Base adapter interface
@@ -223,11 +226,88 @@ class KimiAdapter extends AssistantAdapter {
 }
 
 /**
+ * Circuit Breaker Adapter Wrapper — Wraps any adapter with circuit breaker protection
+ */
+class CircuitBreakerAdapter extends AssistantAdapter {
+  /**
+   * Create circuit breaker wrapped adapter
+   * @param {AssistantAdapter} delegate - The actual adapter to wrap
+   * @param {CircuitBreaker} breaker - Circuit breaker instance
+   */
+  constructor(delegate, breaker) {
+    super(delegate.name);
+    this.delegate = delegate;
+    this.breaker = breaker;
+  }
+
+  /**
+   * Spawn agent with circuit breaker protection
+   * @param {string} type - Agent type
+   * @param {Object} options - Agent options
+   * @returns {Promise<Object>} - Agent result
+   */
+  async spawnAgent(type, options) {
+    return this.breaker.execute(() => this.delegate.spawnAgent(type, options));
+  }
+
+  /**
+   * Call tool with circuit breaker protection
+   * @param {string} tool - Tool name
+   * @param {Object} params - Tool parameters
+   * @returns {Promise<any>} - Tool result
+   */
+  async callTool(tool, params) {
+    return this.breaker.execute(() => this.delegate.callTool(tool, params));
+  }
+
+  /**
+   * Select model with budget-aware downgrade
+   * @param {string} taskType - Task type
+   * @returns {string} - Selected model
+   */
+  selectModel(taskType) {
+    const costTracker = new CostTracker();
+    const budgetStatus = costTracker.checkBudget();
+    const percentUsed = budgetStatus.percentUsed || 0;
+
+    const modelManager = new ModelTierManager('claude');
+    const model = modelManager.selectModel(taskType, percentUsed);
+
+    // Log downgrade if not using premium model
+    if (percentUsed >= 75) {
+      const originalModel = this.delegate.selectModel(taskType);
+      if (originalModel !== model) {
+        modelManager.logDowngrade(originalModel, model, `budget pressure: ${percentUsed.toFixed(1)}%`);
+      }
+    }
+
+    return model;
+  }
+
+  /**
+   * Get adapter info
+   * @returns {Object} - Adapter information
+   */
+  getInfo() {
+    return {
+      ...this.delegate.getInfo(),
+      circuitBreaker: {
+        enabled: true,
+        state: this.breaker.getState()
+      }
+    };
+  }
+}
+
+/**
  * Factory function to create adapter
  * @param {string} type - Adapter type
+ * @param {Object} [options] - Adapter options
+ * @param {boolean} [options.circuitBreaker=true] - Enable circuit breaker
+ * @param {string} [options.cwd] - Working directory
  * @returns {AssistantAdapter} - Adapter instance
  */
-function createAdapter(type) {
+function createAdapter(type, options = {}) {
   const adapters = {
     'claude-code': ClaudeCodeAdapter,
     'opencode': OpenCodeAdapter,
@@ -242,7 +322,21 @@ function createAdapter(type) {
     throw new Error(`Unknown adapter type: ${type}. Available: ${Object.keys(adapters).join(', ')}`);
   }
 
-  return new AdapterClass();
+  const delegate = new AdapterClass();
+
+  // Wrap with circuit breaker if enabled
+  if (options.circuitBreaker !== false) {
+    const breaker = new CircuitBreaker({
+      failureThreshold: 5,
+      resetTimeout: 60000,
+      persistState: true,
+      cwd: options.cwd,
+      agentType: type
+    });
+    return new CircuitBreakerAdapter(delegate, breaker);
+  }
+
+  return delegate;
 }
 
 /**
@@ -259,6 +353,9 @@ module.exports = {
   OpenCodeAdapter,
   GeminiAdapter,
   CodexAdapter,
+  QwenAdapter,
+  KimiAdapter,
+  CircuitBreakerAdapter,
   createAdapter,
   getAvailableAdapters
 };

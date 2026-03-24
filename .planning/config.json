@@ -278,6 +278,31 @@
     "alert_thresholds": [50, 75, 90],
     "alert_channels": ["log", "file"],
     "auto_pause": false,
+    "model_downgrade": {
+      "enabled": true,
+      "tiers": {
+        "claude": {
+          "premium": ["claude-3-opus", "claude-sonnet-4-6"],
+          "standard": ["claude-3-sonnet"],
+          "economy": ["claude-3-haiku"]
+        },
+        "openai": {
+          "premium": ["gpt-4", "gpt-4-turbo"],
+          "standard": ["gpt-3.5-turbo"],
+          "economy": ["gpt-3.5-turbo"]
+        },
+        "qwen": {
+          "premium": ["qwen-max"],
+          "standard": ["qwen-plus"],
+          "economy": ["qwen-turbo"]
+        },
+        "kimi": {
+          "premium": ["kimi-v1-32k"],
+          "standard": ["kimi-v1-8k"],
+          "economy": ["kimi-v1-8k"]
+        }
+      }
+    },
     "rates": {
       "claude-3": { "input": 0.003, "output": 0.015 },
       "claude-sonnet-4-6": { "input": 0.003, "output": 0.015 },
@@ -285,5 +310,12 @@
       "qwen": { "input": 0.002, "output": 0.006 },
       "kimi": { "input": 0.002, "output": 0.006 }
     }
+  },
+  "circuit_breaker": {
+    "enabled": true,
+    "failure_threshold": 5,
+    "reset_timeout": 60000,
+    "persist_state": true,
+    "metrics_enabled": true
   }
 }

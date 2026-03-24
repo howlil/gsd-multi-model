@@ -188,7 +188,8 @@ class ConstraintExtractor {
       const gitOutput = execSync('git log --format="%aN" | sort -u | wc -l', {
         cwd: rootPath,
         encoding: 'utf8',
-        stdio: ['pipe', 'pipe', 'ignore']
+        stdio: ['pipe', 'pipe', 'ignore'],
+        timeout: 5000 // 5 second timeout
       });
       const gitAuthors = parseInt(gitOutput.trim(), 10);
       if (gitAuthors > 0 && gitAuthors < 50) {
@@ -413,7 +414,7 @@ class ConstraintExtractor {
       try {
         const output = execSync(
           `grep -rn "${patterns.map(p => p.regex.source).join('|')}" "${searchPath}" --include="*.ts" --include="*.tsx" --include="*.js" 2>nul`,
-          { cwd: rootPath, encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] }
+          { cwd: rootPath, encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'], timeout: 10000 }
         );
 
         const lines = output.trim().split('\n');

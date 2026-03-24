@@ -326,11 +326,17 @@ function cmdSummaryExtract(cwd, summaryPath, fields, raw) {
 }
 
 async function cmdWebsearch(query, options, raw) {
+  // Validate API key properly - check existence, length, and not a placeholder
   const apiKey = process.env.BRAVE_API_KEY;
+  const hasValidApiKey = apiKey &&
+                         typeof apiKey === 'string' &&
+                         apiKey.length >= 20 &&
+                         !apiKey.toLowerCase().includes('your-key') &&
+                         !apiKey.toLowerCase().includes('placeholder');
 
-  if (!apiKey) {
+  if (!hasValidApiKey) {
     // No key = silent skip, agent falls back to built-in WebSearch
-    output({ available: false, reason: 'BRAVE_API_KEY not set' }, raw, '');
+    output({ available: false, reason: 'BRAVE_API_KEY not set or invalid' }, raw, '');
     return;
   }
 

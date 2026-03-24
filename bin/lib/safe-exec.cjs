@@ -20,15 +20,49 @@ const execFileAsync = promisify(execFile);
 const Logger = require('./logger.cjs');
 const logger = new Logger();
 
-// Allowlist of safe commands
+// Allowlist of safe commands (expanded for common development operations)
 const ALLOWED_COMMANDS = new Set([
-  'git', 'node', 'npm', 'npx', 'find', 'grep', 'head', 'tail', 'wc',
-  'mkdir', 'cp', 'mv', 'rm', 'cat', 'echo', 'test', 'ls', 'dir',
-  'pwd', 'cd', 'type', 'where', 'which', 'chmod', 'touch'
+  // Version control
+  'git',
+  // Node.js ecosystem
+  'node', 'npm', 'npx', 'yarn', 'pnpm',
+  // File operations
+  'find', 'grep', 'head', 'tail', 'wc', 'cat', 'ls', 'dir', 'pwd',
+  // Directory operations
+  'mkdir', 'cp', 'mv', 'rm', 'touch', 'chmod', 'chown',
+  // Archive operations
+  'tar', 'zip', 'unzip', 'gzip', 'gunzip',
+  // Text processing
+  'diff', 'patch', 'sort', 'uniq', 'cut', 'tr', 'sed', 'awk',
+  // JSON processing
+  'jq',
+  // System info
+  'type', 'where', 'which', 'uname', 'whoami', 'hostname',
+  // Network (read-only)
+  'curl', 'wget',
+  // Testing
+  'vitest', 'jest', 'mocha', 'pytest',
+  // Build tools
+  'make', 'cmake',
+  // Containerization (read-only operations)
+  'docker', 'docker-compose',
+  // Database CLI (read-only operations)
+  'psql', 'mysql', 'sqlite3',
+  // CD
+  'cd'
 ]);
 
 // Dangerous shell metacharacters that could enable injection
 const DANGEROUS_PATTERN = /[;&|`$(){}\\<>]/;
+
+// Path traversal patterns (Unix and Windows)
+const PATH_TRAVERSAL_PATTERN = /\.\.[/\\]/;
+
+// Null byte injection pattern
+const NULL_BYTE_PATTERN = /\0/;
+
+// Hidden file access pattern (potential security risk)
+const HIDDEN_FILE_PATTERN = /\/\.[^/]/;
 
 /**
  * Validate command is in allowlist
@@ -49,8 +83,19 @@ function validateCommand(cmd) {
  */
 function validateArgs(args) {
   for (const arg of args) {
+    // Check for shell injection patterns
     if (DANGEROUS_PATTERN.test(arg)) {
-      throw new Error(`Dangerous argument rejected: ${arg}`);
+      throw new Error(`Dangerous argument rejected (shell metacharacter): ${arg}`);
+    }
+    
+    // Check for path traversal
+    if (PATH_TRAVERSAL_PATTERN.test(arg)) {
+      throw new Error(`Dangerous argument rejected (path traversal): ${arg}`);
+    }
+    
+    // Check for null byte injection
+    if (NULL_BYTE_PATTERN.test(arg)) {
+      throw new Error(`Dangerous argument rejected (null byte injection): ${arg}`);
     }
   }
 }
@@ -63,43 +108,43 @@ function validateArgs(args) {
  * @returns {Promise<string>} - Command stdout
  */
 async function safeExec(cmd, args = [], options = {}) {
-  const { timeout = 30000, log = true } = options;
-  
+  const { timeout = 30000, log = true, maxBuffer = 1 * 1024 * 1024 } = options;
+
   // Validate command and arguments
   validateCommand(cmd);
   validateArgs(args);
-  
+
   const startTime = Date.now();
-  
+
   try {
     if (log) {
-      logger.info('Executing command', { 
-        cmd, 
-        args, 
-        timestamp: new Date().toISOString() 
+      logger.info('Executing command', {
+        cmd,
+        args,
+        timestamp: new Date().toISOString()
       });
     }
-    
-    const result = await execFileAsync(cmd, args, { 
+
+    const result = await execFileAsync(cmd, args, {
       timeout,
-      maxBuffer: 10 * 1024 * 1024 // 10MB buffer
+      maxBuffer // Default 1MB, configurable per command type
     });
-    
+
     const duration = Date.now() - startTime;
     if (log) {
-      logger.debug('Command completed', { 
-        cmd, 
+      logger.debug('Command completed', {
+        cmd,
         duration,
-        stdout_length: result.stdout?.length || 0 
+        stdout_length: result.stdout?.length || 0
       });
     }
-    
+
     return result.stdout.trim();
   } catch (err) {
     const duration = Date.now() - startTime;
-    logger.error('Command failed', { 
-      cmd, 
-      args, 
+    logger.error('Command failed', {
+      cmd,
+      args,
       error: err.message,
       duration,
       code: err.code,

@@ -49,7 +49,8 @@ function getLatestVersion() {
   try {
     const output = execSync(`npm view ${PACKAGE_NAME} version`, {
       encoding: 'utf-8',
-      stdio: ['pipe', 'pipe', 'ignore']
+      stdio: ['pipe', 'pipe', 'ignore'],
+      timeout: 10000 // 10 second timeout
     });
     return output.trim();
   } catch {
@@ -57,7 +58,8 @@ function getLatestVersion() {
     try {
       const output = execSync(`npm view git+${REPO_URL} version`, {
         encoding: 'utf-8',
-        stdio: ['pipe', 'pipe', 'ignore']
+        stdio: ['pipe', 'pipe', 'ignore'],
+        timeout: 10000 // 10 second timeout
       });
       return output.trim();
     } catch {
@@ -122,12 +124,13 @@ function installUpdate(force = false) {
   }
   
   log(`Updating: v${current} → v${latest}...\n`, 'blue');
-  
+
   try {
     execSync(`npm install -g ${PACKAGE_NAME}@latest`, {
-      stdio: 'inherit'
+      stdio: 'inherit',
+      timeout: 120000 // 2 minute timeout for npm install
     });
-    
+
     log('\n✓ Update complete!\n', 'green');
     log('Restart your terminal or run:\n', 'blue');
     log(`  ez-agents --version\n`, 'green');
