@@ -126,9 +126,16 @@ process.stdin.on('end', () => {
           'starting new complex work.';
     }
 
+    // Validate API key properly - check existence, length, and not a placeholder
+    const hasValidGeminiKey = process.env.GEMINI_API_KEY &&
+                              typeof process.env.GEMINI_API_KEY === 'string' &&
+                              process.env.GEMINI_API_KEY.length >= 20 &&
+                              !process.env.GEMINI_API_KEY.toLowerCase().includes('your-key') &&
+                              !process.env.GEMINI_API_KEY.toLowerCase().includes('placeholder');
+
     const output = {
       hookSpecificOutput: {
-        hookEventName: process.env.GEMINI_API_KEY ? "AfterTool" : "PostToolUse",
+        hookEventName: hasValidGeminiKey ? "AfterTool" : "PostToolUse",
         additionalContext: message
       }
     };
