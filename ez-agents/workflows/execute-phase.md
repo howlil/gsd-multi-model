@@ -131,7 +131,29 @@ Execute each wave in sequence. Within a wave: parallel if `PARALLELIZATION=true`
    - Bad: "Executing terrain generation plan"
    - Good: "Procedural terrain generator using Perlin noise — creates height maps, biome zones, and collision meshes. Required before vehicle physics can interact with ground."
 
-2. **Spawn executor agents:**
+2. **Batch execution (resource-aware):**
+
+   Read `maxParallel` from config (default: 5). If wave has {N} plans:
+   - Batch size = maxParallel
+   - Number of batches = Math.ceil(N / maxParallel)
+   - Execute each batch sequentially, wait for all agents in batch to complete before next batch
+
+   ```bash
+   # Read maxParallel from config
+   MAX_PARALLEL=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" config-get workflow.maxParallel 2>/dev/null || echo "5")
+
+   # Calculate batches
+   WAVE_PLAN_COUNT={N}
+   BATCH_COUNT=$(( (WAVE_PLAN_COUNT + MAX_PARALLEL - 1) / MAX_PARALLEL ))
+   ```
+
+   **Loop through batches:**
+   - Batch 1: Spawn min(remaining, maxParallel) agents
+   - Wait for all agents in batch to complete
+   - Check for failures before proceeding to next batch
+   - Repeat until all batches complete
+
+3. **Spawn executor agents:**
 
    Pass paths only — executors read files themselves with their fresh 200k context.
    This keeps orchestrator context lean (~10-15%).
@@ -262,20 +284,27 @@ After all waves:
 ```markdown
 ## Phase {X}: {Name} Execution Complete
 
-**Waves:** {N} | **Plans:** {M}/{total} complete
+**Waves:** {N} | **Plans:** {M}/{total} complete | **Blocked:** {B}
 
 | Wave | Plans | Status |
 |------|-------|--------|
 | 1 | plan-01, plan-02 | ✓ Complete |
 | CP | plan-03 | ✓ Verified |
 | 2 | plan-04 | ✓ Complete |
+| 3 | plan-05 | ⚠ Blocked (depends on failed plan-02) |
 
 ### Plan Details
 1. **03-01**: [one-liner from SUMMARY.md]
 2. **03-02**: [one-liner from SUMMARY.md]
 
+### Blocked Plans
+- **{plan-id}**: Blocked — depends on {failed-plan-id} (Wave {N})
+
 ### Issues Encountered
 [Aggregate from SUMMARYs, or "None"]
+
+### Failed Plans
+[List failed plans with error summary, or "None"]
 ```
 </step>
 
@@ -499,9 +528,31 @@ Orchestrator: ~10-15% context. Subagents: fresh 200k each. No polling (Task bloc
 </context_efficiency>
 
 <failure_handling>
+**Failure classification:**
+
+- **Transient failures** (API timeout, rate limit 429, network error):
+  - Auto-retry up to 2 times with exponential backoff (1s, 2s, 4s delays)
+  - If retry succeeds: continue execution
+  - If retry fails after 2 attempts: classify as permanent
+
+- **Permanent failures** (logic error, missing file, validation failure):
+  - Stop immediately, do not retry
+  - Report to user with error details
+  - Mark plan as failed
+
+**Dependency-aware failure handling:**
+
+1. After each wave completes, collect failed plan IDs
+2. Before starting next wave, check each plan's `depends_on`:
+   - If depends_on includes any failed plan: mark as **blocked** (skip execution)
+   - If depends_on is clear: execute normally
+3. Track blocked plans in summary output
+
+**Specific scenarios:**
+
 - **classifyHandoffIfNeeded false failure:** Agent reports "failed" but error is `classifyHandoffIfNeeded is not defined` → Claude Code bug, not EZ. Spot-check (SUMMARY exists, commits present) → if pass, treat as success
 - **Agent fails mid-plan:** Missing SUMMARY.md → report, ask user how to proceed
-- **Dependency chain breaks:** Wave 1 fails → Wave 2 dependents likely fail → user chooses attempt or skip
+- **Dependency chain breaks:** Wave 1 fails → Wave 2 dependents are **blocked** → report blocked plans, user chooses attempt remaining or skip
 - **All agents in wave fail:** Systemic issue → stop, report for investigation
 - **Checkpoint unresolvable:** "Skip this plan?" or "Abort phase execution?" → record partial progress in STATE.md
 </failure_handling>

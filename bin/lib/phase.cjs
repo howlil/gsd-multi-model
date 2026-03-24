@@ -9,6 +9,7 @@ const { extractFrontmatter } = require('./frontmatter.cjs');
 const { writeStateMd } = require('./state.cjs');
 const { safePlanningWriteSync } = require('./planning-write.cjs');
 const { defaultLogger: logger } = require('./logger.cjs');
+const { TaskGraph } = require('./task-graph.cjs');
 
 function cmdPhasesList(cwd, options, raw) {
   const phasesDir = path.join(cwd, '.planning', 'phases');
@@ -246,19 +247,56 @@ function cmdPhasePlanIndex(cwd, phase, raw) {
   const incomplete = [];
   let hasCheckpoints = false;
 
+  // First pass: collect all plans with their dependencies
+  const planDataMap = new Map(); // Map planId to { fm, content, planFile }
   for (const planFile of planFiles) {
     const planId = planFile.replace('-PLAN.md', '').replace('PLAN.md', '');
     const planPath = path.join(phaseDir, planFile);
     const content = fs.readFileSync(planPath, 'utf-8');
     const fm = extractFrontmatter(content);
+    planDataMap.set(planId, { fm, content, planFile, planPath });
+  }
+
+  // Build task array for TaskGraph with dependencies
+  const tasks = [];
+  for (const [planId, data] of planDataMap) {
+    const deps = data.fm.depends_on || [];
+    tasks.push({ id: planId, dependencies: Array.isArray(deps) ? deps : (deps ? [deps] : []) });
+  }
+
+  // Compute waves dynamically using TaskGraph
+  let waveAssignments;
+  try {
+    const taskGraph = new TaskGraph();
+    taskGraph.buildDAG(tasks);
+    waveAssignments = taskGraph.computeWaves();
+  } catch (err) {
+    logger.warn('Failed to compute waves, using static wave=1 for all plans', { error: err.message });
+    waveAssignments = [tasks.map(t => t.id)]; // Fallback: all plans in wave 1
+  }
+
+  // Build wave-to-planId map from computed waves
+  const waveToPlanIds = {};
+  const planToWave = {};
+  for (let i = 0; i < waveAssignments.length; i++) {
+    const waveNum = i + 1; // 1-indexed waves
+    waveToPlanIds[String(waveNum)] = waveAssignments[i];
+    for (const planId of waveAssignments[i]) {
+      planToWave[planId] = waveNum;
+    }
+  }
+
+  // Second pass: build plan objects with computed wave
+  for (const [planId, data] of planDataMap) {
+    const { fm, content } = data;
 
     // Count tasks: XML <task> tags (canonical) or ## Task N markdown (legacy)
     const xmlTasks = content.match(/<task[\s>]/gi) || [];
     const mdTasks = content.match(/##\s*Task\s*\d+/gi) || [];
     const taskCount = xmlTasks.length || mdTasks.length;
 
-    // Parse wave as integer
-    const wave = parseInt(fm.wave, 10) || 1;
+    // Use dynamically computed wave
+    const wave = planToWave[planId] || 1;
 
     // Parse autonomous (default true if not specified)
     let autonomous = true;
