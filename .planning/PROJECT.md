@@ -99,20 +99,29 @@ Enable type-safe development and improved code maintainability without disruptin
 | ESM output | Modern standard, better tree-shaking, future-proof | ✓ Good |
 | Maintain flow | Existing agent orchestration is proven to work | ✓ Good |
 | Incremental migration | Can validate each phase before proceeding | ✓ Good |
-| v5.0.0 major release | Complete TypeScript migration milestone | — Pending |
+| v5.0.0 major release | Complete TypeScript migration milestone | ✓ Good |
+| v6.0.0 OOP refactoring | Apply DRY, KISS, YAGNI, design patterns, clean code | — Pending |
 
 ---
 
-## Current Milestone: v5.0.0 Complete TypeScript Migration
+## Current Milestone: v5.0.0 Complete TypeScript Migration ✓
 
-**Goal:** Finish migrating all remaining JavaScript/CommonJS files to TypeScript, achieving 100% type coverage.
+**Status:** COMPLETE — All `.cjs` files migrated to TypeScript, type safety achieved.
+
+---
+
+## Current Milestone: v6.0.0 Complete OOP Refactoring
+
+**Goal:** Refactor the entire TypeScript codebase to apply object-oriented programming principles, eliminate duplicate patterns, and implement clean code standards.
 
 **Target outcomes:**
-- All `.cjs` files in `bin/lib/` migrated to `.ts`
-- All test files converted to TypeScript
-- Entry points (`bin/install.js`, `bin/update.js`, scripts) migrated to TypeScript
-- Type safety across entire codebase
-- Zero JavaScript runtime files (except config files)
+- Convert functional modules to class-based architecture where appropriate
+- Apply DRY (Don't Repeat Yourself) — eliminate code duplication
+- Apply KISS (Keep It Simple, Stupid) — simplify complex patterns
+- Apply YAGNI (You Aren't Gonna Need It) — remove unnecessary abstractions
+- Implement standard design patterns (Factory, Strategy, Observer, etc.)
+- Improve code organization with coherent, detailed, and clean structure
+- Full codebase coverage: core library, entry points, and test files
 
 ---
-*Last updated: 2026-03-25 after v4.0.0 completion — Starting v5.0.0 milestone*
+*Last updated: 2026-03-25 after v5.0.0 completion — Starting v6.0.0 OOP refactoring milestone*

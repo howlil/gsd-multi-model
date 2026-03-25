@@ -5,14 +5,19 @@
 
 ## Current Position
 
-**Phase:** Phase 10 Complete (Final Library Migration)
-**Plan:** 10-01 (Complete JS to TS Migration)
-**Status:** Phase 10 Complete - All `.cjs` files migrated to TypeScript
-**Last activity:** 2026-03-25 — Phase 10 completed, v5.0.0 TypeScript migration 100%
+**Phase:** Not started (defining requirements)
+**Plan:** —
+**Status:** Defining requirements for v6.0.0 OOP Refactoring
+**Last activity:** 2026-03-25 — v5.0.0 complete, starting v6.0.0 milestone
 
 ## Progress
 
-[████████████████████████] 100%
+[████████████████████████] 100% v5.0.0 Complete
+
+## New Milestone: v6.0.0
+
+**Status:** Defining requirements
+**Next:** Requirements gathering → Roadmap creation
 
 ## Metrics
 
@@ -50,6 +55,8 @@
 | Entry points migration | Phase 8 | 7 entry points migrated (install, update, build-hooks, fix-qwen, 3 hooks) |
 | Final library migration | Phase 10 | 34 `.cjs` files → TypeScript (100% complete) |
 | Type safety & documentation | Phase 9 | Core library `any` types eliminated, docs complete |
+| v5.0.0 complete | Milestone completion | All objectives achieved |
+| v6.0.0 OOP refactoring | New milestone | Defining requirements |
 
 ## Blockers
 
@@ -85,6 +92,24 @@ None
 **Total:** 135 TypeScript files (~19,606 lines)
 
 **v5.0.0 Milestone:** ✅ COMPLETE - Type safety achieved, documentation complete
+
+---
+
+## v6.0.0 OOP Refactoring Milestone
+
+**Status:** Defining requirements
+
+**Scope:**
+- Core library (bin/lib/) — refactor to class-based architecture
+- Entry points — apply design patterns, clean code
+- Test files — improve structure and organization
+
+**Principles:**
+- DRY — eliminate duplicate patterns
+- KISS — simplify complex code
+- YAGNI — remove unnecessary abstractions
+- Design patterns — Factory, Strategy, Observer, etc.
+- Clean code — coherent, detailed, clean structure
 
 | Module | Lines | Status |
 |--------|-------|--------|
