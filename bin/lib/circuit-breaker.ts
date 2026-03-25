@@ -20,6 +20,7 @@ import fs from 'fs';
 import path from 'path';
 import { withLock } from './file-lock.js';
 import Logger from './logger.js';
+import { LogExecution } from './decorators/index.js';
 
 // ─── Type Definitions ────────────────────────────────────────────────────────
 
@@ -231,6 +232,7 @@ export class CircuitBreaker {
    * @param operation - Async function to execute
    * @returns Result of operation
    */
+  @LogExecution('CircuitBreaker.execute', { logParams: false, logResult: false })
   async execute<T>(operation: () => Promise<T>): Promise<T> {
     // Check if circuit is OPEN
     if (this.state === 'OPEN') {
@@ -283,6 +285,7 @@ export class CircuitBreaker {
    * Get current state
    * @returns CLOSED, OPEN, or HALF_OPEN
    */
+  @LogExecution('CircuitBreaker.getState', { logParams: false })
   getState(): CircuitState {
     return this.state;
   }
@@ -291,6 +294,7 @@ export class CircuitBreaker {
    * Get stats
    * @returns Statistics
    */
+  @LogExecution('CircuitBreaker.getStats', { logParams: false })
   getStats(): CircuitBreakerStats {
     return {
       state: this.state,
@@ -307,6 +311,7 @@ export class CircuitBreaker {
   /**
    * Reset circuit breaker
    */
+  @LogExecution('CircuitBreaker.reset', { logParams: false })
   async reset(): Promise<void> {
     const oldState = this.state;
     this.state = 'CLOSED';
