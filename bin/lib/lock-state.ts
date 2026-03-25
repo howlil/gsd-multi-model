@@ -11,44 +11,75 @@
  * - Format lock status as markdown table
  * - Update STATE.md lock status section
  * - Auto-reconcile stale entries
- *
- * Usage:
- *   const LockState = require('./lock-state.cjs');
- *   const lockState = new LockState();
- *
- *   // Get formatted lock status
- *   const status = await lockState.getLockStatus();
- *   const table = lockState.formatLockStatusTable(status);
- *
- *   // Update STATE.md
- *   await lockState.updateStateLockSection(table);
  */
 
-const fs = require('fs');
-const path = require('path');
-const Logger = require('./logger.cjs');
-const logger = new Logger();
+import * as fs from 'fs';
+import * as path from 'path';
+import { defaultLogger as logger } from './logger.js';
 
-/**
- * Default configuration.
- */
-const DEFAULT_CONFIG = {
+// ─── Type Definitions ────────────────────────────────────────────────────────
+
+export interface LockConfig {
+  locksDir: string;
+  statePath: string;
+  staleThresholdMinutes: number;
+}
+
+export interface LockStatus {
+  phase: string;
+  agentId: string;
+  agentName: string;
+  expiresAt: string;
+  acquiredAt: string;
+  durationMin: number;
+  sessionId: string;
+  milestone: string;
+}
+
+export interface LockInfo {
+  expires_at: string;
+  last_heartbeat: string;
+  acquired_at: string;
+  phase: string;
+  agent_id: string;
+  agent_name: string;
+  session_id: string;
+  milestone: string;
+}
+
+export interface UpdateResult {
+  updated: boolean;
+  error?: string;
+  lockCount?: number;
+}
+
+export interface ReconcileResult {
+  reconciled: boolean;
+  error?: string;
+  lockCount?: number;
+}
+
+// ─── Default Configuration ──────────────────────────────────────────────────
+
+const DEFAULT_CONFIG: LockConfig = {
   locksDir: path.join(process.cwd(), '.planning', 'locks'),
   statePath: path.join(process.cwd(), '.planning', 'STATE.md'),
   staleThresholdMinutes: 90
 };
 
+// ─── LockState Class ────────────────────────────────────────────────────────
+
 /**
- * LockState class for managing lock state integration.
+ * LockState class for managing lock state integration
  */
-class LockState {
+export class LockState {
+  private config: LockConfig;
+
   /**
-   * Creates a new LockState instance.
-   * @param {Object} options - Configuration options
-   * @param {string} options.locksDir - Directory for lock files
-   * @param {string} options.statePath - Path to STATE.md
+   * Creates a new LockState instance
+   * @param options - Configuration options
    */
-  constructor(options = {}) {
+  constructor(options: Partial<LockConfig> = {}) {
     this.config = {
       ...DEFAULT_CONFIG,
       ...options
@@ -56,10 +87,10 @@ class LockState {
   }
 
   /**
-   * Get status of all active locks.
-   * @returns {Promise<Array<Object>>} - Array of lock status objects
+   * Get status of all active locks
+   * @returns Array of lock status objects
    */
-  async getLockStatus() {
+  async getLockStatus(): Promise<LockStatus[]> {
     try {
       if (!fs.existsSync(this.config.locksDir)) {
         return [];
@@ -68,13 +99,13 @@ class LockState {
       const files = fs.readdirSync(this.config.locksDir)
         .filter(f => f.endsWith('.lock.json'));
 
-      const activeLocks = [];
+      const activeLocks: LockStatus[] = [];
       const now = new Date();
 
       for (const file of files) {
         const filePath = path.join(this.config.locksDir, file);
         try {
-          const lockInfo = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+          const lockInfo = JSON.parse(fs.readFileSync(filePath, 'utf8')) as LockInfo;
 
           // Check if lock is stale
           const expiresAt = new Date(lockInfo.expires_at);
@@ -85,7 +116,7 @@ class LockState {
 
           if (!isStale) {
             const acquiredAt = new Date(lockInfo.acquired_at);
-            const durationMs = now - acquiredAt;
+            const durationMs = now.getTime() - acquiredAt.getTime();
             const durationMin = Math.round(durationMs / 60000);
 
             activeLocks.push({
@@ -100,7 +131,8 @@ class LockState {
             });
           }
         } catch (err) {
-          logger.warn('Failed to read lock file', { file, error: err.message });
+          const errorMessage = err instanceof Error ? err.message : 'Unknown';
+          logger.warn('Failed to read lock file', { file, error: errorMessage });
         }
       }
 
@@ -110,17 +142,18 @@ class LockState {
       return activeLocks;
 
     } catch (err) {
-      logger.error('Failed to get lock status', { error: err.message });
+      const errorMessage = err instanceof Error ? err.message : 'Unknown';
+      logger.error('Failed to get lock status', { error: errorMessage });
       return [];
     }
   }
 
   /**
-   * Format lock status as markdown table.
-   * @param {Array<Object>} locks - Lock status objects
-   * @returns {string} - Markdown table string
+   * Format lock status as markdown table
+   * @param locks - Lock status objects
+   * @returns Markdown table string
    */
-  formatLockStatusTable(locks) {
+  formatLockStatusTable(locks: LockStatus[]): string {
     if (!locks || locks.length === 0) {
       return 'No active locks.\n';
     }
@@ -140,11 +173,11 @@ class LockState {
   }
 
   /**
-   * Update STATE.md with lock status section.
-   * @param {string} table - Markdown table to insert
-   * @returns {Promise<Object>} - Update result
+   * Update STATE.md with lock status section
+   * @param table - Markdown table to insert
+   * @returns Update result
    */
-  async updateStateLockSection(table) {
+  async updateStateLockSection(table: string): Promise<UpdateResult> {
     try {
       if (!fs.existsSync(this.config.statePath)) {
         logger.warn('STATE.md not found', { path: this.config.statePath });
@@ -181,47 +214,55 @@ class LockState {
       fs.writeFileSync(tempFile, content, 'utf8');
       fs.renameSync(tempFile, this.config.statePath);
 
-      logger.info('STATE.md lock section updated', {
-        lockCount: table.split('\n').length - 3 // Subtract header rows
-      });
+      const lockCount = table.split('\n').length - 3; // Subtract header rows
+      logger.info('STATE.md lock section updated', { lockCount });
 
       return {
         updated: true,
-        lockCount: table.split('\n').length - 3
+        lockCount
       };
 
     } catch (err) {
-      logger.error('Failed to update STATE.md lock section', { error: err.message });
+      const errorMessage = err instanceof Error ? err.message : 'Unknown';
+      logger.error('Failed to update STATE.md lock section', { error: errorMessage });
       return {
         updated: false,
-        error: err.message
+        error: errorMessage
       };
     }
   }
 
   /**
-   * Reconcile STATE.md with actual locks (remove stale entries).
-   * @returns {Promise<Object>} - Reconcile result
+   * Reconcile STATE.md with actual locks (remove stale entries)
+   * @returns Reconcile result
    */
-  async reconcile() {
+  async reconcile(): Promise<ReconcileResult> {
     try {
       const activeLocks = await this.getLockStatus();
       const table = this.formatLockStatusTable(activeLocks);
-      return await this.updateStateLockSection(table);
+      const updateResult = await this.updateStateLockSection(table);
+      const result: ReconcileResult = {
+        reconciled: updateResult.updated
+      };
+      if (updateResult.lockCount !== undefined) {
+        result.lockCount = updateResult.lockCount;
+      }
+      return result;
     } catch (err) {
-      logger.error('Lock state reconcile failed', { error: err.message });
+      const errorMessage = err instanceof Error ? err.message : 'Unknown';
+      logger.error('Lock state reconcile failed', { error: errorMessage });
       return {
         reconciled: false,
-        error: err.message
+        error: errorMessage
       };
     }
   }
 
   /**
-   * Get lock status summary for quick display.
-   * @returns {Promise<string>} - Summary string
+   * Get lock status summary for quick display
+   * @returns Summary string
    */
-  async getSummary() {
+  async getSummary(): Promise<string> {
     const locks = await this.getLockStatus();
 
     if (locks.length === 0) {
@@ -236,12 +277,12 @@ class LockState {
   }
 
   /**
-   * Format duration in human-readable format.
-   * @param {number} minutes - Duration in minutes
-   * @returns {string} - Formatted duration
+   * Format duration in human-readable format
+   * @param minutes - Duration in minutes
+   * @returns Formatted duration
    * @private
    */
-  _formatDuration(minutes) {
+  private _formatDuration(minutes: number): string {
     if (minutes < 60) {
       return `${minutes} min`;
     }
@@ -259,5 +300,3 @@ class LockState {
     return remainingHours > 0 ? `${days}d ${remainingHours}h` : `${days}d`;
   }
 }
-
-module.exports = LockState;

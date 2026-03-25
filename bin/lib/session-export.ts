@@ -6,31 +6,58 @@
  * Supports markdown and JSON export formats
  */
 
-const { SessionExportError, SessionNotFoundError } = require('./session-errors.cjs');
-const { safePlanningWriteSync } = require('./planning-write.cjs');
+import { SessionExportError, SessionNotFoundError } from './session-errors.js';
+import { safePlanningWriteSync } from './planning-write.js';
+import type { Session } from './session-chain.js';
 
-class SessionExport {
+// ─── Type Definitions ────────────────────────────────────────────────────────
+
+export interface ExportResult {
+  success: true;
+  format: string;
+  content: string;
+  outputPath: string;
+}
+
+export interface FileExportResult {
+  success: true;
+  path: string;
+  format: string;
+}
+
+export interface SessionManagerLike {
+  loadSession(sessionId: string): Session | null;
+}
+
+// ─── SessionExport Class ────────────────────────────────────────────────────
+
+/**
+ * SessionExport provides session export functionality in multiple formats
+ */
+export class SessionExport {
+  private sessionManager: SessionManagerLike;
+
   /**
    * Create a SessionExport instance
-   * @param {Object} sessionManager - SessionManager instance
+   * @param sessionManager - SessionManager instance
    */
-  constructor(sessionManager) {
+  constructor(sessionManager: SessionManagerLike) {
     this.sessionManager = sessionManager;
   }
 
   /**
    * Export a session in the specified format
-   * @param {string} sessionId - Session ID
-   * @param {string} format - Export format ('markdown' or 'json')
-   * @returns {Object} Export result with content and path
+   * @param sessionId - Session ID
+   * @param format - Export format ('markdown' or 'json')
+   * @returns Export result with content and path
    */
-  export(sessionId, format = 'markdown') {
+  export(sessionId: string, format: 'markdown' | 'json' = 'markdown'): ExportResult {
     const session = this.sessionManager.loadSession(sessionId);
     if (!session) {
       throw new SessionNotFoundError(sessionId);
     }
 
-    let content;
+    let content: string;
     switch (format) {
       case 'markdown':
         content = this.toMarkdown(session);
@@ -55,10 +82,10 @@ class SessionExport {
 
   /**
    * Convert session to markdown format
-   * @param {Object} session - Session object
-   * @returns {string} Markdown string
+   * @param session - Session object
+   * @returns Markdown string
    */
-  toMarkdown(session) {
+  toMarkdown(session: Session): string {
     const { metadata, context, state } = session;
     const exportedAt = new Date().toISOString();
 
@@ -67,7 +94,7 @@ class SessionExport {
     if (metadata.started_at && metadata.ended_at) {
       const start = new Date(metadata.started_at);
       const end = new Date(metadata.ended_at);
-      const diffMs = end - start;
+      const diffMs = end.getTime() - start.getTime();
       const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
       const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
       if (diffHrs > 0) {
@@ -184,7 +211,7 @@ class SessionExport {
     md += `## Session Chain\n\n`;
     const chain = metadata.session_chain || [];
     const currentIndex = chain.indexOf(metadata.session_id);
-    
+
     if (chain.length > 0) {
       md += `- Previous: ${currentIndex > 0 ? chain[currentIndex - 1] : 'none'}\n`;
       md += `- Current: ${metadata.session_id}\n`;
@@ -211,10 +238,10 @@ class SessionExport {
 
   /**
    * Convert session to JSON format
-   * @param {Object} session - Session object
-   * @returns {string} JSON string
+   * @param session - Session object
+   * @returns JSON string
    */
-  toJSON(session) {
+  toJSON(session: Session): string {
     const exportData = {
       export_version: '1.0',
       exported_at: new Date().toISOString(),
@@ -226,20 +253,20 @@ class SessionExport {
 
   /**
    * Export session to file
-   * @param {string} sessionId - Session ID
-   * @param {string} format - Export format
-   * @param {string} outputPath - Output file path
-   * @returns {Object} Export result with path
+   * @param sessionId - Session ID
+   * @param format - Export format
+   * @param outputPath - Output file path
+   * @returns Export result with path
    */
-  exportToFile(sessionId, format, outputPath) {
+  exportToFile(sessionId: string, format: 'markdown' | 'json', outputPath?: string): FileExportResult {
     const result = this.export(sessionId, format);
-    
+
     if (!outputPath) {
       outputPath = result.outputPath;
     }
 
     safePlanningWriteSync(outputPath, result.content);
-    
+
     return {
       success: true,
       path: outputPath,
@@ -247,5 +274,3 @@ class SessionExport {
     };
   }
 }
-
-module.exports = SessionExport;

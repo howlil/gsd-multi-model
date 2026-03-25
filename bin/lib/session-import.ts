@@ -7,37 +7,75 @@
  * Supports model-specific adapters
  */
 
-const fs = require('fs');
-const { SessionImportError, SessionNotFoundError } = require('./session-errors.cjs');
-const { defaultLogger: logger } = require('./logger.cjs');
+import * as fs from 'fs';
+import { SessionImportError } from './session-errors.js';
+import { defaultLogger as logger } from './logger.js';
+import type { Session, SessionMetadata, SessionContext, SessionState } from './session-chain.js';
 
-class SessionImport {
+// ─── Type Definitions ────────────────────────────────────────────────────────
+
+export interface ImportOptions {
+  sourceModel?: string;
+}
+
+export interface ImportResult {
+  success: true;
+  sessionId: string;
+  warnings: string[];
+}
+
+export interface ValidationResult {
+  valid: boolean;
+  errors: string[];
+}
+
+export interface SessionData {
+  metadata?: Partial<SessionMetadata>;
+  context?: Partial<SessionContext>;
+  state?: Partial<SessionState>;
+  session?: Session;
+}
+
+export interface SessionManagerLike {
+  createSession(options: { model?: string | null; phase?: number | null; plan?: number | null }): string;
+  updateSession(sessionId: string, updates: Record<string, unknown>): boolean;
+  loadSession(sessionId: string): Session | null;
+}
+
+// ─── SessionImport Class ────────────────────────────────────────────────────
+
+/**
+ * SessionImport provides session import functionality with validation
+ */
+export class SessionImport {
+  private sessionManager: SessionManagerLike;
+
   /**
    * Create a SessionImport instance
-   * @param {Object} sessionManager - SessionManager instance
+   * @param sessionManager - SessionManager instance
    */
-  constructor(sessionManager) {
+  constructor(sessionManager: SessionManagerLike) {
     this.sessionManager = sessionManager;
   }
 
   /**
    * Import a session from file
-   * @param {string} sessionFile - Path to session file
-   * @param {Object} options - Import options
-   * @param {string} [options.sourceModel] - Source model for adapter
-   * @returns {Object} Import result with sessionId and warnings
+   * @param sessionFile - Path to session file
+   * @param options - Import options
+   * @returns Import result with sessionId and warnings
    */
-  import(sessionFile, options = {}) {
+  import(sessionFile: string, options: ImportOptions = {}): ImportResult {
     const { sourceModel } = options;
-    const warnings = [];
+    const warnings: string[] = [];
 
     // Read and parse file
-    let importedData;
+    let importedData: SessionData;
     try {
       const content = fs.readFileSync(sessionFile, 'utf-8');
       importedData = JSON.parse(content);
     } catch (err) {
-      throw new SessionImportError(`Failed to parse JSON: ${err.message}`, [err.message]);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      throw new SessionImportError(`Failed to parse JSON: ${errorMessage}`, [errorMessage]);
     }
 
     // Handle model-specific format conversion
@@ -64,20 +102,21 @@ class SessionImport {
     }
 
     // Create new session
+    const sessionData = importedData.session || importedData;
     const newSessionId = this.sessionManager.createSession({
-      model: importedData.metadata?.model,
-      phase: importedData.metadata?.phase,
-      plan: importedData.metadata?.plan
+      model: sessionData.metadata?.model || null,
+      phase: sessionData.metadata?.phase || null,
+      plan: sessionData.metadata?.plan || null
     });
 
     // Merge imported context and state
-    const updates = {
-      context: importedData.context || {},
-      state: importedData.state || {}
+    const updates: Record<string, unknown> = {
+      context: sessionData.context || {},
+      state: sessionData.state || {}
     };
 
     // Add previous session to chain
-    const previousSessionId = importedData.metadata?.session_id;
+    const previousSessionId = sessionData.metadata?.session_id;
     if (previousSessionId) {
       updates.metadata = {
         session_chain: [previousSessionId]
@@ -97,11 +136,11 @@ class SessionImport {
 
   /**
    * Validate session structure
-   * @param {Object} session - Session object
-   * @returns {Object} Validation result
+   * @param session - Session object
+   * @returns Validation result
    */
-  validateStructure(session) {
-    const errors = [];
+  validateStructure(session: SessionData): ValidationResult {
+    const errors: string[] = [];
 
     // Check for export wrapper or direct session
     const sessionData = session.session || session;
@@ -139,11 +178,11 @@ class SessionImport {
 
   /**
    * Validate session chain integrity
-   * @param {Object} session - Session object
-   * @returns {Object} Validation result
+   * @param session - Session object
+   * @returns Validation result
    */
-  validateSessionChain(session) {
-    const errors = [];
+  validateSessionChain(session: SessionData): ValidationResult {
+    const errors: string[] = [];
     const sessionData = session.session || session;
 
     if (sessionData.metadata?.session_chain) {
@@ -152,7 +191,7 @@ class SessionImport {
 
       if (!Array.isArray(chain)) {
         errors.push('session_chain must be an array');
-      } else if (chain.includes(sessionId)) {
+      } else if (chain.includes(sessionId || '')) {
         errors.push('Circular reference detected: session_chain includes current session_id');
       }
     }
@@ -165,16 +204,16 @@ class SessionImport {
 
   /**
    * Validate chain links exist in session manager
-   * @param {Object} session - Session object
-   * @returns {Object} Validation result with warnings
+   * @param session - Session object
+   * @returns Validation result with warnings
    */
-  validateChainLinksExist(session) {
-    const warnings = [];
+  validateChainLinksExist(session: SessionData): { valid: boolean; warnings: string[] } {
+    const warnings: string[] = [];
     const sessionData = session.session || session;
 
     if (sessionData.metadata?.session_chain) {
       const chain = sessionData.metadata.session_chain;
-      const missingLinks = [];
+      const missingLinks: string[] = [];
 
       for (const id of chain) {
         const linkedSession = this.sessionManager.loadSession(id);
@@ -196,11 +235,11 @@ class SessionImport {
 
   /**
    * Import from model-specific format
-   * @param {Object} data - Data to convert
-   * @param {string} sourceModel - Source model name
-   * @returns {Object} Converted session object
+   * @param data - Data to convert
+   * @param sourceModel - Source model name
+   * @returns Converted session object
    */
-  importFromModelSpecificFormat(data, sourceModel) {
+  importFromModelSpecificFormat(data: SessionData, sourceModel: string): SessionData {
     // If data has session wrapper, use it
     if (data.session) {
       return data.session;
@@ -226,7 +265,7 @@ class SessionImport {
    * Adapt Claude-specific format
    * @private
    */
-  _adaptClaudeFormat(data) {
+  private _adaptClaudeFormat(data: SessionData): SessionData {
     // Claude format adapter (placeholder)
     return data;
   }
@@ -235,7 +274,7 @@ class SessionImport {
    * Adapt Qwen-specific format
    * @private
    */
-  _adaptQwenFormat(data) {
+  private _adaptQwenFormat(data: SessionData): SessionData {
     // Qwen format adapter (placeholder)
     return data;
   }
@@ -244,7 +283,7 @@ class SessionImport {
    * Adapt OpenAI-specific format
    * @private
    */
-  _adaptOpenAIFormat(data) {
+  private _adaptOpenAIFormat(data: SessionData): SessionData {
     // OpenAI format adapter (placeholder)
     return data;
   }
@@ -253,10 +292,8 @@ class SessionImport {
    * Adapt Kimi-specific format
    * @private
    */
-  _adaptKimiFormat(data) {
+  private _adaptKimiFormat(data: SessionData): SessionData {
     // Kimi format adapter (placeholder)
     return data;
   }
 }
-
-module.exports = SessionImport;
