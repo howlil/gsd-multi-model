@@ -9,17 +9,14 @@
  *
  * @class FileOperations
  */
-export class FileOperations {
-  private fs: any;
-  private path: any;
+import * as fs from 'fs';
+import * as path from 'path';
 
+export class FileOperations {
   /**
    * Create a FileOperations instance
    */
-  constructor() {
-    this.fs = require('fs');
-    this.path = require('path');
-  }
+  constructor() {}
 
   /**
    * Copy a file from source to destination
@@ -33,10 +30,10 @@ export class FileOperations {
     }
 
     // Ensure destination directory exists
-    const destDir = this.path.dirname(dest);
+    const destDir = path.dirname(dest);
     this.ensureDirectory(destDir);
 
-    this.fs.copyFileSync(src, dest);
+    fs.copyFileSync(src, dest);
   }
 
   /**
@@ -54,18 +51,18 @@ export class FileOperations {
     this.ensureDirectory(dest);
 
     // Read source directory contents
-    const entries = this.fs.readdirSync(src, { withFileTypes: true });
+    const entries = fs.readdirSync(src, { withFileTypes: true });
 
     for (const entry of entries) {
-      const srcPath = this.path.join(src, entry.name);
-      const destPath = this.path.join(dest, entry.name);
+      const srcPath = path.join(src, entry.name);
+      const destPath = path.join(dest, entry.name);
 
       if (entry.isDirectory()) {
         // Recursively copy subdirectory
         this.copyDirectory(srcPath, destPath);
       } else {
         // Copy file
-        this.fs.copyFileSync(srcPath, destPath);
+        fs.copyFileSync(srcPath, destPath);
       }
     }
   }
@@ -81,7 +78,7 @@ export class FileOperations {
       throw new Error(`File does not exist: ${filePath}`);
     }
 
-    return this.fs.readFileSync(filePath, 'utf-8');
+    return fs.readFileSync(filePath, 'utf-8');
   }
 
   /**
@@ -92,10 +89,10 @@ export class FileOperations {
    */
   writeFile(filePath: string, content: string): void {
     // Ensure directory exists
-    const dir = this.path.dirname(filePath);
+    const dir = path.dirname(filePath);
     this.ensureDirectory(dir);
 
-    this.fs.writeFileSync(filePath, content, 'utf-8');
+    fs.writeFileSync(filePath, content, 'utf-8');
   }
 
   /**
@@ -105,7 +102,7 @@ export class FileOperations {
    */
   fileExists(filePath: string): boolean {
     try {
-      return this.fs.existsSync(filePath) && this.fs.statSync(filePath).isFile();
+      return fs.existsSync(filePath) && fs.statSync(filePath).isFile();
     } catch {
       return false;
     }
@@ -118,7 +115,7 @@ export class FileOperations {
    */
   directoryExists(dirPath: string): boolean {
     try {
-      return this.fs.existsSync(dirPath) && this.fs.statSync(dirPath).isDirectory();
+      return fs.existsSync(dirPath) && fs.statSync(dirPath).isDirectory();
     } catch {
       return false;
     }
@@ -130,8 +127,8 @@ export class FileOperations {
    * @throws {Error} If directory cannot be created
    */
   ensureDirectory(dirPath: string): void {
-    if (!this.fs.existsSync(dirPath)) {
-      this.fs.mkdirSync(dirPath, { recursive: true });
+    if (!fs.existsSync(dirPath)) {
+      fs.mkdirSync(dirPath, { recursive: true });
     }
   }
 }
