@@ -13,7 +13,7 @@ import { defaultLogger as logger } from './logger.js';
 
 // ─── Type Definitions ────────────────────────────────────────────────────────
 
-export type PackageManagerType = 'npm' | 'yarn' | 'pnpm';
+export type PackageManagerType = 'npm' | 'yarn' | 'pnpm' | 'bun';
 
 export interface LockfileValidationResult {
   valid: boolean;
@@ -199,7 +199,7 @@ export class LockfileValidator {
       };
     }
 
-    const lockfileVersion = parseInt(versionMatch[1], 10);
+    const lockfileVersion = parseInt(versionMatch[1]!, 10);
 
     // Count dependency entries (lines starting with "  /" which are package specs)
     const entryCount = (content.match(/^  \/[^:]+:/gm) || []).length;
@@ -225,7 +225,8 @@ export class LockfileValidator {
     const lockfiles: Record<PackageManagerType, string> = {
       'npm': 'package-lock.json',
       'yarn': 'yarn.lock',
-      'pnpm': 'pnpm-lock.yaml'
+      'pnpm': 'pnpm-lock.yaml',
+      'bun': 'bun.lockb'
     };
     return join(this.cwd, lockfiles[manager] ?? 'package-lock.json');
   }
