@@ -153,7 +153,8 @@ None
 | 260325-nst | Refactor JS yang masih tersisa | 2026-03-25 | a80f5d3 | [260325-nst-refactor-js-yang-masih-tersisa](./quick/260325-nst-refactor-js-yang-masih-tersisa/) |
 | 260325-ohh | Fix TypeScript errors (850 → 200) | 2026-03-25 | 4771874 | [260325-ohh-fix-ts](./quick/260325-ohh-fix-ts/) |
 | 260325-ov9 | Fix TypeScript errors (200 → 65 source) | 2026-03-25 | 1915bf4 | [260325-ov9-fix-typescript-error](./quick/260325-ov9-fix-typescript-error/) |
+| 260325-pmv | Fix TypeScript errors (65 → 35 source) | 2026-03-25 | Pending | [260325-pmv-fix-typescript-error](./quick/260325-pmv-fix-typescript-error/) |
 
 ---
 
-*Last updated: 2026-03-25 — Completed 7 quick tasks: 92% TypeScript errors fixed*
+*Last updated: 2026-03-25 — Completed 8 quick tasks: 96% TypeScript errors fixed*
