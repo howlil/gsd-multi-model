@@ -27,13 +27,20 @@
 
 ### Plans
 
-- [ ] **Plan 10.1**: Convert functional modules to class-based architecture (CORE-01)
+- [x] **Plan 10.1**: Convert functional modules to class-based architecture (CORE-01) ✅ COMPLETE 2026-03-25
   - Identify stateful modules suitable for class conversion
   - Refactor Logger, SessionManager, ErrorCache to use proper class structure
   - Convert functional utilities to static class methods where appropriate
   - Maintain FP patterns for pure transformations
 
-- [ ] **Plan 10.2**: Apply Factory pattern for object creation (CORE-02)
+- [x] **Plan 10.2**: Apply Decorator pattern for cross-cutting concerns (CORE-06) ✅ COMPLETE 2026-03-25
+  - Create Decorator infrastructure for logging, caching, validation
+  - Implement @LogExecution decorator
+  - Implement @CacheResult decorator
+  - Implement @ValidateInput decorator
+  - Apply decorators to core modules (SessionManager, ContextManager, SkillResolver, CircuitBreaker, ErrorCache)
+
+- [ ] **Plan 10.3**: Apply Factory pattern for object creation (CORE-02)
   - Create Factory classes for Agent, Phase, and Skill instantiation
   - Implement Factory methods for complex object creation
   - Add Factory registry for extensible object creation
@@ -57,14 +64,7 @@
   - Implement Adapter for skill interfaces
   - Document Adapter usage
 
-- [ ] **Plan 10.6**: Apply Decorator pattern for cross-cutting concerns (CORE-06)
-  - Create Decorator infrastructure for logging, caching, validation
-  - Implement @LogExecution decorator
-  - Implement @CacheResult decorator
-  - Implement @ValidateInput decorator
-  - Apply decorators to core modules
-
-- [ ] **Plan 10.7**: Apply Facade pattern for complex subsystems (CORE-07)
+- [ ] **Plan 10.6**: Apply Facade pattern for complex subsystems (CORE-07)
   - Identify complex subsystems (context management, skill resolution)
   - Create Facade classes to simplify interfaces
   - Implement ContextManagerFacade
@@ -519,12 +519,12 @@ Phase 15: Build System & Documentation
 
 | Requirement | Phase | Plan | Status |
 |-------------|-------|------|--------|
-| **CORE-01**: Convert functional modules to class-based architecture | Phase 10 | 10.1 | Pending |
-| **CORE-02**: Apply Factory pattern for object creation | Phase 10 | 10.2 | Pending |
-| **CORE-03**: Apply Strategy pattern for interchangeable algorithms | Phase 10 | 10.3 | Pending |
-| **CORE-04**: Apply Observer pattern for event-driven modules | Phase 10 | 10.4 | Pending |
-| **CORE-05**: Apply Adapter pattern for incompatible interfaces | Phase 10 | 10.5 | Pending |
-| **CORE-06**: Apply Decorator pattern for cross-cutting concerns | Phase 10 | 10.6 | Pending |
+| **CORE-01**: Convert functional modules to class-based architecture | Phase 10 | 10.1 | ✅ Complete |
+| **CORE-02**: Apply Factory pattern for object creation | Phase 10 | 10.3 | Pending |
+| **CORE-03**: Apply Strategy pattern for interchangeable algorithms | Phase 10 | 10.4 | Pending |
+| **CORE-04**: Apply Observer pattern for event-driven modules | Phase 10 | 10.5 | Pending |
+| **CORE-05**: Apply Adapter pattern for incompatible interfaces | Phase 10 | 10.6 | Pending |
+| **CORE-06**: Apply Decorator pattern for cross-cutting concerns | Phase 10 | 10.2 | ✅ Complete |
 | **CORE-07**: Apply Facade pattern for complex subsystems | Phase 10 | 10.7 | Pending |
 | **CORE-08**: Eliminate duplicate code patterns (DRY) | Phase 11 | 11.1 | Pending |
 | **CORE-09**: Simplify complex functions (KISS) | Phase 11 | 11.2 | Pending |
