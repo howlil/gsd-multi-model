@@ -180,86 +180,59 @@ export class PackageManagerExecutor {
   }
 
   /**
-   * Build install arguments for specific package manager
+   * Build install arguments for package manager
    * @private
    * @param options - Install options
    * @returns Command arguments
    */
   private _buildInstallArgs(options: InstallOptions = {}): string[] {
     const { production, frozenLockfile, preferOffline } = options;
+    const args: string[] = ['install'];
 
-    switch (this.manager) {
-      case 'npm':
-        return this._buildNpmInstallArgs({ production, frozenLockfile, preferOffline });
-      case 'yarn':
-        return this._buildYarnInstallArgs({ production, frozenLockfile, preferOffline });
-      case 'pnpm':
-        return this._buildPnpmInstallArgs({ production, frozenLockfile, preferOffline });
-      case 'bun':
-        return this._buildBunInstallArgs({ production, frozenLockfile, preferOffline });
-      default:
-        throw new Error(`Unknown package manager: ${this.manager}`);
-    }
+    // Package-manager-specific production flag
+    const prodFlag = this.manager === 'pnpm' ? '--prod' : '--production';
+
+    if (production) args.push(prodFlag);
+    if (frozenLockfile) args.push('--frozen-lockfile');
+    if (preferOffline) args.push('--prefer-offline');
+
+    return args.filter(Boolean);
   }
 
   /**
-   * Build npm install arguments
+   * Build npm install arguments (deprecated - use _buildInstallArgs)
    * @private
+   * @deprecated Use _buildInstallArgs instead
    */
   private _buildNpmInstallArgs(options: InstallOptions = {}): string[] {
-    const { production, frozenLockfile, preferOffline } = options;
-    const args: string[] = ['install'];
-
-    if (production) args.push('--production');
-    if (frozenLockfile) args.push('--frozen-lockfile');
-    if (preferOffline) args.push('--prefer-offline');
-
-    return args.filter(Boolean);
+    return this._buildInstallArgs(options);
   }
 
   /**
-   * Build yarn install arguments
+   * Build yarn install arguments (deprecated - use _buildInstallArgs)
    * @private
+   * @deprecated Use _buildInstallArgs instead
    */
   private _buildYarnInstallArgs(options: InstallOptions = {}): string[] {
-    const { production, frozenLockfile, preferOffline } = options;
-    const args: string[] = ['install'];
-
-    if (production) args.push('--production');
-    if (frozenLockfile) args.push('--frozen-lockfile');
-    if (preferOffline) args.push('--prefer-offline');
-
-    return args.filter(Boolean);
+    return this._buildInstallArgs(options);
   }
 
   /**
-   * Build pnpm install arguments
+   * Build pnpm install arguments (deprecated - use _buildInstallArgs)
    * @private
+   * @deprecated Use _buildInstallArgs instead
    */
   private _buildPnpmInstallArgs(options: InstallOptions = {}): string[] {
-    const { production, frozenLockfile, preferOffline } = options;
-    const args: string[] = ['install'];
-
-    if (production) args.push('--prod');
-    if (frozenLockfile) args.push('--frozen-lockfile');
-    if (preferOffline) args.push('--prefer-offline');
-
-    return args.filter(Boolean);
+    return this._buildInstallArgs(options);
   }
 
   /**
-   * Build bun install arguments
+   * Build bun install arguments (deprecated - use _buildInstallArgs)
    * @private
+   * @deprecated Use _buildInstallArgs instead
    */
   private _buildBunInstallArgs(options: InstallOptions = {}): string[] {
-    const { production, frozenLockfile, preferOffline } = options;
-    const args: string[] = ['install'];
-
-    if (production) args.push('--production');
-    if (frozenLockfile) args.push('--frozen-lockfile');
-    if (preferOffline) args.push('--prefer-offline');
-
-    return args.filter(Boolean);
+    return this._buildInstallArgs(options);
   }
 
   /**
@@ -270,82 +243,61 @@ export class PackageManagerExecutor {
    * @returns Command arguments
    */
   private _buildAddArgs(packages: string[], options: AddOptions = {}): string[] {
-    switch (this.manager) {
-      case 'npm':
-        return this._buildNpmAddArgs(packages, options);
-      case 'yarn':
-        return this._buildYarnAddArgs(packages, options);
-      case 'pnpm':
-        return this._buildPnpmAddArgs(packages, options);
-      case 'bun':
-        return this._buildBunAddArgs(packages, options);
-      default:
-        throw new Error(`Unknown package manager: ${this.manager}`);
-    }
+    const { dev, peer, optional, global } = options;
+
+    // Package-manager-specific configuration
+    const config = {
+      npm: { baseCmd: 'install', globalCmd: '-g', devFlag: '--save-dev', peerFlag: '--save-peer', optionalFlag: '--save-optional' },
+      yarn: { baseCmd: 'add', globalCmd: 'global', devFlag: '--dev', peerFlag: '--peer', optionalFlag: '--optional' },
+      pnpm: { baseCmd: 'add', globalCmd: '-g', devFlag: '--save-dev', peerFlag: '--save-peer', optionalFlag: '--save-optional' },
+      bun: { baseCmd: 'add', globalCmd: '-g', devFlag: '--dev', peerFlag: '--peer', optionalFlag: '--optional' },
+    } as const;
+
+    const pmConfig = config[this.manager as keyof typeof config] ?? config.npm;
+    const args: string[] = [pmConfig.baseCmd];
+
+    if (global) args.push(pmConfig.globalCmd);
+    if (dev) args.push(pmConfig.devFlag);
+    if (peer) args.push(pmConfig.peerFlag);
+    if (optional) args.push(pmConfig.optionalFlag);
+
+    return [...args, ...packages];
   }
 
   /**
-   * Build npm add arguments
+   * Build npm add arguments (deprecated - use _buildAddArgs)
    * @private
+   * @deprecated Use _buildAddArgs instead
    */
   private _buildNpmAddArgs(packages: string[], options: AddOptions = {}): string[] {
-    const { dev, peer, optional, global } = options;
-    const args: string[] = ['install'];
-
-    if (global) args.push('-g');
-    if (dev) args.push('--save-dev');
-    if (peer) args.push('--save-peer');
-    if (optional) args.push('--save-optional');
-
-    return [...args, ...packages];
+    return this._buildAddArgs(packages, options);
   }
 
   /**
-   * Build yarn add arguments
+   * Build yarn add arguments (deprecated - use _buildAddArgs)
    * @private
+   * @deprecated Use _buildAddArgs instead
    */
   private _buildYarnAddArgs(packages: string[], options: AddOptions = {}): string[] {
-    const { dev, peer, optional, global } = options;
-    const args: string[] = ['add'];
-
-    if (global) args.push('global');
-    if (dev) args.push('--dev');
-    if (peer) args.push('--peer');
-    if (optional) args.push('--optional');
-
-    return [...args, ...packages];
+    return this._buildAddArgs(packages, options);
   }
 
   /**
-   * Build pnpm add arguments
+   * Build pnpm add arguments (deprecated - use _buildAddArgs)
    * @private
+   * @deprecated Use _buildAddArgs instead
    */
   private _buildPnpmAddArgs(packages: string[], options: AddOptions = {}): string[] {
-    const { dev, peer, optional, global } = options;
-    const args: string[] = ['add'];
-
-    if (global) args.push('-g');
-    if (dev) args.push('--save-dev');
-    if (peer) args.push('--save-peer');
-    if (optional) args.push('--save-optional');
-
-    return [...args, ...packages];
+    return this._buildAddArgs(packages, options);
   }
 
   /**
-   * Build bun add arguments
+   * Build bun add arguments (deprecated - use _buildAddArgs)
    * @private
+   * @deprecated Use _buildAddArgs instead
    */
   private _buildBunAddArgs(packages: string[], options: AddOptions = {}): string[] {
-    const { dev, peer, optional, global } = options;
-    const args: string[] = ['add'];
-
-    if (global) args.push('-g');
-    if (dev) args.push('--dev');
-    if (peer) args.push('--peer');
-    if (optional) args.push('--optional');
-
-    return [...args, ...packages];
+    return this._buildAddArgs(packages, options);
   }
 
   /**
