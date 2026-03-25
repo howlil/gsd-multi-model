@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 /**
  * Lockfile Validator — Validate package manager lockfiles
  *
@@ -7,63 +5,72 @@
  * - npm: package-lock.json (JSON format with lockfileVersion)
  * - yarn: yarn.lock (YAML-like format with metadata header)
  * - pnpm: pnpm-lock.yaml (YAML format with lockfileVersion)
- *
- * Usage:
- *   const LockfileValidator = require('./lockfile-validator.cjs');
- *   const validator = new LockfileValidator(cwd);
- *   const result = validator.validate('npm');
- *   // Returns: { valid, reason, lockfileVersion?, packageCount? }
  */
 
-const fs = require('fs');
-const path = require('path');
-const Logger = require('./logger.cjs');
+import { readFileSync, existsSync } from 'fs';
+import { join } from 'path';
+import { defaultLogger as logger } from './logger.js';
+
+// ─── Type Definitions ────────────────────────────────────────────────────────
+
+export type PackageManagerType = 'npm' | 'yarn' | 'pnpm';
+
+export interface LockfileValidationResult {
+  valid: boolean;
+  reason?: string;
+  message?: string;
+  lockfileVersion?: number;
+  packageCount?: number;
+  entryCount?: number;
+}
+
+export interface LockfileConfig {
+  cwd?: string;
+}
+
+// ─── Lockfile Validator Class ───────────────────────────────────────────────
 
 /**
  * Lockfile Validator class
  * Validates lockfile integrity for different package managers
  */
-class LockfileValidator {
+export class LockfileValidator {
+  private readonly cwd: string;
+
   /**
    * Create a LockfileValidator instance
-   * @param {string} cwd - Working directory (default: process.cwd())
+   * @param config - Configuration options
    */
-  constructor(cwd = process.cwd()) {
-    this.cwd = cwd;
-    this.logger = new Logger();
+  constructor(config: LockfileConfig = {}) {
+    this.cwd = config.cwd ?? process.cwd();
   }
 
   /**
    * Validate lockfile for a specific package manager
-   * @param {string} manager - Package manager name ('npm', 'yarn', or 'pnpm')
-   * @returns {Object} Validation result
-   *   - {boolean} valid - Whether lockfile is valid
-   *   - {string} reason - Reason code if invalid
-   *   - {string} message - Human-readable message if invalid
-   *   - {number} lockfileVersion - Lockfile version (if valid)
-   *   - {number} packageCount - Number of packages (if valid)
+   * @param manager - Package manager name ('npm', 'yarn', or 'pnpm')
+   * @returns Validation result with typed fields
    */
-  validate(manager) {
+  validate(manager: PackageManagerType): LockfileValidationResult {
     const lockfilePath = this.getLockfilePath(manager);
 
-    this.logger.debug('Validating lockfile', {
+    logger.debug('Validating lockfile', {
       manager,
       lockfilePath,
       cwd: this.cwd
     });
 
     // Check file existence
-    if (!fs.existsSync(lockfilePath)) {
-      this.logger.debug('Lockfile not found', { lockfilePath });
+    if (!existsSync(lockfilePath)) {
+      logger.debug('Lockfile not found', { lockfilePath });
       return {
         valid: false,
         reason: 'lockfile_missing',
-        message: `No ${path.basename(lockfilePath)} found`
+        message: `No ${join(lockfilePath, '..').split('\\').pop()}/${lockfilePath.split('\\').pop()} found`
       };
     }
 
     try {
-      const content = fs.readFileSync(lockfilePath, 'utf-8');
+      const content = readFileSync(lockfilePath, 'utf-8');
 
       switch (manager) {
         case 'npm':
@@ -80,25 +87,25 @@ class LockfileValidator {
           };
       }
     } catch (err) {
-      this.logger.error('Lockfile read error', {
+      logger.error('Lockfile read error', {
         manager,
         lockfilePath,
-        error: err.message
+        error: err instanceof Error ? err.message : 'Unknown'
       });
       return {
         valid: false,
         reason: 'read_error',
-        message: err.message
+        message: err instanceof Error ? err.message : 'Unknown error'
       };
     }
   }
 
   /**
    * Validate npm lockfile (package-lock.json)
-   * @param {string} content - Lockfile content
-   * @returns {Object} Validation result
+   * @param content - Lockfile content
+   * @returns Validation result
    */
-  validateNpmLockfile(content) {
+  private validateNpmLockfile(content: string): LockfileValidationResult {
     try {
       const lockfile = JSON.parse(content);
 
@@ -119,9 +126,9 @@ class LockfileValidator {
         };
       }
 
-      const packageCount = Object.keys(lockfile.packages || lockfile.dependencies || {}).length;
+      const packageCount = Object.keys(lockfile.packages ?? lockfile.dependencies ?? {}).length;
 
-      this.logger.debug('npm lockfile valid', {
+      logger.debug('npm lockfile valid', {
         lockfileVersion: lockfile.lockfileVersion,
         packageCount
       });
@@ -132,28 +139,28 @@ class LockfileValidator {
         packageCount
       };
     } catch (err) {
-      this.logger.debug('npm lockfile invalid JSON', { error: err.message });
+      logger.debug('npm lockfile invalid JSON', { error: err instanceof Error ? err.message : 'Unknown' });
       return {
         valid: false,
         reason: 'invalid_json',
-        message: `Invalid JSON: ${err.message}`
+        message: `Invalid JSON: ${err instanceof Error ? err.message : 'Unknown'}`
       };
     }
   }
 
   /**
    * Validate yarn lockfile (yarn.lock)
-   * @param {string} content - Lockfile content
-   * @returns {Object} Validation result
+   * @param content - Lockfile content
+   * @returns Validation result
    */
-  validateYarnLockfile(content) {
+  private validateYarnLockfile(content: string): LockfileValidationResult {
     // Yarn lockfile is YAML-like format
     // Check for basic structure: __metadata__ (Yarn 2+) or "# yarn lockfile v" (Yarn 1)
     const hasYarn2Metadata = content.includes('__metadata:');
-    const hasYarn1Header = content.match(/^# yarn lockfile v/i);
+    const hasYarn1Header = /^# yarn lockfile v/i.test(content);
 
     if (!hasYarn2Metadata && !hasYarn1Header) {
-      this.logger.debug('yarn lockfile invalid format');
+      logger.debug('yarn lockfile invalid format');
       return {
         valid: false,
         reason: 'invalid_format',
@@ -164,7 +171,7 @@ class LockfileValidator {
     // Count dependency entries (lines starting with package name pattern)
     const entryCount = (content.match(/^"?[^@\s]+@/gm) || []).length;
 
-    this.logger.debug('yarn lockfile valid', {
+    logger.debug('yarn lockfile valid', {
       version: hasYarn2Metadata ? '2+' : '1',
       entryCount
     });
@@ -177,14 +184,14 @@ class LockfileValidator {
 
   /**
    * Validate pnpm lockfile (pnpm-lock.yaml)
-   * @param {string} content - Lockfile content
-   * @returns {Object} Validation result
+   * @param content - Lockfile content
+   * @returns Validation result
    */
-  validatePnpmLockfile(content) {
+  private validatePnpmLockfile(content: string): LockfileValidationResult {
     // Check for lockfileVersion
     const versionMatch = content.match(/^lockfileVersion:\s*(\d+)/m);
     if (!versionMatch) {
-      this.logger.debug('pnpm lockfile missing lockfileVersion');
+      logger.debug('pnpm lockfile missing lockfileVersion');
       return {
         valid: false,
         reason: 'invalid_format',
@@ -197,7 +204,7 @@ class LockfileValidator {
     // Count dependency entries (lines starting with "  /" which are package specs)
     const entryCount = (content.match(/^  \/[^:]+:/gm) || []).length;
 
-    this.logger.debug('pnpm lockfile valid', {
+    logger.debug('pnpm lockfile valid', {
       lockfileVersion,
       entryCount
     });
@@ -211,17 +218,19 @@ class LockfileValidator {
 
   /**
    * Get the lockfile path for a specific package manager
-   * @param {string} manager - Package manager name
-   * @returns {string} Full path to lockfile
+   * @param manager - Package manager name
+   * @returns Full path to lockfile
    */
-  getLockfilePath(manager) {
-    const lockfiles = {
+  getLockfilePath(manager: PackageManagerType): string {
+    const lockfiles: Record<PackageManagerType, string> = {
       'npm': 'package-lock.json',
       'yarn': 'yarn.lock',
       'pnpm': 'pnpm-lock.yaml'
     };
-    return path.join(this.cwd, lockfiles[manager] || 'package-lock.json');
+    return join(this.cwd, lockfiles[manager] ?? 'package-lock.json');
   }
 }
 
-module.exports = LockfileValidator;
+// ─── Default Export ─────────────────────────────────────────────────────────
+
+export default LockfileValidator;
