@@ -10,6 +10,10 @@
 import { URL } from 'url';
 import { URLFetchError } from './context-errors.js';
 
+// Use undici for fetch (bundled with Node.js 18+)
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { fetch: globalFetch } = require('undici') as typeof import('undici');
+
 const DEFAULT_TIMEOUT = 30000; // 30 seconds
 const BLOCKED_PROTOCOLS = ['http:', 'file:', 'data:', 'javascript:', 'vbscript:'];
 
@@ -128,7 +132,7 @@ export class URLFetchService {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
-      const response = await fetch(url, {
+      const response = await globalFetch(url, {
         headers: {
           'User-Agent': 'ez-agents/1.0'
         },

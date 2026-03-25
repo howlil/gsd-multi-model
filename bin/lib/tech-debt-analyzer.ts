@@ -228,7 +228,7 @@ export class TechDebtAnalyzer {
     } catch (err) {
       const error = err as NodeJS.ErrnoException;
       // npm audit may fail or return no vulnerabilities
-      if (error.status !== 1) {
+      if ((error as any).status !== 1) {
         console.warn(`Warning: npm audit failed: ${error.message}`);
       }
     }
@@ -269,29 +269,32 @@ export class TechDebtAnalyzer {
 
     // Add complexity issues
     for (const issue of complexityIssues) {
+      const issueObj = issue as Record<string, unknown>;
       allFindings.push({
-        ...issue,
+        ...issueObj,
         type: 'complexity',
-        description: issue.message
-      });
+        description: issueObj.message as string || ''
+      } as TechDebtFinding);
     }
 
     // Add large files
     for (const file of largeFiles) {
+      const fileObj = file as Record<string, unknown>;
       allFindings.push({
-        ...file,
+        ...fileObj,
         type: 'large_file',
-        description: `Large file: ${file.lines} lines, ${file.sizeKB}KB`
-      });
+        description: `Large file: ${fileObj.lines} lines, ${fileObj.sizeKB}KB`
+      } as TechDebtFinding);
     }
 
     // Add duplicates
     for (const dup of duplicates) {
+      const dupObj = dup as Record<string, unknown>;
       allFindings.push({
-        ...dup,
+        ...dupObj,
         type: 'duplicate',
-        description: `Duplicate code in ${dup.fileCount} files`
-      });
+        description: `Duplicate code in ${dupObj.fileCount} files`
+      } as TechDebtFinding);
     }
 
     // Add dependency risks
@@ -304,7 +307,7 @@ export class TechDebtAnalyzer {
     }
 
     // Sort by score descending
-    allFindings.sort((a, b) => b.score - a.score || (a.file?.localeCompare(b.file) || 0));
+    allFindings.sort((a, b) => b.score - a.score || ((a.file || '').localeCompare(b.file || '') || 0));
 
     return allFindings;
   }
@@ -363,8 +366,8 @@ export class TechDebtAnalyzer {
         };
       }
 
-      byFile[finding.file].issues.push(finding);
-      byFile[finding.file].totalScore += finding.score || 0;
+      byFile[finding.file]!.issues.push(finding);
+      byFile[finding.file]!.totalScore += finding.score || 0;
     }
 
     // Sort by total score

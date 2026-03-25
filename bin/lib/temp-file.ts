@@ -275,7 +275,7 @@ export async function cleanupTemp(tempPath: string): Promise<void> {
 export async function cleanupAll(): Promise<void> {
   logger.info(`Cleaning up ${tempResources.size} temp resources...`);
 
-  const cleanupPromises = [];
+  const cleanupPromises: Promise<void>[] = [];
   for (const resource of Array.from(tempResources)) {
     cleanupPromises.push(
       cleanupTemp(resource.path).catch(err => {

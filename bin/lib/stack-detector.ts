@@ -60,7 +60,7 @@ export class StackDetector {
    */
   constructor(rootPath: string) {
     this.rootPath = rootPath;
-    this.pmDetector = new PackageManagerDetector(rootPath);
+    this.pmDetector = new PackageManagerDetector({ cwd: rootPath });
   }
 
   /**

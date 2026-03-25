@@ -254,27 +254,31 @@ export class SkillRegistry {
     const frontmatter = extractFrontmatter(content);
     const body = content.replace(/^---\n[\s\S]+?\n---\n?/, '');
 
-    return {
-      name: frontmatter.name as string,
-      description: frontmatter.description as string,
+    const skill: Skill = {
+      name: frontmatter.name as string || '',
+      description: frontmatter.description as string || '',
       version: (frontmatter.version as string) || '1.0.0',
-      tags: frontmatter.tags as string[] || [],
-      stack: frontmatter.stack as string | undefined,
-      category: frontmatter.category as string | undefined,
-      triggers: frontmatter.triggers as SkillTriggers | undefined,
-      prerequisites: frontmatter.prerequisites as string[] || [],
-      recommended_structure: frontmatter.recommended_structure as SkillStructure | undefined,
-      workflow: frontmatter.workflow as Record<string, string[]> | undefined,
-      best_practices: frontmatter.best_practices as string[] || [],
-      anti_patterns: frontmatter.anti_patterns as string[] || [],
-      scaling_notes: frontmatter.scaling_notes as string | undefined,
-      when_not_to_use: frontmatter.when_not_to_use as string | undefined,
-      output_template: frontmatter.output_template as string | undefined,
-      dependencies: frontmatter.dependencies as string[] | undefined,
+      tags: Array.isArray(frontmatter.tags) ? frontmatter.tags as string[] : [],
+      prerequisites: Array.isArray(frontmatter.prerequisites) ? frontmatter.prerequisites as string[] : [],
+      best_practices: Array.isArray(frontmatter.best_practices) ? frontmatter.best_practices as string[] : [],
+      anti_patterns: Array.isArray(frontmatter.anti_patterns) ? frontmatter.anti_patterns as string[] : [],
       scope,
       path: filePath,
       body
     };
+
+    // Add optional properties only if they have values
+    if (frontmatter.stack) skill.stack = frontmatter.stack as string;
+    if (frontmatter.category) skill.category = frontmatter.category as string;
+    if (frontmatter.triggers) skill.triggers = frontmatter.triggers as SkillTriggers;
+    if (frontmatter.recommended_structure) skill.recommended_structure = frontmatter.recommended_structure as SkillStructure;
+    if (frontmatter.workflow) skill.workflow = frontmatter.workflow as Record<string, string[]>;
+    if (frontmatter.scaling_notes) skill.scaling_notes = frontmatter.scaling_notes as string;
+    if (frontmatter.when_not_to_use) skill.when_not_to_use = frontmatter.when_not_to_use as string;
+    if (frontmatter.output_template) skill.output_template = frontmatter.output_template as string;
+    if (frontmatter.dependencies && Array.isArray(frontmatter.dependencies)) skill.dependencies = frontmatter.dependencies as string[];
+
+    return skill;
   }
 
   /**

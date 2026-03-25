@@ -180,7 +180,7 @@ class MemoryCompression {
   getCompressionStats(sessionId: string): CompressionStats {
     const session = this.sessionManager.loadSession(sessionId);
     if (!session) {
-      return { compressed: false, reason: 'Session not found' as unknown as never };
+      return { compressed: false };
     }
 
     if (!session.metadata?.compressed) {
@@ -194,13 +194,16 @@ class MemoryCompression {
       ? Math.round((reduction / originalSize) * 100)
       : 0;
 
-    return {
+    const stats: CompressionStats = {
       compressed: true,
       original_size: originalSize,
       compressed_size: compressedSize,
-      reduction_percent: reductionPercent,
-      compressed_at: session.metadata.compressed_at
+      reduction_percent: reductionPercent
     };
+
+    if (session.metadata.compressed_at) stats.compressed_at = session.metadata.compressed_at;
+
+    return stats;
   }
 
   /**
@@ -253,10 +256,7 @@ class MemoryCompression {
         const result = this.compress(sessionMeta.session_id, options);
         if (result.compressed) {
           results.compressed++;
-          results.details.push({
-            sessionId: sessionMeta.session_id,
-            ...result
-          });
+          results.details.push(result);
         } else {
           results.skipped++;
         }
@@ -283,11 +283,11 @@ class MemoryCompression {
   decompress(sessionId: string): CompressionResult {
     const session = this.sessionManager.loadSession(sessionId);
     if (!session) {
-      return { decompressed: false, reason: 'Session not found' as unknown as never };
+      return { compressed: false, reason: 'Session not found' };
     }
 
     if (!session.metadata?.compressed) {
-      return { decompressed: false, reason: 'Not compressed' as unknown as never };
+      return { compressed: false, reason: 'Not compressed' };
     }
 
     // Remove compression metadata
@@ -302,8 +302,8 @@ class MemoryCompression {
     logger.info('Session marked as decompressed', { sessionId });
 
     return {
-      decompressed: true,
-      note: 'Original messages cannot be restored'
+      compressed: true,
+      reason: 'Original messages cannot be restored'
     };
   }
 }

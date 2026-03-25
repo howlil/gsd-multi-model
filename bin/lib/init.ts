@@ -277,7 +277,7 @@ export function cmdInitExecutePhase(cwd: string, phase: string, raw?: boolean): 
 
   const roadmapPhase = getRoadmapPhaseInternal(cwd, phase);
   const reqMatch = roadmapPhase?.section?.match(/^\*\*Requirements\*\*:[^\S\n]*([^\n]*)$/m);
-  const reqExtracted = reqMatch
+  const reqExtracted = reqMatch && reqMatch[1]
     ? reqMatch[1].replace(/[\[\]]/g, '').split(',').map(s => s.trim()).filter(Boolean).join(', ')
     : null;
   const phase_req_ids = (reqExtracted && reqExtracted !== 'TBD') ? reqExtracted : null;
@@ -355,7 +355,7 @@ export function cmdInitPlanPhase(cwd: string, phase: string, raw?: boolean): voi
 
   const roadmapPhase = getRoadmapPhaseInternal(cwd, phase);
   const reqMatch = roadmapPhase?.section?.match(/^\*\*Requirements\*\*:[^\S\n]*([^\n]*)$/m);
-  const reqExtracted = reqMatch
+  const reqExtracted = reqMatch && reqMatch[1]
     ? reqMatch[1].replace(/[\[\]]/g, '').split(',').map(s => s.trim()).filter(Boolean).join(', ')
     : null;
   const phase_req_ids = (reqExtracted && reqExtracted !== 'TBD') ? reqExtracted : null;
@@ -584,11 +584,11 @@ export function cmdInitQuick(cwd: string, description: string, raw?: boolean): v
 
     // Quick task info
     quick_id: quickId,
-    slug: slug,
+    slug: slug || null,
     description: description || null,
 
     // Timestamps
-    date: now.toISOString().split('T')[0],
+    date: now.toISOString().split('T')[0]!,
     timestamp: now.toISOString(),
 
     // Paths
@@ -705,7 +705,7 @@ export function cmdInitPhaseOp(cwd: string, phase: string, raw?: boolean): void 
         has_research: false,
         has_context: false,
         has_verification: false,
-      } as PhaseSearchResult;
+      } as unknown as PhaseSearchResult;
     }
   }
 
@@ -784,13 +784,13 @@ export function cmdInitTodos(cwd: string, area: string, raw?: boolean): void {
     commit_docs: config.commit_docs,
 
     // Timestamps
-    date: now.toISOString().split('T')[0],
+    date: now.toISOString().split('T')[0]!,
     timestamp: now.toISOString(),
 
     // Todo inventory (from cmdListTodos)
     todo_count: todosResult.count,
-    todos: todosResult.todos,
-    area_filter: area || null,
+    todos: todosResult.todos.map(t => t.file),
+    area_filter: area ? area : null,
 
     // Paths
     pending_dir: '.planning/todos/pending',
@@ -954,7 +954,7 @@ export function cmdInitProgress(cwd: string, raw?: boolean): void {
                      hasResearch ? 'researched' : 'pending';
 
       const phaseInfo: PhaseProgressInfo = {
-        number: phaseNumber,
+        number: phaseNumber || '',
         name: phaseName,
         directory: '.planning/phases/' + dir,
         status,
@@ -982,7 +982,7 @@ export function cmdInitProgress(cwd: string, raw?: boolean): void {
   try {
     const state = fs.readFileSync(path.join(cwd, '.planning', 'STATE.md'), 'utf-8');
     const pauseMatch = state.match(/\*\*Paused At:\*\*\s*(.+)/);
-    if (pauseMatch) pausedAt = pauseMatch[1].trim();
+    if (pauseMatch) pausedAt = pauseMatch[1]!.trim();
   } catch (err) {
     logger.warn('Failed to read paused state in cmdInitProgress', { cwd, error: (err as Error).message });
   }
@@ -996,7 +996,7 @@ export function cmdInitProgress(cwd: string, raw?: boolean): void {
     commit_docs: config.commit_docs,
 
     // Milestone
-    milestone_version: milestone.version,
+    milestone_version: milestone.version || '',
     milestone_name: milestone.name,
 
     // Phase overview

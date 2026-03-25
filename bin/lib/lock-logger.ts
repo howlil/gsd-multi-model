@@ -64,7 +64,7 @@ class LockLogger {
    * @param operation - Operation type: acquire, release, heartbeat, conflict, stale
    * @param data - Operation data
    */
-  log(level: string, operation: string, data: LockData = {}): void {
+  log(level: string, operation: string, data: LockData = { phase: '', agent_id: '' }): void {
     const entry = {
       timestamp: new Date().toISOString(),
       level: level.toUpperCase(),
@@ -92,14 +92,15 @@ class LockLogger {
     const data: LockData = {
       phase,
       agent_id: agentId,
-      result: result.acquired ? 'success' : (result.conflict ? 'conflict' : 'error'),
-      message: result.message
+      result: result.acquired ? 'success' : (result.conflict ? 'conflict' : 'error')
     };
+
+    if (result.message) data.message = result.message;
 
     if (result.lockInfo) {
       data.holder_agent = result.lockInfo.agent_id as string;
       data.holder_name = result.lockInfo.agent_name as string;
-      data.expires_at = result.expiresAt;
+      if (result.expiresAt) data.expires_at = result.expiresAt;
     }
 
     const level = result.acquired ? 'INFO' : (result.conflict ? 'WARN' : 'ERROR');
@@ -116,9 +117,10 @@ class LockLogger {
     const data: LockData = {
       phase,
       agent_id: agentId,
-      result: result.released ? 'success' : 'error',
-      message: result.message
+      result: result.released ? 'success' : 'error'
     };
+
+    if (result.message) data.message = result.message;
 
     if (result.lockInfo) {
       data.held_duration_ms = Date.now() - new Date(result.lockInfo.acquired_at as string).getTime();
@@ -138,9 +140,10 @@ class LockLogger {
     const data: LockData = {
       phase,
       agent_id: agentId,
-      result: result.success ? 'success' : 'error',
-      message: result.message
+      result: result.success ? 'success' : 'error'
     };
+
+    if (result.message) data.message = result.message;
 
     if (result.lockInfo) {
       data.expires_at = result.lockInfo.expires_at as string;
@@ -158,6 +161,7 @@ class LockLogger {
   logStale(phase: string, lockInfo: Record<string, unknown>): void {
     const data: LockData = {
       phase,
+      agent_id: '',
       previous_agent: lockInfo.agent_id as string,
       previous_name: lockInfo.agent_name as string,
       reason: 'expired',
@@ -178,12 +182,14 @@ class LockLogger {
    */
   logStateUpdate(lockCount: number, result: LockResult): void {
     const data: LockData = {
+      phase: '',
+      agent_id: '',
       lock_count: lockCount,
       result: result.updated ? 'success' : 'error'
     };
 
-    if (result.error) {
-      data.error = result.error;
+    if ((result as Record<string, unknown>).error) {
+      data.error = (result as Record<string, unknown>).error as string;
     }
 
     const level = result.updated ? 'INFO' : 'WARN';

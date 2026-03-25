@@ -11,7 +11,6 @@
 // ─── Core Infrastructure ─────────────────────────────────────────────────────
 export {
   MODEL_PROFILES,
-  getModelForAgent,
   toPosixPath,
   output,
   error,
@@ -22,14 +21,12 @@ export {
   escapeRegex,
   normalizePhaseName,
   comparePhaseNum,
-  findPhase,
   getArchivedPhaseDirs,
   getMilestoneInfo,
   getMilestonePhaseFilter,
   generateSlugInternal,
   resolveModelInternal,
   type ModelProfile,
-  type PhaseInfo as CorePhaseInfo,
   type ArchivedPhaseDir,
   type Config,
   type MilestoneInfo,
@@ -104,10 +101,10 @@ export { auditExec, type AuditEntry, type AuditExecOptions } from './audit-exec.
 // ─── Planning & Config ───────────────────────────────────────────────────────
 export { safePlanningWrite, safePlanningWriteSync } from './planning-write.js';
 export { ensureConfigSection, configSet, configGet } from './config.js';
-export { extractFrontmatter, reconstructFrontmatter, type FrontmatterData } from './frontmatter.js';
+export { extractFrontmatter, reconstructFrontmatter, type Frontmatter } from './frontmatter.js';
 
 // ─── Model & Adapters ────────────────────────────────────────────────────────
-export { getModelForAgent as getModelProvider, getModelConfig, getApiKey, resolveModel } from './model-provider.js';
+export { ModelProvider, createProvider, type ProviderConfig, type ChatOptions, type ChatResponse, type Message } from './model-provider.js';
 export { mapToolName, parseToolCall, formatToolResult, isToolSupported, type ToolName, type ToolCall } from './assistant-adapter.js';
 
 // ─── Lock & Validator ────────────────────────────────────────────────────────
@@ -116,3 +113,71 @@ export { LockfileValidator } from './lockfile-validator.js';
 
 // ─── FP (Functional Programming) ─────────────────────────────────────────────
 export * from './fp/index.js';
+
+// ─── Design Patterns ─────────────────────────────────────────────────────────
+
+// Service Layer (encapsulates business logic)
+export {
+  PhaseService,
+  RoadmapService,
+  MilestoneService,
+  ModelService,
+  GitService,
+} from './services/index.js';
+
+// Repository Pattern (data access layer)
+export {
+  Repository,
+  BaseFileRepository,
+  ConfigRepository,
+  type ConfigEntity,
+} from './repositories/index.js';
+
+// Command Pattern (CLI commands)
+export {
+  Command,
+  CommandResult,
+  BaseCommand,
+  CommandFactory,
+  GenerateSlugCommand,
+  CurrentTimestampCommand,
+  VerifyPathCommand,
+  ResolveModelCommand,
+  ListTodosCommand,
+  type GenerateSlugOptions,
+  type TimestampFormat,
+  type CurrentTimestampOptions,
+  type VerifyPathOptions,
+  type ListTodosOptions,
+  type TodoEntry,
+} from './commands/index.js';
+
+// Observer Pattern (event system)
+export {
+  Event,
+  Observer,
+  EventHandler,
+  EventBus,
+  SkillTriggerObserver,
+  type SkillTriggerEvent,
+} from './observer/index.js';
+
+// Builder Pattern (complex object construction)
+export {
+  ContextResultBuilder,
+  ContextDirector,
+  type ContextSource,
+  type ScoringStats,
+  type CompressionStats,
+  type DedupStats,
+  type ContextMetadata,
+  type ContextResult,
+} from './builder/index.js';
+
+// Strategy Pattern (model resolution)
+export {
+  ModelStrategy,
+  ProfileModelStrategy,
+  OverrideModelStrategy,
+  type ModelProfile,
+} from './services/model.service.js';

@@ -113,7 +113,7 @@ function cmdCurrentTimestamp(format: string | undefined, raw: boolean | undefine
 
   switch (format) {
     case 'date':
-      result = now.toISOString().split('T')[0];
+      result = now.toISOString().split('T')[0]!;
       break;
     case 'filename':
       result = now.toISOString().replace(/:/g, '-').replace(/\..+/, '');
@@ -248,19 +248,19 @@ function cmdHistoryDigest(cwd: string, raw: boolean | undefined): HistoryDigest 
           // Merge provides
           const depGraph = fm['dependency-graph'] as Record<string, string[]> | undefined;
           if (depGraph && depGraph.provides) {
-            depGraph.provides.forEach((p: string) => digest.phases[phaseNum].provides.push(p));
+            depGraph.provides.forEach((p: string) => digest.phases[phaseNum]!.provides.push(p));
           } else if (fm.provides && Array.isArray(fm.provides)) {
-            (fm.provides as string[]).forEach((p: string) => digest.phases[phaseNum].provides.push(p));
+            (fm.provides as string[]).forEach((p: string) => digest.phases[phaseNum]!.provides.push(p));
           }
 
           // Merge affects
           if (depGraph && depGraph.affects) {
-            depGraph.affects.forEach((a: string) => digest.phases[phaseNum].affects.push(a));
+            depGraph.affects.forEach((a: string) => digest.phases[phaseNum]!.affects.push(a));
           }
 
           // Merge patterns
           if (fm['patterns-established'] && Array.isArray(fm['patterns-established'])) {
-            (fm['patterns-established'] as string[]).forEach((p: string) => digest.phases[phaseNum].patterns.push(p));
+            (fm['patterns-established'] as string[]).forEach((p: string) => digest.phases[phaseNum]!.patterns.push(p));
           }
 
           // Merge decisions
@@ -462,7 +462,7 @@ async function cmdWebsearch(query: string | undefined, options: WebSearchOptions
   }
 
   try {
-    const response = await (globalThis as unknown as { fetch: typeof fetch }).fetch(
+    const response = await (globalThis as any).fetch(
       `https://api.search.brave.com/res/v1/web/search?${params}`,
       {
         headers: {
