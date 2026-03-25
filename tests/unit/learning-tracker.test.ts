@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 
 /**
  * Tests for LearningTracker
@@ -26,19 +26,19 @@ async function runTests() {
     console.log('constructor:');
     const tracker1 = new LearningTracker();
     assert.ok(tracker1.memoryDir);
-    console.log('✓ should create instance with default memoryDir');
+    console.log('âœ“ should create instance with default memoryDir');
     passed++;
 
     const tracker2 = new LearningTracker({ memoryDir: tempDir });
     assert.strictEqual(tracker2.memoryDir, tempDir);
-    console.log('✓ should create instance with custom memoryDir');
+    console.log('âœ“ should create instance with custom memoryDir');
     passed++;
 
     const newDir = path.join(os.tmpdir(), 'new-learning-dir-' + Date.now());
     try {
       const tracker3 = new LearningTracker({ memoryDir: newDir });
       assert.ok(fs.existsSync(newDir));
-      console.log('✓ should create memory directory if not exists');
+      console.log('âœ“ should create memory directory if not exists');
       passed++;
     } finally {
       if (fs.existsSync(newDir)) {
@@ -63,7 +63,7 @@ async function runTests() {
     assert.strictEqual(r1.quality_delta, 15);
     assert.ok(r1.timestamp);
     assert.ok(Array.isArray(r1.tags));
-    console.log('✓ should record learning with required fields');
+    console.log('âœ“ should record learning with required fields');
     passed++;
 
     const t2 = new LearningTracker({ memoryDir: tempDir });
@@ -74,7 +74,7 @@ async function runTests() {
       fix_attempted: 'npm install lodash'
     });
     assert.ok(r2.tags.length > 0);
-    console.log('✓ should generate semantic tags automatically');
+    console.log('âœ“ should generate semantic tags automatically');
     passed++;
 
     const t3 = new LearningTracker({ memoryDir: tempDir });
@@ -86,7 +86,7 @@ async function runTests() {
       tags: ['loop', 'boundary', 'array']
     });
     assert.deepStrictEqual(r3.tags, ['loop', 'boundary', 'array']);
-    console.log('✓ should accept custom tags');
+    console.log('âœ“ should accept custom tags');
     passed++;
 
     const t4 = new LearningTracker({ memoryDir: tempDir });
@@ -101,7 +101,7 @@ async function runTests() {
     const data = JSON.parse(fs.readFileSync(mf, 'utf8'));
     assert.strictEqual(data.taskId, 'task-04');
     assert.strictEqual(data.revisionCount, 1);
-    console.log('✓ should persist to MEMORY.json file');
+    console.log('âœ“ should persist to MEMORY.json file');
     passed++;
 
     const t5 = new LearningTracker({ memoryDir: tempDir });
@@ -110,7 +110,7 @@ async function runTests() {
     const learnings = await t5.getLearnings('task-05');
     assert.strictEqual(learnings.revisionCount, 2);
     assert.strictEqual(learnings.revisions.length, 2);
-    console.log('✓ should track multiple revisions for same task');
+    console.log('âœ“ should track multiple revisions for same task');
     passed++;
 
     const t6 = new LearningTracker({ memoryDir: tempDir });
@@ -118,7 +118,7 @@ async function runTests() {
     assert.strictEqual(r6.iteration, 1);
     assert.strictEqual(r6.error_type, 'Unknown');
     assert.strictEqual(r6.root_cause, '');
-    console.log('✓ should handle default values for optional fields');
+    console.log('âœ“ should handle default values for optional fields');
     passed++;
 
     // getLearnings tests
@@ -128,7 +128,7 @@ async function runTests() {
     assert.strictEqual(l1.taskId, 'new-task');
     assert.strictEqual(l1.revisionCount, 0);
     assert.deepStrictEqual(l1.revisions, []);
-    console.log('✓ should return empty learnings for new task');
+    console.log('âœ“ should return empty learnings for new task');
     passed++;
 
     const t8 = new LearningTracker({ memoryDir: tempDir });
@@ -136,7 +136,7 @@ async function runTests() {
     await t8.recordLearning('task-07', { iteration: 2, error_type: 'Syntax', root_cause: 'Parse error' });
     const l2 = await t8.getLearnings('task-07');
     assert.strictEqual(l2.revisionCount, 2);
-    console.log('✓ should return all learnings for a task');
+    console.log('âœ“ should return all learnings for a task');
     passed++;
 
     const mf3 = path.join(tempDir, 'task-08-MEMORY.json');
@@ -152,7 +152,7 @@ async function runTests() {
     const t9 = new LearningTracker({ memoryDir: tempDir });
     const l3 = await t9.getLearnings('task-08');
     assert.strictEqual(l3.revisionCount, 2);
-    console.log('✓ should load learnings from MEMORY.json file');
+    console.log('âœ“ should load learnings from MEMORY.json file');
     passed++;
 
     // searchLearnings tests
@@ -166,7 +166,7 @@ async function runTests() {
     const results1 = await t10.searchLearnings('Syntax');
     assert.strictEqual(results1.length, 2);
     assert.ok(results1.every(r => r.error_type === 'Syntax'));
-    console.log('✓ should find learnings by error type');
+    console.log('âœ“ should find learnings by error type');
     passed++;
 
     const t11 = new LearningTracker({ memoryDir: searchTempDir });
@@ -174,14 +174,14 @@ async function runTests() {
     await t11.recordLearning('task-05', { iteration: 1, error_type: 'Syntax', root_cause: 'Missing import statement' });
     const results2 = await t11.searchLearnings('module');
     assert.ok(results2.length > 0);
-    console.log('✓ should find learnings by root cause keyword');
+    console.log('âœ“ should find learnings by root cause keyword');
     passed++;
 
     const t12 = new LearningTracker({ memoryDir: searchTempDir });
     await t12.recordLearning('task-06', { iteration: 1, error_type: 'Logic', root_cause: 'Array index out of bounds', tags: ['array', 'index', 'bounds'] });
     const results3 = await t12.searchLearnings('array');
     assert.ok(results3.length > 0);
-    console.log('✓ should find learnings by tag');
+    console.log('âœ“ should find learnings by tag');
     passed++;
 
     const t13 = new LearningTracker({ memoryDir: searchTempDir });
@@ -190,7 +190,7 @@ async function runTests() {
     }
     const results4 = await t13.searchLearnings('Syntax', { limit: 5 });
     assert.ok(results4.length <= 5);
-    console.log('✓ should limit results');
+    console.log('âœ“ should limit results');
     passed++;
     } finally {
       cleanupTempDir(searchTempDir);
@@ -206,7 +206,7 @@ async function runTests() {
     await t14.recordLearning('task-03', { iteration: 1, error_type: 'Syntax', root_cause: 'Parse error' });
     const catResults = await t14.getLearningsByCategory('Dependency');
     assert.strictEqual(catResults.length, 2);
-    console.log('✓ should return learnings for specific category');
+    console.log('âœ“ should return learnings for specific category');
     passed++;
 
     // getPatterns tests
@@ -218,7 +218,7 @@ async function runTests() {
     const patterns = await t15.getPatterns();
     assert.strictEqual(patterns.categoryCount.Syntax, 2);
     assert.strictEqual(patterns.categoryCount.Dependency, 1);
-    console.log('✓ should analyze patterns across all learnings');
+    console.log('âœ“ should analyze patterns across all learnings');
     passed++;
 
     const patternsTempDir = createTempDir();
@@ -229,7 +229,7 @@ async function runTests() {
     await t16.recordLearning('task-03', { iteration: 1, error_type: 'Syntax', root_cause: 'Missing bracket' });
     const patterns2 = await t16.getPatterns();
     assert.ok(patterns2.commonRootCauses.length > 0);
-    console.log('✓ should identify common root causes');
+    console.log('âœ“ should identify common root causes');
     passed++;
 
     const t17 = new LearningTracker({ memoryDir: patternsTempDir });
@@ -238,7 +238,7 @@ async function runTests() {
     await t17.recordLearning('task-02', { iteration: 1, error_type: 'Dependency', root_cause: 'Error' });
     const patterns3 = await t17.getPatterns();
     assert.strictEqual(patterns3.taskFailures['task-01'], 2);
-    console.log('✓ should track task failure counts');
+    console.log('âœ“ should track task failure counts');
     passed++;
     } finally {
       cleanupTempDir(patternsTempDir);
@@ -254,7 +254,7 @@ async function runTests() {
     await t18.clearLearnings('task-01');
     const l4 = await t18.getLearnings('task-01');
     assert.strictEqual(l4.revisionCount, 0);
-    console.log('✓ should clear learnings from memory');
+    console.log('âœ“ should clear learnings from memory');
     passed++;
 
     const t19 = new LearningTracker({ memoryDir: tempDir });
@@ -263,7 +263,7 @@ async function runTests() {
     assert.ok(fs.existsSync(mf4));
     await t19.clearLearnings('task-02');
     assert.ok(!fs.existsSync(mf4));
-    console.log('✓ should remove MEMORY.json file');
+    console.log('âœ“ should remove MEMORY.json file');
     passed++;
 
     // getStats tests
@@ -277,7 +277,7 @@ async function runTests() {
     assert.strictEqual(stats.totalTasks, 2);
     assert.strictEqual(stats.totalRevisions, 2);
     assert.strictEqual(stats.successfulRevisions, 1);
-    console.log('✓ should return summary statistics');
+    console.log('âœ“ should return summary statistics');
     passed++;
     } finally {
       cleanupTempDir(statsTempDir);
@@ -297,7 +297,7 @@ async function runTests() {
     }
     const learnings2 = await t21.getLearnings(taskId);
     assert.strictEqual(learnings2.revisionCount, 3);
-    console.log('✓ should support complete learning tracking across iterations');
+    console.log('âœ“ should support complete learning tracking across iterations');
     passed++;
 
     // Schema validation
@@ -319,7 +319,7 @@ async function runTests() {
     assert.ok(r22.hasOwnProperty('quality_delta'));
     assert.ok(r22.hasOwnProperty('tags'));
     assert.ok(r22.hasOwnProperty('success'));
-    console.log('✓ should produce learnings matching expected schema');
+    console.log('âœ“ should produce learnings matching expected schema');
     passed++;
 
   } finally {

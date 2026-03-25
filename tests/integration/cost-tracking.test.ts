@@ -1,4 +1,4 @@
-/**
+﻿/**
  * EZ Tools Tests - Cost Tracking Integration Tests
  *
  * Integration tests for COST-01, COST-02, COST-03:
@@ -185,7 +185,7 @@ describe('Cost Tracking Integration (COST-01, COST-02, COST-03)', () => {
       assert.strictEqual(event.toModel, 'claude-3-haiku', 'toModel must match');
     });
 
-    test('full flow: record cost → check budget → trigger alert → model downgrade', async () => {
+    test('full flow: record cost â†’ check budget â†’ trigger alert â†’ model downgrade', async () => {
       const tracker = new CostTracker(tmpDir);
       const alerts = new CostAlerts(tmpDir);
       const manager = new ModelTierManager('claude', tmpDir);

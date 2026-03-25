@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 
 /**
  * Tests for QualityDetector
@@ -29,7 +29,7 @@ async function runTests() {
     assert.strictEqual(detector1.weights.lint, 0.20);
     assert.strictEqual(detector1.weights.diff, 0.20);
     assert.strictEqual(detector1.weights.time, 0.10);
-    console.log('✓ should create instance with default options');
+    console.log('âœ“ should create instance with default options');
     passed++;
 
     const detector2 = new QualityDetector({
@@ -38,7 +38,7 @@ async function runTests() {
     });
     assert.strictEqual(detector2.degradationThreshold, 0.15);
     assert.strictEqual(detector2.weights.tests, 0.60);
-    console.log('✓ should create instance with custom options');
+    console.log('âœ“ should create instance with custom options');
     passed++;
 
     // calculateQualityScore tests
@@ -61,7 +61,7 @@ async function runTests() {
     assert.ok(result1.scores.lint);
     assert.ok(result1.scores.diff);
     assert.ok(result1.scores.time);
-    console.log('✓ should calculate quality score with all metrics');
+    console.log('âœ“ should calculate quality score with all metrics');
     passed++;
 
     const d2 = new QualityDetector({ qualityDir: tempDir });
@@ -78,7 +78,7 @@ async function runTests() {
     assert.strictEqual(result2.scores.test, 100);
     assert.ok(result2.scores.composite < 80);
     assert.ok(result2.scores.composite > 40);
-    console.log('✓ should weight tests at 50%');
+    console.log('âœ“ should weight tests at 50%');
     passed++;
 
     const d3 = new QualityDetector({ qualityDir: tempDir });
@@ -93,7 +93,7 @@ async function runTests() {
       executionTimeMax: 30000
     });
     assert.strictEqual(result3.scores.composite, 100);
-    console.log('✓ should handle perfect scores');
+    console.log('âœ“ should handle perfect scores');
     passed++;
 
     const d4 = new QualityDetector({ qualityDir: tempDir });
@@ -108,7 +108,7 @@ async function runTests() {
       executionTimeMax: 30000
     });
     assert.ok(result4.scores.composite < 50);
-    console.log('✓ should handle poor scores');
+    console.log('âœ“ should handle poor scores');
     passed++;
 
     const d5 = new QualityDetector({ qualityDir: tempDir });
@@ -127,7 +127,7 @@ async function runTests() {
     const data = JSON.parse(fs.readFileSync(mf, 'utf8'));
     assert.strictEqual(data.taskId, 'task-05');
     assert.strictEqual(data.history.length, 1);
-    console.log('✓ should persist quality data to file');
+    console.log('âœ“ should persist quality data to file');
     passed++;
 
     const d6 = new QualityDetector({ qualityDir: tempDir });
@@ -153,7 +153,7 @@ async function runTests() {
     });
     const history1 = await d6.getQualityHistory('task-06');
     assert.strictEqual(history1.length, 2);
-    console.log('✓ should track multiple iterations');
+    console.log('âœ“ should track multiple iterations');
     passed++;
 
     // detectDegradation tests
@@ -172,7 +172,7 @@ async function runTests() {
     const analysis1 = await d7.detectDegradation('task-01');
     assert.strictEqual(analysis1.isDegraded, false);
     assert.ok(analysis1.reason.includes('Insufficient history'));
-    console.log('✓ should return insufficient history for single iteration');
+    console.log('âœ“ should return insufficient history for single iteration');
     passed++;
 
     const d8 = new QualityDetector({ qualityDir: tempDir });
@@ -202,7 +202,7 @@ async function runTests() {
     assert.ok(analysis2.currentScore < 80);
     assert.ok(analysis2.dropFromPeak >= 20);
     assert.strictEqual(analysis2.recommendation, 'EXIT_EARLY');
-    console.log('✓ should detect degradation when score drops 20% from peak');
+    console.log('âœ“ should detect degradation when score drops 20% from peak');
     passed++;
 
     const d9 = new QualityDetector({ qualityDir: tempDir });
@@ -229,7 +229,7 @@ async function runTests() {
     const analysis3 = await d9.detectDegradation('task-03');
     assert.strictEqual(analysis3.isDegraded, false);
     assert.strictEqual(analysis3.recommendation, 'CONTINUE');
-    console.log('✓ should not detect degradation when score is stable');
+    console.log('âœ“ should not detect degradation when score is stable');
     passed++;
 
     const d10 = new QualityDetector({ qualityDir: tempDir });
@@ -256,7 +256,7 @@ async function runTests() {
     const analysis4 = await d10.detectDegradation('task-04');
     assert.ok(analysis4.degradedMetrics.includes('test_pass_rate'));
     assert.ok(analysis4.degradedMetrics.includes('lint_errors'));
-    console.log('✓ should identify degraded metrics');
+    console.log('âœ“ should identify degraded metrics');
     passed++;
 
     const d11 = new QualityDetector({ qualityDir: tempDir });
@@ -294,7 +294,7 @@ async function runTests() {
     assert.strictEqual(analysis5.peakIteration, 2);
     assert.strictEqual(analysis5.currentIteration, 3);
     assert.strictEqual(analysis5.isDegraded, true);
-    console.log('✓ should track peak iteration correctly');
+    console.log('âœ“ should track peak iteration correctly');
     passed++;
 
     // shouldExitEarly tests
@@ -312,7 +312,7 @@ async function runTests() {
     });
     const shouldExit1 = await d12.shouldExitEarly('task-01');
     assert.strictEqual(shouldExit1, false);
-    console.log('✓ should return false for single iteration');
+    console.log('âœ“ should return false for single iteration');
     passed++;
 
     const d13 = new QualityDetector({ qualityDir: tempDir });
@@ -338,7 +338,7 @@ async function runTests() {
     });
     const shouldExit2 = await d13.shouldExitEarly('task-02');
     assert.strictEqual(shouldExit2, true);
-    console.log('✓ should return true when quality degraded');
+    console.log('âœ“ should return true when quality degraded');
     passed++;
 
     const d14 = new QualityDetector({ qualityDir: tempDir });
@@ -364,7 +364,7 @@ async function runTests() {
     });
     const shouldExit3 = await d14.shouldExitEarly('task-03');
     assert.strictEqual(shouldExit3, false);
-    console.log('✓ should return false when quality stable');
+    console.log('âœ“ should return false when quality stable');
     passed++;
 
     // flagForReview tests
@@ -375,7 +375,7 @@ async function runTests() {
     assert.strictEqual(flag1.reason, 'Quality degradation detected');
     assert.strictEqual(flag1.status, 'pending_review');
     assert.strictEqual(flag1.flagged_by, 'quality-detector');
-    console.log('✓ should flag task for human review');
+    console.log('âœ“ should flag task for human review');
     passed++;
 
     const d16 = new QualityDetector({ qualityDir: tempDir });
@@ -392,7 +392,7 @@ async function runTests() {
     const flag2 = await d16.flagForReview('task-02', 'Low quality score');
     assert.ok(flag2.qualityScore);
     assert.strictEqual(flag2.iterationCount, 1);
-    console.log('✓ should include quality score in flag');
+    console.log('âœ“ should include quality score in flag');
     passed++;
 
     const flagTempDir = createTempDir();
@@ -405,14 +405,14 @@ async function runTests() {
     assert.ok(flagData.flags);
     assert.ok(flagData.flags.length > 0);
     assert.strictEqual(flagData.flags[0].taskId, 'task-03');
-    console.log('✓ should persist flag to FLAGS.json');
+    console.log('âœ“ should persist flag to FLAGS.json');
     passed++;
 
     const d18 = new QualityDetector({ qualityDir: flagTempDir });
     const flag3 = await d18.flagForReview('task-04', 'Test reason', { customField: 'customValue', severity: 'high' });
     assert.strictEqual(flag3.context.customField, 'customValue');
     assert.strictEqual(flag3.context.severity, 'high');
-    console.log('✓ should accept additional context');
+    console.log('âœ“ should accept additional context');
     passed++;
     } finally {
       cleanupTempDir(flagTempDir);
@@ -425,13 +425,13 @@ async function runTests() {
     await d19.flagForReview('task-02', 'Reason 2');
     const flagged1 = await d19.getFlaggedTasks();
     assert.strictEqual(flagged1.length, 2);
-    console.log('✓ should return all flagged tasks');
+    console.log('âœ“ should return all flagged tasks');
     passed++;
 
     const d20 = new QualityDetector({ qualityDir: tempDir });
     const flagged2 = await d20.getFlaggedTasks();
     assert.deepStrictEqual(flagged2, []);
-    console.log('✓ should return empty array when no flags');
+    console.log('âœ“ should return empty array when no flags');
     passed++;
 
     // clearFlag tests
@@ -441,7 +441,7 @@ async function runTests() {
     await d21.clearFlag('task-01');
     const flagged3 = await d21.getFlaggedTasks();
     assert.strictEqual(flagged3.find(f => f.taskId === 'task-01').status, 'resolved');
-    console.log('✓ should clear flag after review');
+    console.log('âœ“ should clear flag after review');
     passed++;
 
     const d22 = new QualityDetector({ qualityDir: tempDir });
@@ -449,7 +449,7 @@ async function runTests() {
     await d22.clearFlag('task-02');
     const flagged4 = await d22.getFlaggedTasks();
     assert.ok(flagged4.find(f => f.taskId === 'task-02').resolvedAt);
-    console.log('✓ should add resolvedAt timestamp');
+    console.log('âœ“ should add resolvedAt timestamp');
     passed++;
 
     // getStats tests
@@ -484,7 +484,7 @@ async function runTests() {
     assert.strictEqual(stats.flaggedTasks, 1);
     assert.ok(stats.averageQualityScore > 0);
     assert.strictEqual(stats.degradationThreshold, 20);
-    console.log('✓ should return summary statistics');
+    console.log('âœ“ should return summary statistics');
     passed++;
     } finally {
       cleanupTempDir(statsTempDir);
@@ -497,14 +497,14 @@ async function runTests() {
     assert.strictEqual(d24._calculateTestScore(0), 0);
     assert.strictEqual(d24._calculateTestScore(0.5), 50);
     assert.strictEqual(d24._calculateTestScore(0.75), 75);
-    console.log('✓ _calculateTestScore should scale linearly');
+    console.log('âœ“ _calculateTestScore should scale linearly');
     passed++;
 
     const d25 = new QualityDetector({ qualityDir: tempDir });
     assert.strictEqual(d25._calculateLintScore(0, 10), 100);
     assert.strictEqual(d25._calculateLintScore(10, 10), 0);
     assert.strictEqual(d25._calculateLintScore(5, 10), 50);
-    console.log('✓ _calculateLintScore should scale based on error ratio');
+    console.log('âœ“ _calculateLintScore should scale based on error ratio');
     passed++;
 
     const d26 = new QualityDetector({ qualityDir: tempDir });
@@ -512,7 +512,7 @@ async function runTests() {
     assert.strictEqual(d26._calculateDiffScore(25, 50), 100);
     const diffScore = d26._calculateDiffScore(150, 50);
     assert.ok(diffScore < 100);
-    console.log('✓ _calculateDiffScore should decrease as diff grows');
+    console.log('âœ“ _calculateDiffScore should decrease as diff grows');
     passed++;
 
     const d27 = new QualityDetector({ qualityDir: tempDir });
@@ -521,7 +521,7 @@ async function runTests() {
     const timeScore2 = d27._calculateTimeScore(20000, 30000);
     assert.ok(timeScore1 > timeScore2);
     assert.strictEqual(d27._calculateTimeScore(50000, 30000), 0);
-    console.log('✓ _calculateTimeScore should decrease as time increases');
+    console.log('âœ“ _calculateTimeScore should decrease as time increases');
     passed++;
 
     // Integration test
@@ -555,7 +555,7 @@ async function runTests() {
 
     const flag4 = await d28.flagForReview(taskId, 'Quality degraded from peak');
     assert.strictEqual(flag4.status, 'pending_review');
-    console.log('✓ should support complete quality monitoring with early exit');
+    console.log('âœ“ should support complete quality monitoring with early exit');
     passed++;
 
     // Custom threshold test
@@ -586,7 +586,7 @@ async function runTests() {
     });
     const analysis7 = await strictDetector.detectDegradation('task-01');
     assert.strictEqual(analysis7.isDegraded, true);
-    console.log('✓ should use custom degradation threshold');
+    console.log('âœ“ should use custom degradation threshold');
     passed++;
 
   } finally {

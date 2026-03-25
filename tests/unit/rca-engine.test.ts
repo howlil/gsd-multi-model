@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 
 /**
  * Tests for RCAEngine
@@ -21,12 +21,12 @@ async function runTests() {
   console.log('constructor:');
   const rca1 = new RCAEngine();
   assert.strictEqual(rca1.triggerThreshold, 2);
-  console.log('✓ should create instance with default options');
+  console.log('âœ“ should create instance with default options');
   passed++;
 
   const rca2 = new RCAEngine({ triggerThreshold: 3 });
   assert.strictEqual(rca2.triggerThreshold, 3);
-  console.log('✓ should create instance with custom trigger threshold');
+  console.log('âœ“ should create instance with custom trigger threshold');
   passed++;
 
   // ErrorCategory enum tests
@@ -37,7 +37,7 @@ async function runTests() {
   assert.strictEqual(ErrorCategory.RESOURCE, 'Resource');
   assert.strictEqual(ErrorCategory.TIMEOUT, 'Timeout');
   assert.strictEqual(ErrorCategory.UNKNOWN, 'Unknown');
-  console.log('✓ should have all 5 standard categories');
+  console.log('âœ“ should have all 5 standard categories');
   passed++;
 
   // FIX_STRATEGIES tests
@@ -47,12 +47,12 @@ async function runTests() {
   assert.ok(FIX_STRATEGIES[ErrorCategory.LOGIC]);
   assert.ok(FIX_STRATEGIES[ErrorCategory.RESOURCE]);
   assert.ok(FIX_STRATEGIES[ErrorCategory.TIMEOUT]);
-  console.log('✓ should have strategies for all categories');
+  console.log('âœ“ should have strategies for all categories');
   passed++;
 
   assert.ok(FIX_STRATEGIES[ErrorCategory.DEPENDENCY].length > 0);
   assert.ok(FIX_STRATEGIES[ErrorCategory.SYNTAX].length > 0);
-  console.log('✓ should have multiple strategies per category');
+  console.log('âœ“ should have multiple strategies per category');
   passed++;
 
   // analyze tests
@@ -64,7 +64,7 @@ async function runTests() {
   );
   assert.strictEqual(analysis1.category, ErrorCategory.DEPENDENCY);
   assert.strictEqual(analysis1.taskId, 'task-01');
-  console.log('✓ should classify Dependency errors correctly');
+  console.log('âœ“ should classify Dependency errors correctly');
   passed++;
 
   const rca4 = new RCAEngine();
@@ -73,7 +73,7 @@ async function runTests() {
     { taskId: 'task-02', taskType: 'lint', recentChanges: ['src/index.js'], failureCount: 2 }
   );
   assert.strictEqual(analysis2.category, ErrorCategory.SYNTAX);
-  console.log('✓ should classify Syntax errors correctly');
+  console.log('âœ“ should classify Syntax errors correctly');
   passed++;
 
   const rca5 = new RCAEngine();
@@ -82,7 +82,7 @@ async function runTests() {
     { taskId: 'task-03', taskType: 'test', recentChanges: ['src/calculator.js'], failureCount: 2 }
   );
   assert.strictEqual(analysis3.category, ErrorCategory.LOGIC);
-  console.log('✓ should classify Logic errors correctly');
+  console.log('âœ“ should classify Logic errors correctly');
   passed++;
 
   const rca6 = new RCAEngine();
@@ -91,7 +91,7 @@ async function runTests() {
     { taskId: 'task-04', taskType: 'build', recentChanges: [], failureCount: 2 }
   );
   assert.strictEqual(analysis4.category, ErrorCategory.RESOURCE);
-  console.log('✓ should classify Resource errors correctly');
+  console.log('âœ“ should classify Resource errors correctly');
   passed++;
 
   const rca7 = new RCAEngine();
@@ -100,7 +100,7 @@ async function runTests() {
     { taskId: 'task-05', taskType: 'api', recentChanges: ['src/api.js'], failureCount: 2 }
   );
   assert.strictEqual(analysis5.category, ErrorCategory.TIMEOUT);
-  console.log('✓ should classify Timeout errors correctly');
+  console.log('âœ“ should classify Timeout errors correctly');
   passed++;
 
   const rca8 = new RCAEngine();
@@ -109,7 +109,7 @@ async function runTests() {
     { taskId: 'task-06', taskType: 'unknown', recentChanges: [], failureCount: 2 }
   );
   assert.strictEqual(analysis6.category, ErrorCategory.UNKNOWN);
-  console.log('✓ should classify unknown errors correctly');
+  console.log('âœ“ should classify unknown errors correctly');
   passed++;
 
   const rca9 = new RCAEngine();
@@ -119,7 +119,7 @@ async function runTests() {
   );
   assert.ok(analysis7.recommended_actions);
   assert.ok(analysis7.recommended_actions.length > 0);
-  console.log('✓ should include recommended actions');
+  console.log('âœ“ should include recommended actions');
   passed++;
 
   const rca10 = new RCAEngine();
@@ -129,7 +129,7 @@ async function runTests() {
   );
   assert.ok(analysis8.confidence > 0);
   assert.ok(analysis8.confidence <= 1);
-  console.log('✓ should calculate confidence score');
+  console.log('âœ“ should calculate confidence score');
   passed++;
 
   const rca11 = new RCAEngine();
@@ -145,7 +145,7 @@ async function runTests() {
   );
   assert.ok(analysis9.context_analysis);
   assert.ok(analysis9.context_analysis.dependencyIssues.length > 0);
-  console.log('✓ should analyze context for risk factors');
+  console.log('âœ“ should analyze context for risk factors');
   passed++;
 
   const rca12 = new RCAEngine();
@@ -154,7 +154,7 @@ async function runTests() {
   const analysis10 = await rca12.analyze(new Error('Module not found: express'), { taskId: 'task-10', taskType: 'build', recentChanges: [], failureCount: 3 });
   assert.ok(analysis10.patterns);
   assert.strictEqual(analysis10.patterns.isRecurring, true);
-  console.log('✓ should detect patterns on multiple failures');
+  console.log('âœ“ should detect patterns on multiple failures');
   passed++;
 
   const rca13 = new RCAEngine();
@@ -162,7 +162,7 @@ async function runTests() {
   await rca13.analyze(new Error('Error 2'), { taskId: 'task-11', taskType: 'build', recentChanges: [], failureCount: 2 });
   const history = rca13.getAnalysisHistory('task-11');
   assert.strictEqual(history.length, 2);
-  console.log('✓ should store analysis history');
+  console.log('âœ“ should store analysis history');
   passed++;
 
   // suggestFix tests
@@ -172,70 +172,70 @@ async function runTests() {
   assert.strictEqual(fix1.category, ErrorCategory.DEPENDENCY);
   assert.ok(fix1.primary_fix);
   assert.ok(fix1.all_strategies.length > 0);
-  console.log('✓ should suggest fix for Dependency category');
+  console.log('âœ“ should suggest fix for Dependency category');
   passed++;
 
   const rca15 = new RCAEngine();
   const fix2 = rca15.suggestFix(ErrorCategory.SYNTAX);
   assert.strictEqual(fix2.category, ErrorCategory.SYNTAX);
-  console.log('✓ should suggest fix for Syntax category');
+  console.log('âœ“ should suggest fix for Syntax category');
   passed++;
 
   const rca16 = new RCAEngine();
   const fix3 = rca16.suggestFix(ErrorCategory.LOGIC);
   assert.strictEqual(fix3.category, ErrorCategory.LOGIC);
   assert.ok(fix3.primary_fix);
-  console.log('✓ should suggest fix for Logic category');
+  console.log('âœ“ should suggest fix for Logic category');
   passed++;
 
   const rca17 = new RCAEngine();
   const fix4 = rca17.suggestFix(ErrorCategory.RESOURCE);
   assert.strictEqual(fix4.category, ErrorCategory.RESOURCE);
   assert.ok(fix4.primary_fix);
-  console.log('✓ should suggest fix for Resource category');
+  console.log('âœ“ should suggest fix for Resource category');
   passed++;
 
   const rca18 = new RCAEngine();
   const fix5 = rca18.suggestFix(ErrorCategory.TIMEOUT);
   assert.strictEqual(fix5.category, ErrorCategory.TIMEOUT);
   assert.ok(fix5.primary_fix);
-  console.log('✓ should suggest fix for Timeout category');
+  console.log('âœ“ should suggest fix for Timeout category');
   passed++;
 
   const rca19 = new RCAEngine();
   const fix6 = rca19.suggestFix(ErrorCategory.SYNTAX);
   assert.ok(fix6.estimated_success_rate > 0);
   assert.ok(fix6.estimated_success_rate <= 1);
-  console.log('✓ should estimate success rate');
+  console.log('âœ“ should estimate success rate');
   passed++;
 
   const rca20 = new RCAEngine();
   const fix7 = rca20.suggestFix('UnknownCategory');
   assert.ok(fix7.primary_fix);
-  console.log('✓ should handle unknown category');
+  console.log('âœ“ should handle unknown category');
   passed++;
 
   // shouldTrigger tests
   console.log('\nshouldTrigger:');
   const rca21 = new RCAEngine();
   assert.strictEqual(rca21.shouldTrigger('task-01', 1), false);
-  console.log('✓ should return false for first failure');
+  console.log('âœ“ should return false for first failure');
   passed++;
 
   const rca22 = new RCAEngine();
   assert.strictEqual(rca22.shouldTrigger('task-02', 2), true);
-  console.log('✓ should return true for second failure (threshold)');
+  console.log('âœ“ should return true for second failure (threshold)');
   passed++;
 
   const rca23 = new RCAEngine();
   assert.strictEqual(rca23.shouldTrigger('task-03', 5), true);
-  console.log('✓ should return true for subsequent failures');
+  console.log('âœ“ should return true for subsequent failures');
   passed++;
 
   const rca24 = new RCAEngine({ triggerThreshold: 3 });
   assert.strictEqual(rca24.shouldTrigger('task-04', 2), false);
   assert.strictEqual(rca24.shouldTrigger('task-04', 3), true);
-  console.log('✓ should respect custom trigger threshold');
+  console.log('âœ“ should respect custom trigger threshold');
   passed++;
 
   // getAnalysisHistory tests
@@ -243,7 +243,7 @@ async function runTests() {
   const rca25 = new RCAEngine();
   const h1 = rca25.getAnalysisHistory('unknown-task');
   assert.deepStrictEqual(h1, []);
-  console.log('✓ should return empty array for unknown task');
+  console.log('âœ“ should return empty array for unknown task');
   passed++;
 
   const rca26 = new RCAEngine();
@@ -252,7 +252,7 @@ async function runTests() {
   await rca26.analyze(new Error('Error 3'), { taskId: 'task-05', taskType: 'build', recentChanges: [], failureCount: 2 });
   const h2 = rca26.getAnalysisHistory('task-05');
   assert.strictEqual(h2.length, 3);
-  console.log('✓ should return all analyses for a task');
+  console.log('âœ“ should return all analyses for a task');
   passed++;
 
   // _classifyError tests
@@ -260,13 +260,13 @@ async function runTests() {
   const rca27 = new RCAEngine();
   const c1 = rca27._classifyError('Cannot find module lodash');
   assert.strictEqual(c1, ErrorCategory.DEPENDENCY);
-  console.log('✓ should handle string errors');
+  console.log('âœ“ should handle string errors');
   passed++;
 
   const rca28 = new RCAEngine();
   const c2 = rca28._classifyError(new Error('SyntaxError: parse error'));
   assert.strictEqual(c2, ErrorCategory.SYNTAX);
-  console.log('✓ should handle Error objects');
+  console.log('âœ“ should handle Error objects');
   passed++;
 
   const rca29 = new RCAEngine();
@@ -274,7 +274,7 @@ async function runTests() {
   const c4 = rca29._classifyError(undefined);
   assert.strictEqual(c3, ErrorCategory.UNKNOWN);
   assert.strictEqual(c4, ErrorCategory.UNKNOWN);
-  console.log('✓ should handle null/undefined');
+  console.log('âœ“ should handle null/undefined');
   passed++;
 
   const rca30 = new RCAEngine();
@@ -282,7 +282,7 @@ async function runTests() {
   const c6 = rca30._classifyError('syntax ERROR');
   assert.strictEqual(c5, ErrorCategory.TIMEOUT);
   assert.strictEqual(c6, ErrorCategory.SYNTAX);
-  console.log('✓ should be case insensitive');
+  console.log('âœ“ should be case insensitive');
   passed++;
 
   // Integration test
@@ -313,7 +313,7 @@ async function runTests() {
   const h3 = rca31.getAnalysisHistory(taskId);
   assert.strictEqual(h3.length, 3);
   assert.strictEqual(h3[2].patterns.isRecurring, true);
-  console.log('✓ should support complete RCA workflow with fix suggestion');
+  console.log('âœ“ should support complete RCA workflow with fix suggestion');
   passed++;
 
   // Pattern detection tests
@@ -324,7 +324,7 @@ async function runTests() {
   const analysis12 = await rca32.analyze(new Error('Cannot find module C'), { taskId: 'pattern-task', taskType: 'build', recentChanges: [], failureCount: 3 });
   assert.strictEqual(analysis12.patterns.isRecurring, true);
   assert.strictEqual(analysis12.patterns.sameCategoryCount, 2);
-  console.log('✓ should detect recurring same-category failures');
+  console.log('âœ“ should detect recurring same-category failures');
   passed++;
 
   const rca33 = new RCAEngine();
@@ -334,7 +334,7 @@ async function runTests() {
   const analysis13 = await rca33.analyze(new Error('Cannot find module'), { taskId: 'escalation-task', taskType: 'build', recentChanges: [], failureCount: 4 });
   assert.strictEqual(analysis13.patterns.isEscalating, true);
   assert.ok(analysis13.patterns.uniqueCategories.length > 2);
-  console.log('✓ should detect escalating failures across categories');
+  console.log('âœ“ should detect escalating failures across categories');
   passed++;
 
   // Context analysis tests
@@ -348,7 +348,7 @@ async function runTests() {
   });
   const hasConfigRisk = analysis14.context_analysis.riskFactors.some(r => r.toLowerCase().includes('configuration'));
   assert.ok(hasConfigRisk);
-  console.log('✓ should identify risky configuration changes');
+  console.log('âœ“ should identify risky configuration changes');
   passed++;
 
   const rca35 = new RCAEngine();
@@ -360,7 +360,7 @@ async function runTests() {
   });
   const hasDepRisk = analysis15.context_analysis.riskFactors.some(r => r.toLowerCase().includes('dependency'));
   assert.ok(hasDepRisk);
-  console.log('✓ should identify risky dependency changes');
+  console.log('âœ“ should identify risky dependency changes');
   passed++;
 
   const rca36 = new RCAEngine();
@@ -372,7 +372,7 @@ async function runTests() {
   });
   const hasAsyncRisk = analysis16.context_analysis.riskFactors.some(r => r.toLowerCase().includes('async') || r.toLowerCase().includes('timing'));
   assert.ok(hasAsyncRisk);
-  console.log('✓ should identify risky async changes');
+  console.log('âœ“ should identify risky async changes');
   passed++;
 
   // Summary

@@ -1,0 +1,342 @@
+﻿/**
+ * EZ Tools Tests - config.cjs
+ *
+ * CLI integration tests for config-ensure-section, config-set, and config-get
+ * commands exercised through ez-tools.cjs via execSync.
+ *
+ * Requirements: TEST-13
+ */
+
+const { test, describe, beforeEach, afterEach } = require('node:test');
+import assert from 'node:assert';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
+import { runEzTools, createTempProject, cleanup } from '../helpers.js';
+
+// â”€â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+function readConfig(tmpDir) {
+  const configPath = path.join(tmpDir, '.planning', 'config.json');
+  return JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+}
+
+function writeConfig(tmpDir, obj) {
+  const configPath = path.join(tmpDir, '.planning', 'config.json');
+  fs.writeFileSync(configPath, JSON.stringify(obj, null, 2), 'utf-8');
+}
+
+function makeHomeEnv(homeDir, extra = {}) {
+  return {
+    HOME: homeDir,
+    USERPROFILE: homeDir,
+    ...extra,
+  };
+}
+
+// â”€â”€â”€ config-ensure-section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+describe('config-ensure-section command', () => {
+  let tmpDir;
+
+  beforeEach(() => {
+    tmpDir = createTempProject();
+  });
+
+  afterEach(() => {
+    cleanup(tmpDir);
+  });
+
+  test('creates config.json with expected structure and types', () => {
+    const result = runEzTools('config-ensure-section', tmpDir);
+    assert.ok(result.success, `Command failed: ${result.error}`);
+
+    const output = JSON.parse(result.output);
+    assert.strictEqual(output.created, true);
+
+    const config = readConfig(tmpDir);
+    // Verify structure and types â€” exact values may vary if ~/.ez/defaults.json exists
+    assert.strictEqual(typeof config.model_profile, 'string');
+    assert.strictEqual(typeof config.commit_docs, 'boolean');
+    assert.strictEqual(typeof config.parallelization, 'boolean');
+    assert.strictEqual(typeof config.branching_strategy, 'string');
+    assert.ok(config.workflow && typeof config.workflow === 'object', 'workflow should be an object');
+    assert.strictEqual(typeof config.workflow.research, 'boolean');
+    assert.strictEqual(typeof config.workflow.plan_check, 'boolean');
+    assert.strictEqual(typeof config.workflow.verifier, 'boolean');
+    assert.strictEqual(typeof config.workflow.nyquist_validation, 'boolean');
+    // These hardcoded defaults are always present (may be overridden by user defaults)
+    assert.ok('model_profile' in config, 'model_profile should exist');
+    assert.ok('brave_search' in config, 'brave_search should exist');
+    assert.ok('search_gitignored' in config, 'search_gitignored should exist');
+  });
+
+  test('is idempotent â€” returns already_exists on second call', () => {
+    const first = runEzTools('config-ensure-section', tmpDir);
+    assert.ok(first.success, `First call failed: ${first.error}`);
+    const firstOutput = JSON.parse(first.output);
+    assert.strictEqual(firstOutput.created, true);
+
+    const second = runEzTools('config-ensure-section', tmpDir);
+    assert.ok(second.success, `Second call failed: ${second.error}`);
+    const secondOutput = JSON.parse(second.output);
+    assert.strictEqual(secondOutput.created, false);
+    assert.strictEqual(secondOutput.reason, 'already_exists');
+  });
+
+  test('detects Brave Search from file-based key', () => {
+    const homeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ez-home-'));
+    const ezDir = path.join(homeDir, '.ez');
+    const braveKeyFile = path.join(ezDir, 'brave_api_key');
+
+    try {
+      fs.mkdirSync(ezDir, { recursive: true });
+      fs.writeFileSync(braveKeyFile, 'test-key', 'utf-8');
+
+      const result = runEzTools(
+        'config-ensure-section',
+        tmpDir,
+        makeHomeEnv(homeDir, { BRAVE_API_KEY: '' })
+      );
+      assert.ok(result.success, `Command failed: ${result.error}`);
+
+      const config = readConfig(tmpDir);
+      assert.strictEqual(config.brave_search, true);
+    } finally {
+      fs.rmSync(homeDir, { recursive: true, force: true });
+    }
+  });
+
+  test('merges user defaults from defaults.json', () => {
+    const homeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ez-home-'));
+    const ezDir = path.join(homeDir, '.ez');
+    const defaultsFile = path.join(ezDir, 'defaults.json');
+
+    try {
+      fs.mkdirSync(ezDir, { recursive: true });
+      fs.writeFileSync(defaultsFile, JSON.stringify({
+        model_profile: 'quality',
+        commit_docs: false,
+      }), 'utf-8');
+
+      const result = runEzTools('config-ensure-section', tmpDir, makeHomeEnv(homeDir));
+      assert.ok(result.success, `Command failed: ${result.error}`);
+
+      const config = readConfig(tmpDir);
+      assert.strictEqual(config.model_profile, 'quality', 'model_profile should be overridden');
+      assert.strictEqual(config.commit_docs, false, 'commit_docs should be overridden');
+      assert.strictEqual(typeof config.branching_strategy, 'string', 'branching_strategy should be a string');
+    } finally {
+      fs.rmSync(homeDir, { recursive: true, force: true });
+    }
+  });
+
+  test('merges nested workflow keys from defaults.json preserving unset keys', () => {
+    const homeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ez-home-'));
+    const ezDir = path.join(homeDir, '.ez');
+    const defaultsFile = path.join(ezDir, 'defaults.json');
+
+    try {
+      fs.mkdirSync(ezDir, { recursive: true });
+      fs.writeFileSync(defaultsFile, JSON.stringify({
+        workflow: { research: false },
+      }), 'utf-8');
+
+      const result = runEzTools('config-ensure-section', tmpDir, makeHomeEnv(homeDir));
+      assert.ok(result.success, `Command failed: ${result.error}`);
+
+      const config = readConfig(tmpDir);
+      assert.strictEqual(config.workflow.research, false, 'research should be overridden');
+      assert.strictEqual(typeof config.workflow.plan_check, 'boolean', 'plan_check should be a boolean');
+      assert.strictEqual(typeof config.workflow.verifier, 'boolean', 'verifier should be a boolean');
+    } finally {
+      fs.rmSync(homeDir, { recursive: true, force: true });
+    }
+  });
+
+  test('uses ~/.ez/defaults.json when it exists', () => {
+    const homeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ez-home-'));
+    const ezDir = path.join(homeDir, '.ez');
+
+    try {
+      fs.mkdirSync(ezDir, { recursive: true });
+      fs.writeFileSync(path.join(ezDir, 'defaults.json'), JSON.stringify({ model_profile: 'quality' }), 'utf-8');
+
+      const result = runEzTools('config-ensure-section', tmpDir, makeHomeEnv(homeDir));
+      assert.ok(result.success, `Command failed: ${result.error}`);
+
+      const config = readConfig(tmpDir);
+      assert.strictEqual(config.model_profile, 'quality');
+    } finally {
+      fs.rmSync(homeDir, { recursive: true, force: true });
+    }
+  });
+});
+
+// â”€â”€â”€ config-set â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+describe('config-set command', () => {
+  let tmpDir;
+
+  beforeEach(() => {
+    tmpDir = createTempProject();
+    // Create initial config
+    runEzTools('config-ensure-section', tmpDir);
+  });
+
+  afterEach(() => {
+    cleanup(tmpDir);
+  });
+
+  test('sets a top-level string value', () => {
+    const result = runEzTools('config-set model_profile quality', tmpDir);
+    assert.ok(result.success, `Command failed: ${result.error}`);
+
+    const output = JSON.parse(result.output);
+    assert.strictEqual(output.updated, true);
+    assert.strictEqual(output.key, 'model_profile');
+    assert.strictEqual(output.value, 'quality');
+
+    const config = readConfig(tmpDir);
+    assert.strictEqual(config.model_profile, 'quality');
+  });
+
+  test('coerces true to boolean', () => {
+    const result = runEzTools('config-set commit_docs true', tmpDir);
+    assert.ok(result.success, `Command failed: ${result.error}`);
+
+    const config = readConfig(tmpDir);
+    assert.strictEqual(config.commit_docs, true);
+    assert.strictEqual(typeof config.commit_docs, 'boolean');
+  });
+
+  test('coerces false to boolean', () => {
+    const result = runEzTools('config-set commit_docs false', tmpDir);
+    assert.ok(result.success, `Command failed: ${result.error}`);
+
+    const config = readConfig(tmpDir);
+    assert.strictEqual(config.commit_docs, false);
+    assert.strictEqual(typeof config.commit_docs, 'boolean');
+  });
+
+  test('coerces numeric strings to numbers', () => {
+    const result = runEzTools('config-set granularity 42', tmpDir);
+    assert.ok(result.success, `Command failed: ${result.error}`);
+
+    const config = readConfig(tmpDir);
+    assert.strictEqual(config.granularity, 42);
+    assert.strictEqual(typeof config.granularity, 'number');
+  });
+
+  test('preserves plain strings', () => {
+    const result = runEzTools('config-set model_profile hello', tmpDir);
+    assert.ok(result.success, `Command failed: ${result.error}`);
+
+    const config = readConfig(tmpDir);
+    assert.strictEqual(config.model_profile, 'hello');
+    assert.strictEqual(typeof config.model_profile, 'string');
+  });
+
+  test('sets nested values via dot-notation', () => {
+    const result = runEzTools('config-set workflow.research false', tmpDir);
+    assert.ok(result.success, `Command failed: ${result.error}`);
+
+    const config = readConfig(tmpDir);
+    assert.strictEqual(config.workflow.research, false);
+  });
+
+  test('auto-creates nested objects for dot-notation', () => {
+    // Start with empty config
+    writeConfig(tmpDir, {});
+
+    const result = runEzTools('config-set workflow.research false', tmpDir);
+    assert.ok(result.success, `Command failed: ${result.error}`);
+
+    const config = readConfig(tmpDir);
+    assert.strictEqual(config.workflow.research, false);
+    assert.strictEqual(typeof config.workflow, 'object');
+  });
+
+  test('rejects unknown config keys', () => {
+    const result = runEzTools('config-set workflow.nyquist_validation_enabled false', tmpDir);
+    assert.strictEqual(result.success, false);
+    assert.ok(
+      result.error.includes('Unknown config key'),
+      `Expected "Unknown config key" in error: ${result.error}`
+    );
+  });
+
+  test('errors when no key path provided', () => {
+    const result = runEzTools('config-set', tmpDir);
+    assert.strictEqual(result.success, false);
+  });
+});
+
+// â”€â”€â”€ config-get â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+describe('config-get command', () => {
+  let tmpDir;
+
+  beforeEach(() => {
+    tmpDir = createTempProject();
+    // Create config with known values
+    runEzTools('config-ensure-section', tmpDir);
+  });
+
+  afterEach(() => {
+    cleanup(tmpDir);
+  });
+
+  test('gets a top-level value', () => {
+    const result = runEzTools('config-get model_profile', tmpDir);
+    assert.ok(result.success, `Command failed: ${result.error}`);
+
+    const output = JSON.parse(result.output);
+    assert.strictEqual(output, 'balanced');
+  });
+
+  test('gets a nested value via dot-notation', () => {
+    const result = runEzTools('config-get workflow.research', tmpDir);
+    assert.ok(result.success, `Command failed: ${result.error}`);
+
+    const output = JSON.parse(result.output);
+    assert.strictEqual(output, true);
+  });
+
+  test('errors for nonexistent key', () => {
+    const result = runEzTools('config-get nonexistent_key', tmpDir);
+    assert.strictEqual(result.success, false);
+    assert.ok(
+      result.error.includes('Key not found'),
+      `Expected "Key not found" in error: ${result.error}`
+    );
+  });
+
+  test('errors for deeply nested nonexistent key', () => {
+    const result = runEzTools('config-get workflow.nonexistent', tmpDir);
+    assert.strictEqual(result.success, false);
+    assert.ok(
+      result.error.includes('Key not found'),
+      `Expected "Key not found" in error: ${result.error}`
+    );
+  });
+
+  test('errors when config.json does not exist', () => {
+    const emptyTmpDir = createTempProject();
+    try {
+      const result = runEzTools('config-get model_profile', emptyTmpDir);
+      assert.strictEqual(result.success, false);
+      assert.ok(
+        result.error.includes('No config.json'),
+        `Expected "No config.json" in error: ${result.error}`
+      );
+    } finally {
+      cleanup(emptyTmpDir);
+    }
+  });
+
+  test('errors when no key path provided', () => {
+    const result = runEzTools('config-get', tmpDir);
+    assert.strictEqual(result.success, false);
+  });
+});

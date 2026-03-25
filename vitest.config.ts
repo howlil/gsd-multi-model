@@ -5,8 +5,9 @@ export default defineConfig({
     globals: false,
     environment: 'node',
     include: [
-      'ez-agents/tests/**/*.test.{ts,js}',
-      'tests/**/*.test.{ts,js}'
+      'tests/unit/**/*.test.ts',
+      'tests/integration/**/*.test.ts',
+      'tests/types/**/*.types.test.ts'
     ],
     testTimeout: 30000,
   },

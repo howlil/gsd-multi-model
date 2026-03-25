@@ -1,4 +1,4 @@
-
+﻿
 /**
  * Task Formatter Tests
  * Tests for bin/lib/task-formatter.cjs
