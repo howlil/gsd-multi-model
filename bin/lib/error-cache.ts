@@ -7,6 +7,8 @@
  * recurring issues vs. one-time failures.
  */
 
+import { LogExecution } from './decorators/index.js';
+
 // ─── Type Definitions ────────────────────────────────────────────────────────
 
 export interface ErrorInfo {
@@ -42,6 +44,7 @@ export class ErrorCache {
    * @param error - The error to fingerprint
    * @returns Error fingerprint
    */
+  @LogExecution('ErrorCache.fingerprint', { logParams: false })
   fingerprint(error: Error): string {
     if (!error) return 'unknown';
     const name = error.name || 'Error';
@@ -57,6 +60,7 @@ export class ErrorCache {
    * @param context - Additional context
    * @returns Error fingerprint
    */
+  @LogExecution('ErrorCache.record', { logParams: false })
   record(error: Error, context: Record<string, any> = {}): string {
     const fp = this.fingerprint(error);
     const entry = this.cache.get(fp);
@@ -95,6 +99,7 @@ export class ErrorCache {
    * @param fingerprint - Error fingerprint
    * @returns True if error has been seen before
    */
+  @LogExecution('ErrorCache.isRecurring', { logParams: false })
   isRecurring(fingerprint: string): boolean {
     const entry = this.cache.get(fingerprint);
     return entry !== undefined && entry.count > 1;
@@ -105,6 +110,7 @@ export class ErrorCache {
    * @param fingerprint - Error fingerprint
    * @returns Error entry or undefined
    */
+  @LogExecution('ErrorCache.get', { logParams: false })
   get(fingerprint: string): ErrorEntry | undefined {
     return this.cache.get(fingerprint);
   }
@@ -112,6 +118,7 @@ export class ErrorCache {
   /**
    * Clear the error cache
    */
+  @LogExecution('ErrorCache.clear', { logParams: false })
   clear(): void {
     this.cache.clear();
   }
@@ -120,6 +127,7 @@ export class ErrorCache {
    * Get cache statistics
    * @returns Cache statistics
    */
+  @LogExecution('ErrorCache.stats', { logParams: false })
   stats(): { size: number; maxSize: number } {
     return {
       size: this.cache.size,
@@ -131,6 +139,7 @@ export class ErrorCache {
    * Get all error entries
    * @returns Array of error entries
    */
+  @LogExecution('ErrorCache.getAll', { logParams: false })
   getAll(): ErrorEntry[] {
     return Array.from(this.cache.values());
   }
