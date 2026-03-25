@@ -4,69 +4,88 @@
  * Central registry and execution engine for quality gates.
  * Supports gate registration, execution, bypass with audit trail, and status reporting.
  * Uses Zod for schema validation of gate inputs/outputs.
+ *
+ * @module quality-gate
  */
 
-const fs = require('fs');
-const path = require('path');
-const { z } = require('zod');
+import * as fs from 'fs';
+import * as path from 'path';
+import { z } from 'zod';
 
 /**
  * Get the audit trail file path (computed at runtime to support cwd changes)
- * @returns {string}
  */
-function getAuditFilePath() {
+function getAuditFilePath(): string {
   return path.join(process.cwd(), '.planning', 'gate-audit.json');
 }
 
 /**
- * @typedef {Object} GateDefinition
- * @property {string} id - Gate identifier
- * @property {z.ZodSchema} schema - Zod schema for context validation
- * @property {Function} executor - Gate execution function
+ * Gate definition interface
  */
+export interface GateDefinition {
+  /** Gate identifier */
+  id: string;
+  /** Zod schema for context validation */
+  schema: z.ZodSchema;
+  /** Gate execution function */
+  executor: (context: any) => Promise<GateExecutorResult>;
+}
 
 /**
- * @typedef {Object} GateStatus
- * @property {'registered' | 'passed' | 'failed' | 'bypassed'} state - Current gate state
- * @property {string} [id] - Gate identifier
- * @property {Date} [registeredAt] - Registration timestamp
- * @property {Date} [executedAt] - Execution timestamp
- * @property {Date} [bypassedAt] - Bypass timestamp
- * @property {string} [bypassReason] - Reason for bypass
- * @property {Array} [errors] - Errors from last execution
- * @property {Array} [warnings] - Warnings from last execution
+ * Gate status interface
  */
+export interface GateStatus {
+  /** Current gate state */
+  state: 'registered' | 'passed' | 'failed' | 'bypassed';
+  /** Gate identifier */
+  id?: string;
+  /** Registration timestamp */
+  registeredAt?: Date;
+  /** Execution timestamp */
+  executedAt?: Date;
+  /** Bypass timestamp */
+  bypassedAt?: Date;
+  /** Reason for bypass */
+  bypassReason?: string;
+  /** Errors from last execution */
+  errors?: Array<{ path: string; message: string }>;
+  /** Warnings from last execution */
+  warnings?: string[];
+}
 
 /**
- * @typedef {Object} ExecutionResult
- * @property {boolean} passed - Whether the gate passed
- * @property {Array<{path: string, message: string}>} [errors] - Validation or execution errors
- * @property {Array<string>} [warnings] - Warnings
+ * Gate execution result interface
  */
+export interface GateExecutorResult {
+  /** Whether the gate passed */
+  passed: boolean;
+  /** Validation or execution errors */
+  errors?: Array<{ path: string; message: string }>;
+  /** Warnings */
+  warnings?: string[];
+}
 
 /**
- * @typedef {Object} AuditEntry
- * @property {string} gateId - Gate identifier
- * @property {'bypass'} action - Action type
- * @property {string} reason - Reason for bypass
- * @property {string} timestamp - ISO timestamp
+ * Audit trail entry interface
  */
+export interface AuditEntry {
+  /** Gate identifier */
+  gateId: string;
+  /** Action type */
+  action: 'bypass';
+  /** Reason for bypass */
+  reason: string;
+  /** ISO timestamp */
+  timestamp: string;
+}
 
-class QualityGate {
-  /**
-   * @type {Map<string, GateDefinition>}
-   */
-  #gates;
-
-  /**
-   * @type {Map<string, GateStatus>}
-   */
-  #status;
-
-  /**
-   * @type {Array<AuditEntry>}
-   */
-  #auditTrail;
+/**
+ * Quality Gate class - stateful coordinator for gate registration and execution
+ */
+export class QualityGate {
+  #gates: Map<string, GateDefinition>;
+  #status: Map<string, GateStatus>;
+  #auditTrail: AuditEntry[];
 
   constructor() {
     this.#gates = new Map();
@@ -76,14 +95,13 @@ class QualityGate {
 
   /**
    * Load audit trail from file
-   * @returns {Array<AuditEntry>}
    */
-  #loadAuditTrail() {
+  #loadAuditTrail(): AuditEntry[] {
     const auditFilePath = getAuditFilePath();
     try {
       if (fs.existsSync(auditFilePath)) {
         const content = fs.readFileSync(auditFilePath, 'utf-8');
-        return JSON.parse(content);
+        return JSON.parse(content) as AuditEntry[];
       }
     } catch (err) {
       // If file is corrupted or unreadable, start fresh
@@ -95,7 +113,7 @@ class QualityGate {
   /**
    * Save audit trail to file
    */
-  #saveAuditTrail() {
+  #saveAuditTrail(): void {
     const auditFilePath = getAuditFilePath();
     try {
       const dir = path.dirname(auditFilePath);
@@ -104,17 +122,16 @@ class QualityGate {
       }
       fs.writeFileSync(auditFilePath, JSON.stringify(this.#auditTrail, null, 2), 'utf-8');
     } catch (err) {
-      console.error('Error saving gate audit trail:', err.message);
+      console.error('Error saving gate audit trail:', (err as Error).message);
     }
   }
 
   /**
    * Format Zod validation errors into structured array with field paths
-   * @param {z.ZodError} zodError
-   * @returns {Array<{path: string, message: string}>}
+   * @param zodError - Zod error to format
    */
-  #formatValidationErrors(zodError) {
-    const errors = [];
+  #formatValidationErrors(zodError: z.ZodError): Array<{ path: string; message: string }> {
+    const errors: Array<{ path: string; message: string }> = [];
     for (const issue of zodError.errors) {
       const fieldPath = issue.path.join('.');
       errors.push({
@@ -127,12 +144,11 @@ class QualityGate {
 
   /**
    * Register a quality gate
-   * @param {string} id - Unique gate identifier
-   * @param {z.ZodSchema} schema - Zod schema for context validation
-   * @param {Function} executor - Async function that executes the gate logic
-   * @returns {void}
+   * @param id - Unique gate identifier
+   * @param schema - Zod schema for context validation
+   * @param executor - Async function that executes the gate logic
    */
-  registerGate(id, schema, executor) {
+  registerGate(id: string, schema: z.ZodSchema, executor: (context: any) => Promise<GateExecutorResult>): void {
     if (!id || typeof id !== 'string') {
       throw new Error('Gate ID must be a non-empty string');
     }
@@ -155,11 +171,11 @@ class QualityGate {
 
   /**
    * Execute a quality gate
-   * @param {string} id - Gate identifier
-   * @param {any} context - Context data to validate and pass to executor
-   * @returns {Promise<ExecutionResult>}
+   * @param id - Gate identifier
+   * @param context - Context data to validate and pass to executor
+   * @returns Execution result
    */
-  async executeGate(id, context) {
+  async executeGate(id: string, context: any): Promise<GateExecutorResult> {
     const gate = this.#gates.get(id);
 
     if (!gate) {
@@ -171,8 +187,8 @@ class QualityGate {
 
     if (!parseResult.success) {
       const errors = this.#formatValidationErrors(parseResult.error);
-      const status = {
-        ...this.#status.get(id),
+      const status: GateStatus = {
+        ...this.#status.get(id)!,
         state: 'failed',
         executedAt: new Date(),
         errors,
@@ -187,8 +203,8 @@ class QualityGate {
 
       // Handle executor result
       if (result.passed) {
-        const status = {
-          ...this.#status.get(id),
+        const status: GateStatus = {
+          ...this.#status.get(id)!,
           state: 'passed',
           executedAt: new Date(),
           errors: [],
@@ -198,8 +214,8 @@ class QualityGate {
         return { passed: true, errors: [], warnings: result.warnings || [] };
       } else {
         const errors = result.errors || [{ path: 'executor', message: 'Gate execution failed' }];
-        const status = {
-          ...this.#status.get(id),
+        const status: GateStatus = {
+          ...this.#status.get(id)!,
           state: 'failed',
           executedAt: new Date(),
           errors,
@@ -209,9 +225,9 @@ class QualityGate {
         return { passed: false, errors, warnings: result.warnings || [] };
       }
     } catch (err) {
-      const errors = [{ path: 'executor', message: err.message || 'Executor threw an exception' }];
-      const status = {
-        ...this.#status.get(id),
+      const errors = [{ path: 'executor', message: (err as Error).message || 'Executor throws an exception' }];
+      const status: GateStatus = {
+        ...this.#status.get(id)!,
         state: 'failed',
         executedAt: new Date(),
         errors,
@@ -223,11 +239,10 @@ class QualityGate {
 
   /**
    * Bypass a quality gate with mandatory audit reason
-   * @param {string} id - Gate identifier
-   * @param {string} reason - Reason for bypass (cannot be empty)
-   * @returns {void}
+   * @param id - Gate identifier
+   * @param reason - Reason for bypass (cannot be empty)
    */
-  bypassGate(id, reason) {
+  bypassGate(id: string, reason: string): void {
     const gate = this.#gates.get(id);
 
     if (!gate) {
@@ -238,8 +253,8 @@ class QualityGate {
       throw new Error('Bypass reason must be a non-empty string');
     }
 
-    const status = {
-      ...this.#status.get(id),
+    const status: GateStatus = {
+      ...this.#status.get(id)!,
       state: 'bypassed',
       bypassedAt: new Date(),
       bypassReason: reason.trim(),
@@ -247,7 +262,7 @@ class QualityGate {
     this.#status.set(id, status);
 
     // Log to audit trail
-    const auditEntry = {
+    const auditEntry: AuditEntry = {
       gateId: id,
       action: 'bypass',
       reason: reason.trim(),
@@ -259,10 +274,10 @@ class QualityGate {
 
   /**
    * Get the current status of a gate
-   * @param {string} id - Gate identifier
-   * @returns {GateStatus}
+   * @param id - Gate identifier
+   * @returns Gate status
    */
-  getGateStatus(id) {
+  getGateStatus(id: string): GateStatus {
     const status = this.#status.get(id);
 
     if (!status) {
@@ -274,35 +289,34 @@ class QualityGate {
 
   /**
    * Get all registered gate IDs
-   * @returns {Array<string>}
+   * @returns Array of gate IDs
    */
-  getRegisteredGates() {
+  getRegisteredGates(): string[] {
     return Array.from(this.#gates.keys());
   }
 
   /**
    * Get the audit trail
-   * @returns {Array<AuditEntry>}
+   * @returns Array of audit entries
    */
-  getAuditTrail() {
+  getAuditTrail(): AuditEntry[] {
     return [...this.#auditTrail];
   }
 
   /**
    * Check if a gate is registered
-   * @param {string} id - Gate identifier
-   * @returns {boolean}
+   * @param id - Gate identifier
+   * @returns True if gate is registered
    */
-  isRegistered(id) {
+  isRegistered(id: string): boolean {
     return this.#gates.has(id);
   }
 
   /**
    * Reset gate status (for testing)
-   * @param {string} id - Gate identifier
-   * @returns {void}
+   * @param id - Gate identifier
    */
-  resetGate(id) {
+  resetGate(id: string): void {
     const gate = this.#gates.get(id);
     if (gate) {
       this.#status.set(id, {
@@ -315,9 +329,8 @@ class QualityGate {
 
   /**
    * Clear all gates and audit trail (for testing)
-   * @returns {void}
    */
-  clear() {
+  clear(): void {
     this.#gates.clear();
     this.#status.clear();
     this.#auditTrail = [];
@@ -328,5 +341,3 @@ class QualityGate {
     }
   }
 }
-
-module.exports = { QualityGate, z };
