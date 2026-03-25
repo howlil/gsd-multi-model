@@ -5,6 +5,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { defaultLogger as logger } from './logger.js';
+import { LogExecution } from './decorators/index.js';
 
 // ─── Type Definitions ────────────────────────────────────────────────────────
 
@@ -43,6 +44,7 @@ export class SessionManager {
   /**
    * Load session state from file
    */
+  @LogExecution('SessionManager.loadState', { logParams: false, logResult: false })
   loadState(): SessionState | null {
     try {
       if (fs.existsSync(this.statePath)) {
@@ -61,6 +63,7 @@ export class SessionManager {
   /**
    * Save session state to file
    */
+  @LogExecution('SessionManager.saveState', { logParams: false })
   saveState(state: SessionState): void {
     try {
       fs.writeFileSync(this.statePath, JSON.stringify(state, null, 2), 'utf-8');
@@ -75,6 +78,7 @@ export class SessionManager {
   /**
    * Create a new session
    */
+  @LogExecution('SessionManager.createSession', { logParams: true, level: 'info' })
   createSession(sessionId: string): SessionState {
     const now = Date.now();
     const state: SessionState = {
@@ -131,6 +135,7 @@ export class SessionManager {
   /**
    * Clear session state
    */
+  @LogExecution('SessionManager.clearSession', { logParams: false })
   clearSession(): void {
     try {
       if (fs.existsSync(this.statePath)) {
