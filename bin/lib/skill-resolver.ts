@@ -19,6 +19,7 @@
 import { defaultLogger as logger } from './logger.js';
 import type { Skill } from './skill-registry.js';
 import { LogExecution, ValidateInput } from './decorators/index.js';
+import { EventBus } from './observer/EventBus.js';
 
 /**
  * Priority rule definition
@@ -187,6 +188,7 @@ export class SkillResolver {
   private context: Record<string, unknown>;
   private logger: typeof logger;
   private decisionLog: DecisionLogEntry[];
+  private eventBus: EventBus;
 
   /**
    * Create a SkillResolver instance
@@ -202,6 +204,7 @@ export class SkillResolver {
     this.context = options.context || {};
     this.logger = logger;
     this.decisionLog = [];
+    this.eventBus = EventBus.getInstance();
   }
 
   /**
@@ -213,6 +216,13 @@ export class SkillResolver {
   detectConflict(skills: Skill[]): { hasConflict: boolean; conflicts: Conflict[] } {
     const conflicts: Conflict[] = [];
     const recommendations = this._collectRecommendations(skills);
+
+    // Emit skill match event
+    this.eventBus.emit('skill:match', {
+      query: 'conflict_detection',
+      matches: recommendations.length,
+      timestamp: Date.now()
+    });
 
     // Check for conflicting recommendations on same aspect
     const aspectMap = new Map<string, Recommendation[]>();
@@ -347,6 +357,16 @@ export class SkillResolver {
   @LogExecution('SkillResolver.resolve', { logParams: false, logResult: false })
   resolve(skills: Skill[], context: Record<string, unknown> = {}): ResolveResult {
     const ctx = { ...this.context, ...context };
+    
+    // Emit skill trigger event for each skill
+    for (const skill of skills) {
+      this.eventBus.emit('skill:trigger', {
+        skillName: skill.name,
+        trigger: 'resolve',
+        context: JSON.stringify(ctx)
+      });
+    }
+    
     const conflictResult = this.detectConflict(skills);
 
     if (!conflictResult.hasConflict) {

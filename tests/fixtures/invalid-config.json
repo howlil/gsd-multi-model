@@ -1,0 +1,8 @@
+{
+  "name": 123,
+  "version": "invalid",
+  "description": true,
+  "scripts": "not-an-object",
+  "dependencies": ["array-not-object"],
+  "invalidField": "should not be here"
+}

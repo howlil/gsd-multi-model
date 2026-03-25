@@ -48,10 +48,14 @@ export { LockState, type LockInfo } from './lock-state.js';
 export { SkillRegistry, type Skill } from './skill-registry.js';
 export { SkillMatcher, type MatchResult } from './skill-matcher.js';
 export { SkillResolver } from './skill-resolver.js';
-export { checkTriggers, activateSkillsByTriggers, type TriggerContext } from './skill-triggers.js';
+export { SkillTriggerEvaluator, checkTriggers, activateSkillsByTriggers, type TriggerContext, type TriggerEvaluationResult } from './skill-triggers.js';
 export { SkillValidator, type ValidationResult } from './skill-validator.js';
-export { type ContextSchema, type ContextValidationResult } from './skill-context.js';
+export { SkillContextResolver, validateContext, type ContextSchema, type ContextValidationResult } from './skill-context.js';
 export { SkillVersionResolver, type VersionInfo, type UpdateResult } from './skill-versioning.js';
+
+// ─── Decorators ──────────────────────────────────────────────────────────────
+export { LogExecution, CacheResult, ValidateInput, clearCache, clearAllCache, getCacheStats } from './decorators/index.js';
+export type { LogExecutionOptions, CacheResultOptions, ValidateInputOptions, CacheEntry } from './decorators/index.js';
 
 // ─── Context Management ──────────────────────────────────────────────────────
 export { ContextManager, type ContextSource, type ScoringStats, type CompressionStats, type DedupStats, type ContextMetadataOutput, type ContextOptions, type ContextResult } from './context-manager.js';
@@ -107,6 +111,35 @@ export { extractFrontmatter, reconstructFrontmatter, type Frontmatter } from './
 export { ModelProvider, createProvider, type ProviderConfig, type ChatOptions, type ChatResponse, type Message } from './model-provider.js';
 export { mapToolName, parseToolCall, formatToolResult, isToolSupported, type ToolName, type ToolCall } from './assistant-adapter.js';
 
+// ─── Adapter Pattern ─────────────────────────────────────────────────────────
+// Model Provider Adapters
+export type {
+  ModelProviderAdapter,
+  Message as AdapterMessage,
+  ModelOptions,
+  ModelResponse,
+  Tool,
+  TokenUsage
+} from './adapters/index.js';
+export {
+  ClaudeAdapter,
+  OpenAIAdapter,
+  KimiAdapter,
+  QwenAdapter,
+  createModelAdapter,
+  getAvailableAdapters,
+  hasAdapter,
+  type AdapterOptions
+} from './adapters/index.js';
+
+// Skill Adapters
+export type {
+  SkillAdapter,
+  SkillContext,
+  SkillResult,
+  ValidationResult
+} from './adapters/index.js';
+
 // ─── Lock & Validator ────────────────────────────────────────────────────────
 export { LockState as LockStateClass } from './lock-state.js';
 export { LockfileValidator } from './lockfile-validator.js';
@@ -159,7 +192,21 @@ export {
   EventHandler,
   EventBus,
   SkillTriggerObserver,
+  SessionObserver,
+  PhaseObserver,
   type SkillTriggerEvent,
+  type EventMap,
+  type SessionStartEvent,
+  type SessionStopEvent,
+  type SessionActivityEvent,
+  type PhaseStartEvent,
+  type PhaseCompleteEvent,
+  type PhaseSkipEvent,
+  type SkillMatchEvent,
+  type SkillExecuteEvent,
+  type ContextGatherEvent,
+  type ContextCompressEvent,
+  type ContextScoreEvent,
 } from './observer/index.js';
 
 // Builder Pattern (complex object construction)
@@ -181,3 +228,58 @@ export {
   OverrideModelStrategy,
   type ModelProfile,
 } from './services/model.service.js';
+
+// Strategy Pattern (context compression)
+export {
+  CompressionStrategy,
+  SummarizeStrategy,
+  TruncateStrategy,
+  RankByRelevanceStrategy,
+  HybridStrategy,
+  createStrategy,
+  createStrategies,
+  getAvailableStrategies,
+  isStrategyAvailable,
+} from './strategies/index.js';
+export type {
+  CompressionOptions,
+  CompressionResult,
+  HybridStrategyOptions,
+  StrategyConfig,
+  StrategyType,
+} from './strategies/index.js';
+
+// Factory Pattern (agent creation)
+export type {
+  IAgent,
+  AgentConfig,
+  AgentContext,
+  AgentResult,
+  AgentFactory,
+} from './factories/index.js';
+export {
+  AgentFactoryRegistry,
+  EzPlannerAgent,
+  EzRoadmapperAgent,
+  EzExecutorAgent,
+  EzPhaseResearcherAgent,
+  EzProjectResearcherAgent,
+  EzVerifierAgent,
+  registerDefaultAgents,
+  getRegisteredAgents,
+  isAgentRegistered,
+} from './factories/index.js';
+
+// Facade Pattern (unified interfaces for complex subsystems)
+export type {
+  ContextManagerFacadeOptions,
+  FacadeCompressionStats,
+  FacadeScoringStats,
+  SkillResolverFacadeOptions,
+  SkillResolutionResult,
+  SkillExecutionWrapper,
+} from './facades/index.js';
+export {
+  ContextManagerFacade,
+  SkillResolverFacade,
+} from './facades/index.js';

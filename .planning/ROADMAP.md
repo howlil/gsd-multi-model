@@ -25,6 +25,8 @@
 
 **Requirements Covered:** CORE-01 to CORE-07 (7 requirements)
 
+**Status:** WAVES 10.1-10.7 COMPLETE (CORE-01, CORE-06, CORE-04, CORE-03, CORE-05, CORE-02, CORE-07)
+
 ### Plans
 
 - [x] **Plan 10.1**: Convert functional modules to class-based architecture (CORE-01) ✅ COMPLETE 2026-03-25
@@ -40,31 +42,38 @@
   - Implement @ValidateInput decorator
   - Apply decorators to core modules (SessionManager, ContextManager, SkillResolver, CircuitBreaker, ErrorCache)
 
-- [ ] **Plan 10.3**: Apply Factory pattern for object creation (CORE-02)
-  - Create Factory classes for Agent, Phase, and Skill instantiation
-  - Implement Factory methods for complex object creation
-  - Add Factory registry for extensible object creation
-  - Document Factory usage patterns
-
-- [ ] **Plan 10.3**: Apply Strategy pattern for interchangeable algorithms (CORE-03)
-  - Identify algorithms with multiple implementations (e.g., context compression strategies)
-  - Create Strategy interfaces for interchangeable behaviors
-  - Implement concrete Strategy classes
-  - Add Strategy selector/factory
-
-- [ ] **Plan 10.4**: Apply Observer pattern for event-driven modules (CORE-04)
+- [x] **Plan 10.3**: Apply Observer pattern for event-driven modules (CORE-04) ✅ COMPLETE 2026-03-25
   - Create EventEmitter-based Observer infrastructure
   - Implement Observer pattern for session state changes
   - Add Observer pattern for phase transitions
   - Create event types and handlers
+  - Integrate EventBus with SessionManager, ContextManager, SkillResolver
 
-- [ ] **Plan 10.5**: Apply Adapter pattern for incompatible interfaces (CORE-05)
-  - Identify modules with incompatible interfaces
-  - Create Adapter classes for model providers
-  - Implement Adapter for skill interfaces
+- [x] **Plan 10.4**: Apply Strategy pattern for interchangeable algorithms (CORE-03) ✅ COMPLETE 2026-03-25
+  - Create CompressionStrategy interface for interchangeable algorithms
+  - Implement 4 compression strategies (Summarize, Truncate, RankByRelevance, Hybrid)
+  - Refactor ContextCompressor to use Strategy pattern
+  - Create StrategyFactory for easy strategy instantiation
+  - Apply @LogExecution decorator to all strategies
+  - Apply @CacheResult decorator to ContextCompressor.compress()
+
+- [x] **Plan 10.5**: Apply Adapter pattern for incompatible interfaces (CORE-05) ✅ COMPLETE 2026-03-25
+  - Create ModelProviderAdapter interface for unified model provider contract
+  - Implement 4 model provider adapters (ClaudeAdapter, OpenAIAdapter, KimiAdapter, QwenAdapter)
+  - Create SkillAdapter interface for skill normalization
+  - Implement AdapterFactory for adapter instantiation
+  - Update barrel exports to expose adapter pattern
   - Document Adapter usage
 
-- [ ] **Plan 10.6**: Apply Facade pattern for complex subsystems (CORE-07)
+- [x] **Plan 10.6**: Apply Factory pattern for object creation (CORE-02) ✅ COMPLETE 2026-03-26
+  - Create IAgent interface for agent contract
+  - Implement AgentFactoryRegistry singleton with registry pattern
+  - Create 6 agent types (EzPlannerAgent, EzRoadmapperAgent, EzExecutorAgent, EzPhaseResearcherAgent, EzProjectResearcherAgent, EzVerifierAgent)
+  - Implement registerDefaultAgents() function for agent registration
+  - Update barrel exports to expose factory pattern
+  - Document Factory usage patterns
+
+- [x] **Plan 10.7**: Apply Facade pattern for complex subsystems (CORE-07) ✅ COMPLETE 2026-03-26
   - Identify complex subsystems (context management, skill resolution)
   - Create Facade classes to simplify interfaces
   - Implement ContextManagerFacade
@@ -78,7 +87,7 @@
 - Zero breaking changes to public APIs
 - All tests passing after refactoring
 
-**Status:** Not started
+**Status:** ✅ COMPLETE (7 of 7 waves complete)
 
 ---
 
@@ -520,10 +529,10 @@ Phase 15: Build System & Documentation
 | Requirement | Phase | Plan | Status |
 |-------------|-------|------|--------|
 | **CORE-01**: Convert functional modules to class-based architecture | Phase 10 | 10.1 | ✅ Complete |
-| **CORE-02**: Apply Factory pattern for object creation | Phase 10 | 10.3 | Pending |
-| **CORE-03**: Apply Strategy pattern for interchangeable algorithms | Phase 10 | 10.4 | Pending |
-| **CORE-04**: Apply Observer pattern for event-driven modules | Phase 10 | 10.5 | Pending |
-| **CORE-05**: Apply Adapter pattern for incompatible interfaces | Phase 10 | 10.6 | Pending |
+| **CORE-02**: Apply Factory pattern for object creation | Phase 10 | 10.6 | Pending |
+| **CORE-03**: Apply Strategy pattern for interchangeable algorithms | Phase 10 | 10.4 | ✅ Complete |
+| **CORE-04**: Apply Observer pattern for event-driven modules | Phase 10 | 10.3 | ✅ Complete |
+| **CORE-05**: Apply Adapter pattern for incompatible interfaces | Phase 10 | 10.5 | ✅ Complete |
 | **CORE-06**: Apply Decorator pattern for cross-cutting concerns | Phase 10 | 10.2 | ✅ Complete |
 | **CORE-07**: Apply Facade pattern for complex subsystems | Phase 10 | 10.7 | Pending |
 | **CORE-08**: Eliminate duplicate code patterns (DRY) | Phase 11 | 11.1 | Pending |

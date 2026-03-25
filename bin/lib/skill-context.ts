@@ -14,8 +14,9 @@
  * - executedCommands: array of strings (for command matching)
  *
  * Usage:
- *   import { validateContext, CONTEXT_SCHEMA } from './skill-context.js';
- *   const { valid, errors, normalizedContext } = validateContext(context);
+ *   import { SkillContextResolver, validateContext, CONTEXT_SCHEMA } from './skill-context.js';
+ *   const resolver = new SkillContextResolver();
+ *   const { valid, errors, normalizedContext } = resolver.validate(context);
  */
 
 import { defaultLogger as logger } from './logger.js';
@@ -126,80 +127,120 @@ export const CONTEXT_SCHEMA = {
 } as const;
 
 /**
- * Validate and normalize context object
- * @param context - Context object to validate
- * @returns Validation result: { valid, errors, normalizedContext }
+ * SkillContextResolver class for validating and resolving skill context
  */
-export function validateContext(context: ContextSchema): ContextValidationResult {
-  const errors: string[] = [];
-  const normalized: ContextSchema = { ...context };
+export class SkillContextResolver {
+  /**
+   * Validate and normalize context object
+   * @param context - Context object to validate
+   * @returns Validation result: { valid, errors, normalizedContext }
+   */
+  validate(context: ContextSchema): ContextValidationResult {
+    const errors: string[] = [];
+    const normalized: ContextSchema = { ...context };
 
-  if (!context || typeof context !== 'object') {
-    return {
-      valid: false,
-      errors: ['Context must be an object'],
-      normalizedContext: null
-    };
-  }
+    if (!context || typeof context !== 'object') {
+      return {
+        valid: false,
+        errors: ['Context must be an object'],
+        normalizedContext: null
+      };
+    }
 
-  // Validate and normalize mode
-  if (context.mode) {
-    const modeSchema = CONTEXT_SCHEMA.mode;
-    if (!modeSchema.values.includes(context.mode)) {
-      const normalizedMode = modeSchema.normalize?.(context.mode);
-      if (normalizedMode && modeSchema.values.includes(normalizedMode)) {
-        normalized.mode = normalizedMode;
-      } else {
+    // Validate and normalize mode
+    if (context.mode) {
+      const modeSchema = CONTEXT_SCHEMA.mode;
+      if (!modeSchema.values.includes(context.mode)) {
+        const normalizedMode = modeSchema.normalize?.(context.mode);
+        if (normalizedMode && modeSchema.values.includes(normalizedMode)) {
+          normalized.mode = normalizedMode;
+        } else {
+          errors.push(
+            `Invalid mode: ${context.mode}. Valid: ${modeSchema.values.join(', ')}`
+          );
+        }
+      }
+    }
+
+    // Validate scope
+    if (context.scope) {
+      const scopeSchema = CONTEXT_SCHEMA.scope;
+      if (!scopeSchema.values.includes(context.scope)) {
         errors.push(
-          `Invalid mode: ${context.mode}. Valid: ${modeSchema.values.join(', ')}`
+          `Invalid scope: ${context.scope}. Valid: ${scopeSchema.values.join(', ')}`
         );
       }
     }
-  }
 
-  // Validate scope
-  if (context.scope) {
-    const scopeSchema = CONTEXT_SCHEMA.scope;
-    if (!scopeSchema.values.includes(context.scope)) {
-      errors.push(
-        `Invalid scope: ${context.scope}. Valid: ${scopeSchema.values.join(', ')}`
-      );
+    // Validate stack structure
+    if (context.stack) {
+      if (!context.stack.language && !context.stack.framework) {
+        errors.push('Stack must have at least language or framework');
+      }
     }
-  }
 
-  // Validate stack structure
-  if (context.stack) {
-    if (!context.stack.language && !context.stack.framework) {
-      errors.push('Stack must have at least language or framework');
+    // Validate constraints structure
+    if (context.constraints) {
+      if (
+        context.constraints.teamSize &&
+        typeof context.constraints.teamSize !== 'number'
+      ) {
+        errors.push('teamSize must be a number');
+      }
+      if (
+        context.constraints.compliance &&
+        !Array.isArray(context.constraints.compliance)
+      ) {
+        errors.push('compliance must be an array');
+      }
     }
-  }
 
-  // Validate constraints structure
-  if (context.constraints) {
-    if (
-      context.constraints.teamSize &&
-      typeof context.constraints.teamSize !== 'number'
-    ) {
-      errors.push('teamSize must be a number');
+    if (errors.length > 0) {
+      logger.warn('Context validation failed', {
+        errorCount: errors.length,
+        errors
+      });
     }
-    if (
-      context.constraints.compliance &&
-      !Array.isArray(context.constraints.compliance)
-    ) {
-      errors.push('compliance must be an array');
-    }
+
+    return {
+      valid: errors.length === 0,
+      errors,
+      normalizedContext: errors.length === 0 ? normalized : null
+    };
   }
 
-  if (errors.length > 0) {
-    logger.warn('Context validation failed', {
-      errorCount: errors.length,
-      errors
-    });
+  /**
+   * Resolve context from raw input
+   * @param rawContext - Raw context input
+   * @returns Resolved context or null if invalid
+   */
+  resolve(rawContext: Record<string, unknown>): ContextSchema | null {
+    const result = this.validate(rawContext as ContextSchema);
+    return result.normalizedContext;
   }
 
-  return {
-    valid: errors.length === 0,
-    errors,
-    normalizedContext: errors.length === 0 ? normalized : null
-  };
+  /**
+   * Resolve context with defaults
+   * @param rawContext - Raw context input
+   * @param defaults - Default values to apply
+   * @returns Resolved context with defaults applied
+   */
+  resolveWithDefaults(
+    rawContext: Record<string, unknown>,
+    defaults: Partial<ContextSchema>
+  ): ContextSchema {
+    const resolved = this.resolve(rawContext);
+    return resolved ? { ...defaults, ...resolved } : (defaults as ContextSchema);
+  }
+}
+
+/**
+ * Validate and normalize context object (backward compatibility)
+ * @param context - Context object to validate
+ * @returns Validation result: { valid, errors, normalizedContext }
+ * @deprecated Use SkillContextResolver.validate() instead
+ */
+export function validateContext(context: ContextSchema): ContextValidationResult {
+  const resolver = new SkillContextResolver();
+  return resolver.validate(context);
 }
