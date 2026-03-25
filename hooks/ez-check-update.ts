@@ -2,17 +2,17 @@
 // Check for EZ Agents updates in background, write result to cache
 // Called by SessionStart hook - runs once per session
 
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
-const { spawn } = require('child_process');
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
+import { spawn } from 'child_process';
 
 const homeDir = os.homedir();
 const cwd = process.cwd();
 
 // Detect runtime config directory (supports Claude, OpenCode, Gemini)
 // Respects CLAUDE_CONFIG_DIR for custom config directory setups
-function detectConfigDir(baseDir) {
+function detectConfigDir(baseDir: string): string {
   // Check env override first (supports multi-account setups)
   const envDir = process.env.CLAUDE_CONFIG_DIR;
   if (envDir && fs.existsSync(path.join(envDir, 'ez-agents', 'VERSION'))) {

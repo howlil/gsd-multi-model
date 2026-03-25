@@ -166,8 +166,8 @@ export class SkillVersionResolver {
           const frontmatter = extractFrontmatter(content);
           versions.push({
             name: entry.name,
-            version: frontmatter.version || '1.0.0',
-            deprecated: frontmatter.deprecated || false,
+            version: (frontmatter.version as string) || '1.0.0',
+            deprecated: (frontmatter.deprecated as boolean) || false,
             path: skillPath
           });
         }

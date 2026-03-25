@@ -10,7 +10,7 @@ import { CostTracker } from '../cost-tracker.js';
 // ─── Type Definitions ────────────────────────────────────────────────────────
 
 export interface CostReportOptions {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface CostTrend {
@@ -92,11 +92,11 @@ export class CostReporter {
    * @param data - Aggregated cost data
    * @returns Trend data
    */
-  private calculateTrend(data: any): CostTrend[] {
+  private calculateTrend(data: Record<string, unknown>): CostTrend[] {
     // Placeholder - would track historical trend
     return [{
       timestamp: new Date().toISOString(),
-      total: data.total.cost || 0
+      total: (data.total as { cost: number })?.cost || 0
     }];
   }
 
@@ -105,7 +105,7 @@ export class CostReporter {
    * @param data - Cost data
    * @returns Recommendations
    */
-  private generateRecommendations(data: any): CostRecommendation[] {
+  private generateRecommendations(data: Record<string, unknown>): CostRecommendation[] {
     const recommendations: CostRecommendation[] = [];
 
     // Check for high-cost phases

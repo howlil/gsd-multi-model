@@ -13,7 +13,7 @@
 
 import { execFile } from 'child_process';
 import { promisify } from 'util';
-import { Logger } from './logger.js';
+import Logger from './logger.js';
 
 const execFileAsync = promisify(execFile);
 const logger = new Logger();
@@ -22,7 +22,7 @@ const logger = new Logger();
 
 export interface TimeoutExecOptions {
   timeout?: number;
-  fallback?: any;
+  fallback?: unknown;
 }
 
 export interface TimeoutExecResult {

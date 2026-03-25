@@ -86,10 +86,10 @@ export function cmdTemplateSelect(cwd: string, planPath: string, raw?: boolean):
     }
 
     const result: TemplateSelectResult = { template, type, taskCount, fileCount, hasDecisions };
-    output(result, raw, template);
+    output(result as unknown as Record<string, unknown>, raw, template);
   } catch (e) {
     // Fallback to standard
-    output({ template: 'templates/summary-standard.md', type: 'standard', error: (e as Error).message } as TemplateSelectResult, raw, 'templates/summary-standard.md');
+    output({ template: 'templates/summary-standard.md', type: 'standard', error: (e as Error).message } as unknown as Record<string, unknown>, raw, 'templates/summary-standard.md');
   }
 }
 
@@ -105,7 +105,7 @@ export function cmdTemplateFill(cwd: string, templateType: string, options: Temp
   if (!options.phase) { error('--phase required'); }
 
   const phaseInfo = findPhaseInternal(cwd, options.phase);
-  if (!phaseInfo || !phaseInfo.found) { output({ error: 'Phase not found', phase: options.phase } as TemplateFillResult, raw); return; }
+  if (!phaseInfo || !phaseInfo.found) { output({ error: 'Phase not found', phase: options.phase } as unknown as Record<string, unknown>, raw); return; }
 
   const padded = normalizePhaseName(options.phase);
   const today = new Date().toISOString().split('T')[0];
@@ -259,11 +259,11 @@ export function cmdTemplateFill(cwd: string, templateType: string, options: Temp
   const outPath = path.join(cwd, phaseInfo.directory, fileName);
 
   if (fs.existsSync(outPath)) {
-    output({ error: 'File already exists', path: toPosixPath(path.relative(cwd, outPath)) } as TemplateFillResult, raw);
+    output({ error: 'File already exists', path: toPosixPath(path.relative(cwd, outPath)) } as unknown as Record<string, unknown>, raw);
     return;
   }
 
   safePlanningWriteSync(outPath, fullContent);
   const relPath = toPosixPath(path.relative(cwd, outPath));
-  output({ created: true, path: relPath, template: templateType } as TemplateFillResult, raw, relPath);
+  output({ created: true, path: relPath, template: templateType } as unknown as Record<string, unknown>, raw, relPath);
 }

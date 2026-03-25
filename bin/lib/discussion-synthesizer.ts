@@ -90,7 +90,7 @@ export function parseDiscussion(filePath: string): ParseDiscussionResult {
     return {
       found: false,
       filePath,
-      frontmatter: {},
+      frontmatter: { frontmatter: {}, body: '' },
       sections: [],
       consensus: { status: 'open', goNoGo: 'GO', rationale: 'No discussion file — proceeding' },
       blockers: [],
@@ -162,7 +162,7 @@ function parseAgentSections(lines: string[]): AgentSection[] {
       if (currentSection) {
         sections.push({
           agent: currentSection.agent,
-          heading: currentSection.heading,
+          heading: currentSection.heading!,
           content: currentContent.join('\n').trim()
         });
       }
@@ -317,7 +317,7 @@ export function synthesize(discussionPath: string): SynthesizeResult {
     warnings: discussion.warnings,
     consensus: discussion.consensus,
     agentsParticipated,
-    frontmatter: discussion.frontmatter
+    frontmatter: discussion.frontmatter as unknown as Record<string, unknown>
   };
 }
 
@@ -342,7 +342,7 @@ export function checkParticipation(discussionPath: string): ParticipationCheck {
     needsObserver: !populated('observer'),
     needsTechLead: !populated('tech-lead'),
     needsScrumMaster: !populated('scrum-master'),
-    needsRequirements: !populated('requirements')
+    needsRequirements: populated('requirements') ? !populated('requirements') : undefined
   };
 }
 

@@ -10,14 +10,18 @@
  *   ez-agents-update --changelog  # Show changelog
  */
 
-const { execSync } = require('child_process');
-const path = require('path');
+import { execSync } from 'child_process';
+import * as path from 'path';
+import * as fs from 'fs';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const PACKAGE_NAME = 'ez-agents';
 const REPO_URL = 'https://github.com/howlil/ez-agents.git';
 
 // Colors for output
-const colors = {
+const colors: Record<string, string> = {
   reset: '\x1b[0m',
   green: '\x1b[32m',
   yellow: '\x1b[33m',
@@ -26,14 +30,14 @@ const colors = {
   bold: '\x1b[1m'
 };
 
-function log(message, color = 'reset') {
+function log(message: string, color: keyof typeof colors = 'reset'): void {
   console.log(`${colors[color]}${message}${colors.reset}`);
 }
 
 /**
  * Get current installed version
  */
-function getCurrentVersion() {
+function getCurrentVersion(): string {
   try {
     const pkg = require('./package.json');
     return pkg.version;
@@ -45,7 +49,7 @@ function getCurrentVersion() {
 /**
  * Get latest version from npm
  */
-function getLatestVersion() {
+function getLatestVersion(): string | null {
   try {
     const output = execSync(`npm view ${PACKAGE_NAME} version`, {
       encoding: 'utf-8',
@@ -71,58 +75,58 @@ function getLatestVersion() {
 /**
  * Check if update is available
  */
-function checkUpdate() {
+function checkUpdate(): boolean {
   const current = getCurrentVersion();
   const latest = getLatestVersion();
-  
+
   log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'blue');
   log(' EZ Agents Update Check', 'bold');
   log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n', 'blue');
-  
+
   log(`Current version: ${colors.bold}v${current}${colors.reset}`);
-  
+
   if (!latest) {
     log('Unable to check for updates (no network or repo unavailable)', 'yellow');
-    return;
+    return false;
   }
-  
+
   log(`Latest version:  ${colors.bold}v${latest}${colors.reset}\n`);
-  
+
   if (current === latest) {
     log('✓ You are on the latest version!\n', 'green');
     return false;
   }
-  
+
   log(`⚡ Update available: v${current} → v${latest}\n`, 'yellow');
   log('To update, run:\n', 'blue');
   log(`  npm install -g ${PACKAGE_NAME}@latest\n`, 'green');
   log('Or force reinstall:\n', 'blue');
   log(`  ez-agents-update --force\n`, 'green');
-  
+
   return true;
 }
 
 /**
  * Install update
  */
-function installUpdate(force = false) {
+function installUpdate(force = false): void {
   log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'blue');
   log(' EZ Agents Update', 'bold');
   log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n', 'blue');
-  
+
   const current = getCurrentVersion();
   const latest = getLatestVersion();
-  
+
   if (!latest) {
     log('Unable to check for updates', 'red');
     process.exit(1);
   }
-  
+
   if (current === latest && !force) {
     log('Already on latest version', 'green');
     return;
   }
-  
+
   log(`Updating: v${current} → v${latest}...\n`, 'blue');
 
   try {
@@ -145,15 +149,14 @@ function installUpdate(force = false) {
 /**
  * Show changelog
  */
-function showChangelog() {
+function showChangelog(): void {
   log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'blue');
   log(' EZ Agents Changelog', 'bold');
   log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n', 'blue');
-  
+
   try {
-    const fs = require('fs');
     const changelogPath = path.join(__dirname, 'CHANGELOG.md');
-    
+
     if (fs.existsSync(changelogPath)) {
       const content = fs.readFileSync(changelogPath, 'utf-8');
       // Show first 50 lines
@@ -171,7 +174,7 @@ function showChangelog() {
 /**
  * Show help
  */
-function showHelp() {
+function showHelp(): void {
   log(`
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  EZ Agents Update — Check and Install Updates

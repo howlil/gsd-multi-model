@@ -152,8 +152,8 @@ export async function auditExec(
       status: 'error',
       duration,
       error: err instanceof Error ? err.message : 'Unknown',
-      code: (err as NodeJS.ErrnoException).code,
-      signal: (err as NodeJS.ErrnoException & { signal?: string }).signal
+      ...(err instanceof Error && 'code' in err && (err as NodeJS.ErrnoException).code !== undefined ? { code: (err as NodeJS.ErrnoException).code! } : {}),
+      ...(err instanceof Error && 'signal' in err && (err as NodeJS.ErrnoException & { signal?: string }).signal !== undefined ? { signal: (err as NodeJS.ErrnoException & { signal?: string }).signal! } : {})
     };
     writeAudit(errorEntry);
 
@@ -181,7 +181,7 @@ export function getAuditFilePath(): string {
  * @param date - Date string (YYYY-MM-DD)
  * @returns Array of audit entries
  */
-export function readAuditLog(date: string = new Date().toISOString().split('T')[0]): AuditEntry[] {
+export function readAuditLog(date: string = new Date().toISOString().slice(0, 10)): AuditEntry[] {
   const filePath = join(getAuditDir(), `audit-${date}.jsonl`);
 
   if (!existsSync(filePath)) {

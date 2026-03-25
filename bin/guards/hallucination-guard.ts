@@ -305,7 +305,11 @@ export function verifyClaim(claim: string, context = process.cwd()): ClaimVerifi
       return {
         verified: true,
         source: 'package.json',
-        details: packageResult
+        details: {
+          cited: true,
+          citations: [packageResult],
+          uncertainty: false
+        }
       };
     }
 
@@ -314,7 +318,7 @@ export function verifyClaim(claim: string, context = process.cwd()): ClaimVerifi
     return {
       verified: false,
       source: 'context7',
-      details: { message: 'External library verification requires Context7 MCP' } as CitationCheckResult
+      details: { message: 'External library verification requires Context7 MCP' }
     };
   }
 

@@ -73,7 +73,7 @@ const hasAll = args.includes('--all');
 const hasUninstall = args.includes('--uninstall') || args.includes('-u');
 
 // Runtime selection - can be set by flags or interactive prompt
-let selectedRuntimes = [];
+let selectedRuntimes: string[] = [];
 if (hasAll) {
   selectedRuntimes = ['claude', 'opencode', 'gemini', 'codex', 'copilot', 'qwen', 'kimi'];
 } else if (hasBoth) {
@@ -207,7 +207,7 @@ function getOpencodeGlobalDir() {
  * @param {string} runtime - 'claude', 'opencode', 'gemini', 'codex', or 'copilot'
  * @param {string|null} explicitDir - Explicit directory from --config-dir flag
  */
-function getGlobalDir(runtime, explicitDir = null) {
+function getGlobalDir(runtime: string, explicitDir: string | null = null): string {
   if (runtime === 'opencode') {
     // For OpenCode, --config-dir overrides env vars
     if (explicitDir) {
@@ -386,20 +386,20 @@ function writeSettings(settingsPath, settings) {
 }
 
 // Cache for attribution settings (populated once per runtime during install)
-const attributionCache = new Map();
+const attributionCache = new Map<string, null | undefined | string>();
 
 /**
  * Get commit attribution setting for a runtime
  * @param {string} runtime - 'claude', 'opencode', 'gemini', 'codex', or 'copilot'
  * @returns {null|undefined|string} null = remove, undefined = keep default, string = custom
  */
-function getCommitAttribution(runtime) {
+function getCommitAttribution(runtime: string): null | undefined | string {
   // Return cached value if available
   if (attributionCache.has(runtime)) {
     return attributionCache.get(runtime);
   }
 
-  let result;
+  let result: null | undefined | string;
 
   if (runtime === 'opencode') {
     const config = readSettings(path.join(getGlobalDir('opencode', null), 'opencode.json'));
@@ -440,7 +440,7 @@ function getCommitAttribution(runtime) {
  * @param {null|undefined|string} attribution - null=remove, undefined=keep, string=replace
  * @returns {string} Processed content
  */
-function processAttribution(content, attribution) {
+function processAttribution(content: string, attribution: null | undefined | string): string {
   if (attribution === null) {
     // Remove Co-Authored-By lines and the preceding blank line
     return content.replace(/(\r?\n){2}Co-Authored-By:.*$/gim, '');
@@ -947,8 +947,8 @@ function mergeCodexConfig(configPath, EZ_AgentsBlock) {
   fs.writeFileSync(configPath, content);
 }
 
-function findCopilotInstructionsMarkerPair(content) {
-  const markerPairs = [
+function findCopilotInstructionsMarkerPair(content: string): { openIndex: number; closeIndex: number; closeMarker: string } | null {
+  const markerPairs: [string, string][] = [
     [EZ_COPILOT_INSTRUCTIONS_MARKER, EZ_COPILOT_INSTRUCTIONS_CLOSE_MARKER],
     [LEGACY_EZ_COPILOT_INSTRUCTIONS_MARKER, LEGACY_EZ_COPILOT_INSTRUCTIONS_CLOSE_MARKER],
   ];
@@ -1027,13 +1027,13 @@ function stripEzAgentsFromCopilotInstructions(content) {
  * Generate config.toml and per-agent .toml files for Codex.
  * Reads agent .md files from source, extracts metadata, writes .toml configs.
  */
-function installCodexConfig(targetDir, agentsSrc) {
+function installCodexConfig(targetDir: string, agentsSrc: string): number {
   const configPath = path.join(targetDir, 'config.toml');
   const agentsTomlDir = path.join(targetDir, 'agents');
   fs.mkdirSync(agentsTomlDir, { recursive: true });
 
   const agentEntries = fs.readdirSync(agentsSrc).filter(f => f.startsWith('ez-') && f.endsWith('.md'));
-  const agents = [];
+  const agents: Array<{ name: string; description: string }> = [];
 
   // Compute the Codex pathPrefix for replacing .claude paths
   // Use tilde-based path to avoid baking absolute paths into templates
@@ -1079,7 +1079,7 @@ function stripSubTags(content) {
  * - skills: must be removed (causes validation error)
  * - mcp__* tools: must be excluded (auto-discovered at runtime)
  */
-function convertClaudeToGeminiAgent(content) {
+function convertClaudeToGeminiAgent(content: string): string {
   if (!content.startsWith('---')) return content;
 
   const endIndex = content.indexOf('---', 3);
@@ -1089,10 +1089,10 @@ function convertClaudeToGeminiAgent(content) {
   const body = content.substring(endIndex + 3);
 
   const lines = frontmatter.split('\n');
-  const newLines = [];
+  const newLines: string[] = [];
   let inAllowedTools = false;
   let inSkippedArrayField = false;
-  const tools = [];
+  const tools: string[] = [];
 
   for (const line of lines) {
     const trimmed = line.trim();
@@ -1172,7 +1172,7 @@ function convertClaudeToGeminiAgent(content) {
   return `---\n${newFrontmatter}\n---${stripSubTags(escapedBody)}`;
 }
 
-function convertClaudeToOpencodeFrontmatter(content) {
+function convertClaudeToOpencodeFrontmatter(content: string): string {
   // Replace tool name references in content (applies to all files)
   let convertedContent = content;
   convertedContent = convertedContent.replace(/\bAskUserQuestion\b/g, 'question');
@@ -1202,9 +1202,9 @@ function convertClaudeToOpencodeFrontmatter(content) {
 
   // Parse frontmatter line by line (simple YAML parsing)
   const lines = frontmatter.split('\n');
-  const newLines = [];
+  const newLines: string[] = [];
   let inAllowedTools = false;
-  const allowedTools = [];
+  const allowedTools: string[] = [];
 
   for (const line of lines) {
     const trimmed = line.trim();
@@ -2231,7 +2231,7 @@ function configureOpencodePermissions(isGlobal = true) {
   fs.mkdirSync(opencodeConfigDir, { recursive: true });
 
   // Read existing config or create empty object
-  let config = {};
+  let config: Record<string, unknown> = {};
   if (fs.existsSync(configPath)) {
     try {
       const content = fs.readFileSync(configPath, 'utf8');
@@ -2239,7 +2239,7 @@ function configureOpencodePermissions(isGlobal = true) {
     } catch (e) {
       // Cannot parse - DO NOT overwrite user's config
       console.log(`  ${yellow}⚠${reset} Could not parse opencode.json - skipping permission config`);
-      console.log(`    ${dim}Reason: ${e.message}${reset}`);
+      console.log(`    ${dim}Reason: ${(e as Error).message}${reset}`);
       console.log(`    ${dim}Your config was NOT modified. Fix the syntax manually if needed.${reset}`);
       return;
     }
@@ -2260,20 +2260,24 @@ function configureOpencodePermissions(isGlobal = true) {
   let modified = false;
 
   // Configure read permission
-  if (!config.permission.read || typeof config.permission.read !== 'object') {
-    config.permission.read = {};
+  const permission = config.permission as Record<string, unknown> || {};
+  config.permission = permission;
+  if (!permission.read || typeof permission.read !== 'object') {
+    permission.read = {};
   }
-  if (config.permission.read[ezPath] !== 'allow') {
-    config.permission.read[ezPath] = 'allow';
+  const readPerm = permission.read as Record<string, unknown>;
+  if (readPerm[ezPath] !== 'allow') {
+    readPerm[ezPath] = 'allow';
     modified = true;
   }
 
   // Configure external_directory permission (the safety guard for paths outside project)
-  if (!config.permission.external_directory || typeof config.permission.external_directory !== 'object') {
-    config.permission.external_directory = {};
+  if (!permission.external_directory || typeof permission.external_directory !== 'object') {
+    permission.external_directory = {};
   }
-  if (config.permission.external_directory[ezPath] !== 'allow') {
-    config.permission.external_directory[ezPath] = 'allow';
+  const extDirPerm = permission.external_directory as Record<string, unknown>;
+  if (extDirPerm[ezPath] !== 'allow') {
+    extDirPerm[ezPath] = 'allow';
     modified = true;
   }
 
@@ -2301,7 +2305,7 @@ function verifyInstalled(dirPath, description) {
       return false;
     }
   } catch (e) {
-    console.error(`  ${yellow}✗${reset} Failed to install ${description}: ${e.message}`);
+    console.error(`  ${yellow}✗${reset} Failed to install ${description}: ${(e as Error).message}`);
     return false;
   }
   return true;
@@ -2342,9 +2346,9 @@ function fileHash(filePath) {
 /**
  * Recursively collect all files in dir with their hashes
  */
-function generateManifest(dir, baseDir) {
+function generateManifest(dir: string, baseDir?: string): Record<string, string> {
   if (!baseDir) baseDir = dir;
-  const manifest = {};
+  const manifest: Record<string, string> = {};
   if (!fs.existsSync(dir)) return manifest;
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   for (const entry of entries) {
@@ -2362,7 +2366,7 @@ function generateManifest(dir, baseDir) {
 /**
  * Write file manifest after installation for future modification detection
  */
-function writeManifest(configDir, runtime = 'claude') {
+function writeManifest(configDir: string, runtime = 'claude') {
   const isOpencode = runtime === 'opencode';
   const isCodex = runtime === 'codex';
   const isCopilot = runtime === 'copilot';
@@ -2371,7 +2375,7 @@ function writeManifest(configDir, runtime = 'claude') {
   const opencodeCommandDir = path.join(configDir, 'command');
   const codexSkillsDir = path.join(configDir, 'skills');
   const agentsDir = path.join(configDir, 'agents');
-  const manifest = { version: pkg.version, timestamp: new Date().toISOString(), files: {} };
+  const manifest = { version: pkg.version, timestamp: new Date().toISOString(), files: {} as Record<string, string> };
 
   const ezHashes = generateManifest(ezDir);
   for (const [rel, hash] of Object.entries(ezHashes)) {
@@ -2423,7 +2427,7 @@ function saveLocalPatches(configDir) {
   try { manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')); } catch { return []; }
 
   const patchesDir = path.join(configDir, PATCHES_DIR_NAME);
-  const modified = [];
+  const modified: string[] = [];
 
   for (const [relPath, originalHash] of Object.entries(manifest.files || {})) {
     const fullPath = path.join(configDir, relPath);
@@ -2483,7 +2487,7 @@ function reportLocalPatches(configDir, runtime = 'claude') {
   return meta.files || [];
 }
 
-function install(isGlobal, runtime = 'claude') {
+function install(isGlobal: boolean, runtime = 'claude'): { settingsPath: string | null; settings: Record<string, unknown> | null; statuslineCommand: string | null; runtime: string } {
   const isOpencode = runtime === 'opencode';
   const isGemini = runtime === 'gemini';
   const isCodex = runtime === 'codex';
@@ -2521,7 +2525,7 @@ function install(isGlobal, runtime = 'claude') {
   console.log(`  Installing for ${cyan}${runtimeLabel}${reset} to ${cyan}${locationLabel}${reset}\n`);
 
   // Track installation failures
-  const failures = [];
+  const failures: string[] = [];
 
   // Save any locally modified EZ_Agents files before they get wiped
   saveLocalPatches(targetDir);
@@ -2745,8 +2749,8 @@ function install(isGlobal, runtime = 'claude') {
 
   // Verify no leaked .claude paths in non-Claude runtimes
   if (runtime !== 'claude') {
-    const leakedPaths = [];
-    function scanForLeakedPaths(dir) {
+    const leakedPaths: Array<{ file: string; count: number }> = [];
+    function scanForLeakedPaths(dir: string) {
       if (!fs.existsSync(dir)) return;
       const entries = fs.readdirSync(dir, { withFileTypes: true });
       for (const entry of entries) {
@@ -3080,8 +3084,8 @@ function promptLocation(runtimes) {
 /**
  * Install EZ_Agents for all selected runtimes
  */
-function installAllRuntimes(runtimes, isGlobal, isInteractive) {
-  const results = [];
+function installAllRuntimes(runtimes: string[], isGlobal: boolean, isInteractive: boolean) {
+  const results: Array<{ settingsPath: string | null; settings: Record<string, unknown> | null; statuslineCommand: string | null; runtime: string }> = [];
 
   for (const runtime of runtimes) {
     const result = install(isGlobal, runtime);
@@ -3093,7 +3097,7 @@ function installAllRuntimes(runtimes, isGlobal, isInteractive) {
 
   // Handle statusline per-runtime to avoid conflicts
   // Each runtime with settings.json gets its own statusline prompt
-  const finalizePerRuntime = (runtimeResult, shouldInstallStatusline) => {
+  const finalizePerRuntime = (runtimeResult: { settingsPath: string | null; settings: Record<string, unknown> | null; statuslineCommand: string | null; runtime: string }, shouldInstallStatusline: boolean) => {
     const useStatusline = statuslineRuntimes.includes(runtimeResult.runtime) && shouldInstallStatusline;
     finishInstall(
       runtimeResult.settingsPath,
@@ -3113,15 +3117,17 @@ function installAllRuntimes(runtimes, isGlobal, isInteractive) {
   } else if (statuslineResults.length === 1) {
     // Single runtime with statusline support - prompt once
     const singleResult = statuslineResults[0];
-    handleStatusline(singleResult.settings, isInteractive, (shouldInstall) => {
-      finalizePerRuntime(singleResult, shouldInstall);
-      // Finalize other runtimes without statusline
-      for (const result of results) {
-        if (!statuslineRuntimes.includes(result.runtime)) {
-          finalizePerRuntime(result, false);
+    if (singleResult) {
+      handleStatusline(singleResult.settings, isInteractive, (shouldInstall) => {
+        finalizePerRuntime(singleResult, shouldInstall);
+        // Finalize other runtimes without statusline
+        for (const result of results) {
+          if (!statuslineRuntimes.includes(result.runtime)) {
+            finalizePerRuntime(result, false);
+          }
         }
-      }
-    });
+      });
+    }
   } else {
     // Multiple runtimes with statusline support - prompt for each
     let currentIndex = 0;
@@ -3132,6 +3138,7 @@ function installAllRuntimes(runtimes, isGlobal, isInteractive) {
         // All statusline prompts done - finalize all runtimes
         for (let i = 0; i < results.length; i++) {
           const result = results[i];
+          if (!result) continue;
           const statuslineIndex = statuslineResults.findIndex(r => r.runtime === result.runtime);
           const shouldInstall = statuslineIndex !== -1 ? statuslineChoices[statuslineIndex] : false;
           finalizePerRuntime(result, shouldInstall);
@@ -3140,12 +3147,14 @@ function installAllRuntimes(runtimes, isGlobal, isInteractive) {
       }
 
       const currentResult = statuslineResults[currentIndex];
-      const currentRuntimeIndex = currentIndex;
-      handleStatusline(currentResult.settings, isInteractive, (shouldInstall) => {
-        statuslineChoices[currentRuntimeIndex] = shouldInstall;
-        currentIndex++;
-        promptNextStatusline();
-      });
+      if (currentResult) {
+        const currentRuntimeIndex = currentIndex;
+        handleStatusline(currentResult.settings, isInteractive, (shouldInstall) => {
+          statuslineChoices[currentRuntimeIndex] = shouldInstall;
+          currentIndex++;
+          promptNextStatusline();
+        });
+      }
     };
 
     promptNextStatusline();

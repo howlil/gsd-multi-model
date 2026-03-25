@@ -17,7 +17,7 @@ import * as fs from 'fs';
 import { defaultLogger as logger } from './logger.js';
 
 // Try to load proper-lockfile, fallback to simple implementation
-let properLockfile: any = null;
+let properLockfile: unknown = null;
 try {
   properLockfile = require('proper-lockfile');
 } catch (err) {

@@ -153,7 +153,7 @@ export async function cmdVerifySummary(cwd: string, summaryPath: string, checkFi
       },
       errors: ['SUMMARY.md not found'],
     };
-    output(result, raw, 'failed');
+    output(result as unknown as Record<string, unknown>, raw, 'failed');
     return;
   }
 
@@ -226,7 +226,7 @@ export async function cmdVerifySummary(cwd: string, summaryPath: string, checkFi
 
   const passed = missing.length === 0 && selfCheck !== 'failed';
   const result: VerifySummaryResult = { passed, checks, errors };
-  output(result, raw, passed ? 'passed' : 'failed');
+  output(result as unknown as Record<string, unknown>, raw, passed ? 'passed' : 'failed');
 }
 
 /**
@@ -256,9 +256,9 @@ export function cmdVerifyPlanStructure(cwd: string, filePath: string, raw?: bool
   const tasks: Array<{ name: string; hasFiles: boolean; hasAction: boolean; hasVerify: boolean; hasDone: boolean }> = [];
   let taskMatch: RegExpExecArray | null;
   while ((taskMatch = taskPattern.exec(content)) !== null) {
-    const taskContent = taskMatch[1];
+    const taskContent = taskMatch[1] || '';
     const nameMatch = taskContent.match(/<name>([\s\S]*?)<\/name>/);
-    const taskName = nameMatch ? nameMatch[1].trim() : 'unnamed';
+    const taskName = nameMatch ? nameMatch[1]!.trim() : 'unnamed';
     const hasFiles = /<files>/.test(taskContent);
     const hasAction = /<action>/.test(taskContent);
     const hasVerify = /<verify>/.test(taskContent);
@@ -480,14 +480,15 @@ export function cmdVerifyArtifacts(cwd: string, planFilePath: string, raw?: bool
       const fileContent = safeReadFile(artFullPath) || '';
       const lineCount = fileContent.split('\n').length;
 
-      if ((artifact as Record<string, unknown>).min_lines && lineCount < (artifact as Record<string, unknown>).min_lines) {
-        check.issues.push(`Only ${lineCount} lines, need ${(artifact as Record<string, unknown>).min_lines}`);
+      const artifactObj = artifact as Record<string, unknown>;
+      if (artifactObj.min_lines && lineCount < (artifactObj.min_lines as number)) {
+        check.issues.push(`Only ${lineCount} lines, need ${artifactObj.min_lines}`);
       }
-      if ((artifact as Record<string, unknown>).contains && !fileContent.includes((artifact as Record<string, unknown>).contains as string)) {
-        check.issues.push(`Missing pattern: ${(artifact as Record<string, unknown>).contains}`);
+      if (artifactObj.contains && !fileContent.includes(artifactObj.contains as string)) {
+        check.issues.push(`Missing pattern: ${artifactObj.contains}`);
       }
-      if ((artifact as Record<string, unknown>).exports) {
-        const exports = Array.isArray((artifact as Record<string, unknown>).exports) ? (artifact as Record<string, unknown>).exports as string[] : [(artifact as Record<string, unknown>).exports as string];
+      if (artifactObj.exports) {
+        const exports = Array.isArray(artifactObj.exports) ? artifactObj.exports as string[] : [artifactObj.exports as string];
         for (const exp of exports) {
           if (!fileContent.includes(exp)) check.issues.push(`Missing export: ${exp}`);
         }
@@ -531,7 +532,7 @@ export function cmdVerifyKeyLinks(cwd: string, planFilePath: string, raw?: boole
   for (const link of keyLinks) {
     if (typeof link === 'string') continue;
     const linkObj = link as Record<string, string>;
-    const check: KeyLinkCheck = { from: linkObj.from, to: linkObj.to, via: linkObj.via || '', verified: false, detail: '' };
+    const check: KeyLinkCheck = { from: linkObj.from || '', to: linkObj.to || '', via: linkObj.via || '', verified: false, detail: '' };
 
     const sourceContent = safeReadFile(path.join(cwd, linkObj.from || ''));
     if (!sourceContent) {
@@ -602,7 +603,7 @@ export function cmdValidateConsistency(cwd: string, raw?: boolean): void {
   const phasePattern = /#{2,4}\s*Phase\s+(\d+[A-Z]?(?:\.\d+)*)\s*:/gi;
   let m: RegExpExecArray | null;
   while ((m = phasePattern.exec(roadmapContent)) !== null) {
-    roadmapPhases.add(m[1]);
+    roadmapPhases.add(m[1]!);
   }
 
   // Get phases on disk
@@ -612,7 +613,7 @@ export function cmdValidateConsistency(cwd: string, raw?: boolean): void {
     const dirs = entries.filter(e => e.isDirectory()).map(e => e.name);
     for (const dir of dirs) {
       const dm = dir.match(/^(\d+[A-Z]?(?:\.\d+)*)/i);
-      if (dm) diskPhases.add(dm[1]);
+      if (dm) diskPhases.add(dm[1]!);
     }
   } catch (err) {
     logger.warn('Failed to enumerate phase directories while validating consistency', { phasesDir, error: (err as Error).message });
@@ -640,7 +641,7 @@ export function cmdValidateConsistency(cwd: string, raw?: boolean): void {
     .sort((a, b) => a - b);
 
   for (let i = 1; i < integerPhases.length; i++) {
-    if (integerPhases[i] !== integerPhases[i - 1] + 1) {
+    if (integerPhases[i]! !== integerPhases[i - 1]! + 1) {
       warnings.push(`Gap in phase numbering: ${integerPhases[i - 1]} → ${integerPhases[i]}`);
     }
   }
@@ -657,11 +658,11 @@ export function cmdValidateConsistency(cwd: string, raw?: boolean): void {
       // Extract plan numbers
       const planNums = plans.map(p => {
         const pm = p.match(/-(\d{2})-PLAN\.md$/);
-        return pm ? parseInt(pm[1], 10) : null;
+        return pm ? parseInt(pm[1]!, 10) : null;
       }).filter((n): n is number => n !== null);
 
       for (let i = 1; i < planNums.length; i++) {
-        if (planNums[i] !== planNums[i - 1] + 1) {
+        if (planNums[i]! !== planNums[i - 1]! + 1) {
           warnings.push(`Gap in plan numbering in ${dir}: plan ${planNums[i - 1]} → ${planNums[i]}`);
         }
       }
@@ -773,7 +774,7 @@ export function cmdValidateHealth(cwd: string, options: HealthOptions = {}, raw?
   } else {
     const stateContent = fs.readFileSync(statePath, 'utf-8');
     // Extract phase references from STATE.md
-    const phaseRefs = [...stateContent.matchAll(/[Pp]hase\s+(\d+(?:\.\d+)*)/g)].map(m => m[1]);
+    const phaseRefs = [...stateContent.matchAll(/[Pp]hase\s+(\d+(?:\.\d+)*)/g)].map(m => m[1]!);
     // Get disk phases
     const diskPhases = new Set<string>();
     try {
@@ -781,7 +782,7 @@ export function cmdValidateHealth(cwd: string, options: HealthOptions = {}, raw?
       for (const e of entries) {
         if (e.isDirectory()) {
           const m = e.name.match(/^(\d+(?:\.\d+)*)/);
-          if (m) diskPhases.add(m[1]);
+          if (m) diskPhases.add(m[1]!);
         }
       }
     } catch (err) {
@@ -789,8 +790,8 @@ export function cmdValidateHealth(cwd: string, options: HealthOptions = {}, raw?
     }
     // Check for invalid references
     for (const ref of phaseRefs) {
-      const normalizedRef = String(parseInt(ref, 10)).padStart(2, '0');
-      if (!diskPhases.has(ref) && !diskPhases.has(normalizedRef) && !diskPhases.has(String(parseInt(ref, 10)))) {
+      const normalizedRef = String(parseInt(ref!, 10)).padStart(2, '0');
+      if (!diskPhases.has(ref) && !diskPhases.has(normalizedRef) && !diskPhases.has(String(parseInt(ref!, 10)))) {
         // Only warn if phases dir has any content (not just an empty project)
         if (diskPhases.size > 0) {
           addIssue('warning', 'W002', `STATE.md references phase ${ref}, but only phases ${[...diskPhases].sort().join(', ')} exist`, 'Run /ez:health --repair to regenerate STATE.md', true);
@@ -897,7 +898,7 @@ export function cmdValidateHealth(cwd: string, options: HealthOptions = {}, raw?
     const phasePattern = /#{2,4}\s*Phase\s+(\d+[A-Z]?(?:\.\d+)*)\s*:/gi;
     let m: RegExpExecArray | null;
     while ((m = phasePattern.exec(roadmapContent)) !== null) {
-      roadmapPhases.add(m[1]);
+      roadmapPhases.add(m[1]!);
     }
 
     const diskPhases = new Set<string>();
@@ -906,7 +907,7 @@ export function cmdValidateHealth(cwd: string, options: HealthOptions = {}, raw?
       for (const e of entries) {
         if (e.isDirectory()) {
           const dm = e.name.match(/^(\d+[A-Z]?(?:\.\d+)*)/i);
-          if (dm) diskPhases.add(dm[1]);
+          if (dm) diskPhases.add(dm[1]!);
         }
       }
     } catch (err) {
@@ -971,7 +972,7 @@ export function cmdValidateHealth(cwd: string, options: HealthOptions = {}, raw?
             stateContent += `**Status:** Resuming\n\n`;
             stateContent += `## Session Log\n\n`;
             stateContent += `- ${new Date().toISOString().split('T')[0]}: STATE.md regenerated by /ez:health --repair\n`;
-            writeStateMd(statePath, stateContent, cwd);
+            writeStateMd(statePath, stateContent);
             repairActions.push({ action: repair, success: true, path: 'STATE.md' });
             break;
           }

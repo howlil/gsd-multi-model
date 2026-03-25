@@ -19,7 +19,7 @@
 import fs from 'fs';
 import path from 'path';
 import { withLock } from './file-lock.js';
-import { Logger } from './logger.js';
+import Logger from './logger.js';
 
 // ─── Type Definitions ────────────────────────────────────────────────────────
 
@@ -37,6 +37,8 @@ export interface AgentState {
   state: CircuitState;
   failures: number;
   successes: number;
+  failureThreshold: number;
+  resetTimeout: number;
   lastFailureTime: number | null;
   lastStateChange: string;
 }
@@ -189,7 +191,7 @@ export class CircuitBreaker {
     };
 
     try {
-      let metrics: { events: any[] } = { events: [] };
+      let metrics: { events: Record<string, unknown>[] } = { events: [] };
       if (fs.existsSync(metricsPath)) {
         try {
           metrics = JSON.parse(fs.readFileSync(metricsPath, 'utf8'));

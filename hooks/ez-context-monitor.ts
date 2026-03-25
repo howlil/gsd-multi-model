@@ -15,16 +15,34 @@
 //   CRITICAL (remaining <= 25%): Agent should stop immediately and save state
 //
 // Debounce: 5 tool uses between warnings to avoid spam
-// Severity escalation bypasses debounce (WARNING -> CRITICAL fires immediately)
 
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 
 const WARNING_THRESHOLD = 35;  // remaining_percentage <= 35%
 const CRITICAL_THRESHOLD = 25; // remaining_percentage <= 25%
 const STALE_SECONDS = 60;      // ignore metrics older than 60s
 const DEBOUNCE_CALLS = 5;      // min tool uses between warnings
+
+interface ContextMetrics {
+  session_id: string;
+  remaining_percentage: number;
+  used_pct: number;
+  timestamp: number;
+}
+
+interface WarnData {
+  callsSinceWarn: number;
+  lastLevel: string | null;
+}
+
+interface HookOutput {
+  hookSpecificOutput: {
+    hookEventName: string;
+    additionalContext: string;
+  };
+}
 
 let input = '';
 // Timeout guard: if stdin doesn't close within 3s (e.g. pipe issues on
@@ -51,7 +69,7 @@ process.stdin.on('end', () => {
       process.exit(0);
     }
 
-    const metrics = JSON.parse(fs.readFileSync(metricsPath, 'utf8'));
+    const metrics: ContextMetrics = JSON.parse(fs.readFileSync(metricsPath, 'utf8'));
     const now = Math.floor(Date.now() / 1000);
 
     // Ignore stale metrics
@@ -69,14 +87,14 @@ process.stdin.on('end', () => {
 
     // Debounce: check if we warned recently
     const warnPath = path.join(tmpDir, `claude-ctx-${sessionId}-warned.json`);
-    let warnData = { callsSinceWarn: 0, lastLevel: null };
+    let warnData: WarnData = { callsSinceWarn: 0, lastLevel: null };
     let firstWarn = true;
 
     if (fs.existsSync(warnPath)) {
       try {
         warnData = JSON.parse(fs.readFileSync(warnPath, 'utf8'));
         firstWarn = false;
-      } catch (e) {
+      } catch {
         // Corrupted file, reset
       }
     }
@@ -106,7 +124,7 @@ process.stdin.on('end', () => {
 
     // Build advisory warning message (never use imperative commands that
     // override user preferences — see #884)
-    let message;
+    let message: string;
     if (isCritical) {
       message = isEzActive
         ? `CONTEXT CRITICAL: Usage at ${usedPct}%. Remaining: ${remaining}%. ` +
@@ -133,7 +151,7 @@ process.stdin.on('end', () => {
                               !process.env.GEMINI_API_KEY.toLowerCase().includes('your-key') &&
                               !process.env.GEMINI_API_KEY.toLowerCase().includes('placeholder');
 
-    const output = {
+    const output: HookOutput = {
       hookSpecificOutput: {
         hookEventName: hasValidGeminiKey ? "AfterTool" : "PostToolUse",
         additionalContext: message
@@ -141,7 +159,7 @@ process.stdin.on('end', () => {
     };
 
     process.stdout.write(JSON.stringify(output));
-  } catch (e) {
+  } catch {
     // Silent fail -- never block tool execution
     process.exit(0);
   }

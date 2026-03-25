@@ -119,7 +119,7 @@ export class ArchetypeDetector {
    * @param flows - Flows from BusinessFlowMapper
    * @returns Archetype detection result with name, confidence, evidence
    */
-  detect(structure: any = {}, stack: any = {}, flows: any = {}): ArchetypeResult {
+  detect(structure: Record<string, unknown> = {}, stack: Record<string, unknown> = {}, flows: Record<string, unknown> = {}): ArchetypeResult {
     const scores: ArchetypeScores = {};
     const evidence: ArchetypeEvidence = {};
 
@@ -130,28 +130,28 @@ export class ArchetypeDetector {
     }
 
     // Score based on file names
-    const files = structure.files || [];
+    const files = (structure.files as string[]) || [];
     for (const file of files) {
       const fileName = path.basename(file);
       this.scoreByFileName(fileName, scores, evidence);
     }
 
     // Score based on directory names
-    const directories = structure.directories || [];
+    const directories = (structure.directories as Array<{ path: string }>) || [];
     for (const dir of directories) {
       const dirName = path.basename(dir.path);
       this.scoreByDirectoryName(dirName, scores, evidence);
     }
 
     // Score based on routes
-    const routes = flows.routes || [];
+    const routes = (flows.routes as Array<{ path: string }>) || [];
     for (const route of routes) {
       this.scoreByRoute(route.path, scores, evidence);
     }
 
     // Score based on dependencies
-    const frameworks = stack.frameworks || [];
-    const infrastructure = stack.infrastructure || [];
+    const frameworks = (stack.frameworks as string[]) || [];
+    const infrastructure = (stack.infrastructure as string[]) || [];
     const allDeps = [...frameworks, ...infrastructure];
     this.scoreByDependencies(allDeps, scores, evidence);
 
@@ -173,7 +173,7 @@ export class ArchetypeDetector {
       confidence: confidence.score,
       confidenceLevel: confidence.level,
       scores,
-      evidence: evidence[bestArchetype],
+      evidence: evidence[bestArchetype] || [],
       allEvidence: evidence
     };
   }
@@ -226,11 +226,14 @@ export class ArchetypeDetector {
       for (const pattern of config.patterns) {
         if (nameWithoutExt.toLowerCase().includes(pattern.toLowerCase())) {
           scores[archetype] += 1;
-          evidence[archetype].push({
-            type: 'file',
-            value: fileName,
-            pattern
-          });
+          const archetypeEvidence = evidence[archetype];
+          if (archetypeEvidence) {
+            archetypeEvidence.push({
+              type: 'file',
+              value: fileName,
+              pattern
+            });
+          }
           break; // Don't double-count same file
         }
       }
@@ -245,11 +248,14 @@ export class ArchetypeDetector {
       for (const pattern of config.patterns) {
         if (dirName.toLowerCase().includes(pattern.toLowerCase())) {
           scores[archetype] += 2; // Directories are stronger signals
-          evidence[archetype].push({
-            type: 'directory',
-            value: dirName,
-            pattern
-          });
+          const archetypeEvidence = evidence[archetype];
+          if (archetypeEvidence) {
+            archetypeEvidence.push({
+              type: 'directory',
+              value: dirName,
+              pattern
+            });
+          }
           break;
         }
       }
@@ -264,11 +270,14 @@ export class ArchetypeDetector {
       for (const routePattern of config.routes) {
         if (routePath.toLowerCase().includes(routePattern.toLowerCase())) {
           scores[archetype] += 2;
-          evidence[archetype].push({
-            type: 'route',
-            value: routePath,
-            pattern: routePattern
-          });
+          const archetypeEvidence = evidence[archetype];
+          if (archetypeEvidence) {
+            archetypeEvidence.push({
+              type: 'route',
+              value: routePath,
+              pattern: routePattern
+            });
+          }
           break;
         }
       }
@@ -284,11 +293,14 @@ export class ArchetypeDetector {
         for (const dep of dependencies) {
           if (dep.toLowerCase().includes(depPattern.toLowerCase())) {
             scores[archetype] += 3; // Dependencies are strong signals
-            evidence[archetype].push({
-              type: 'dependency',
-              value: dep,
-              pattern: depPattern
-            });
+            const archetypeEvidence = evidence[archetype];
+            if (archetypeEvidence) {
+              archetypeEvidence.push({
+                type: 'dependency',
+                value: dep,
+                pattern: depPattern
+              });
+            }
             break;
           }
         }

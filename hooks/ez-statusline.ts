@@ -2,9 +2,35 @@
 // Claude Code Statusline - EZ Agents Edition
 // Shows: model | current task | directory | context usage
 
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
+
+interface StatuslineInput {
+  model?: {
+    display_name: string;
+  };
+  workspace?: {
+    current_dir: string;
+  };
+  session_id?: string;
+  context_window?: {
+    remaining_percentage?: number;
+  };
+  cwd?: string;
+}
+
+interface TodoEntry {
+  status: string;
+  activeForm?: string;
+}
+
+interface ContextBridgeData {
+  session_id: string;
+  remaining_percentage: number;
+  used_pct: number;
+  timestamp: number;
+}
 
 // Read JSON from stdin
 let input = '';
@@ -16,7 +42,7 @@ process.stdin.on('data', chunk => input += chunk);
 process.stdin.on('end', () => {
   clearTimeout(stdinTimeout);
   try {
-    const data = JSON.parse(input);
+    const data: StatuslineInput = JSON.parse(input);
     const model = data.model?.display_name || 'Claude';
     const dir = data.workspace?.current_dir || process.cwd();
     const session = data.session_id || '';
@@ -37,14 +63,14 @@ process.stdin.on('end', () => {
       if (session) {
         try {
           const bridgePath = path.join(os.tmpdir(), `claude-ctx-${session}.json`);
-          const bridgeData = JSON.stringify({
+          const bridgeData: ContextBridgeData = {
             session_id: session,
             remaining_percentage: remaining,
             used_pct: used,
             timestamp: Math.floor(Date.now() / 1000)
-          });
-          fs.writeFileSync(bridgePath, bridgeData);
-        } catch (e) {
+          };
+          fs.writeFileSync(bridgePath, JSON.stringify(bridgeData));
+        } catch {
           // Silent fail -- bridge is best-effort, don't break statusline
         }
       }
@@ -76,16 +102,18 @@ process.stdin.on('end', () => {
         const files = fs.readdirSync(todosDir)
           .filter(f => f.startsWith(session) && f.includes('-agent-') && f.endsWith('.json'))
           .map(f => ({ name: f, mtime: fs.statSync(path.join(todosDir, f)).mtime }))
-          .sort((a, b) => b.mtime - a.mtime);
+          .sort((a, b) => b.mtime.getTime() - a.mtime.getTime());
 
         if (files.length > 0) {
           try {
-            const todos = JSON.parse(fs.readFileSync(path.join(todosDir, files[0].name), 'utf8'));
+            const todos: TodoEntry[] = JSON.parse(fs.readFileSync(path.join(todosDir, files[0]?.name), 'utf8'));
             const inProgress = todos.find(t => t.status === 'in_progress');
             if (inProgress) task = inProgress.activeForm || '';
-          } catch (e) {}
+          } catch {
+            // Silent fail on file parse errors
+          }
         }
-      } catch (e) {
+      } catch {
         // Silently fail on file system errors - don't break statusline
       }
     }
@@ -95,11 +123,13 @@ process.stdin.on('end', () => {
     const cacheFile = path.join(claudeDir, 'cache', 'ez-update-check.json');
     if (fs.existsSync(cacheFile)) {
       try {
-        const cache = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
+        const cache: { update_available: boolean } = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
         if (cache.update_available) {
           ezUpdate = '\x1b[33m⬆ /ez:update\x1b[0m │ ';
         }
-      } catch (e) {}
+      } catch {
+        // Silent fail on cache read errors
+      }
     }
 
     // Output
@@ -109,7 +139,7 @@ process.stdin.on('end', () => {
     } else {
       process.stdout.write(`${ezUpdate}\x1b[2m${model}\x1b[0m │ \x1b[2m${dirname}\x1b[0m${ctx}`);
     }
-  } catch (e) {
+  } catch {
     // Silent fail - don't break statusline on parse errors
   }
 });

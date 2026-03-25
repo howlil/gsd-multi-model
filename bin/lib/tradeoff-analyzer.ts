@@ -15,7 +15,7 @@
  *   const analysis = analyzer.generateAnalysis(options, context);
  */
 
-import { Logger } from './logger.js';
+import Logger from './logger.js';
 
 // ─── Type Definitions ────────────────────────────────────────────────────────
 
@@ -26,7 +26,7 @@ export interface TradeOffOption {
   long_term_implications?: string[];
   context_fit?: string[];
   alignment?: string[];
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface TradeOffContext {
@@ -37,7 +37,7 @@ export interface TradeOffContext {
   user_count?: string;
   compliance?: string;
   implementation_stage?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface ReversibilityResult {

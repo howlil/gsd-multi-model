@@ -169,7 +169,7 @@ function recordBypass(gateId: string, reason: string): void {
     timestamp: new Date().toISOString(),
   };
 
-  let auditTrail: any[] = [];
+  let auditTrail: unknown[] = [];
   try {
     if (fs.existsSync(AUDIT_FILE)) {
       auditTrail = JSON.parse(fs.readFileSync(AUDIT_FILE, 'utf8'));

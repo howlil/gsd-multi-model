@@ -12,7 +12,7 @@ export interface ResourceData {
   cost?: number;
   category?: string;
   utilization?: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface RightsizingRecommendation {
@@ -33,7 +33,7 @@ export interface CostAnalysis {
 
 export interface CostTrend {
   timestamp: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 // ─── FinopsAnalyzer Class ────────────────────────────────────────────────────

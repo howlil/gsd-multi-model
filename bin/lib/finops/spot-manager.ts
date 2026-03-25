@@ -14,7 +14,7 @@ export interface WorkloadCharacteristics {
   stateful?: boolean;
   timeSensitive?: boolean;
   cost?: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface SuitabilityAnalysis {

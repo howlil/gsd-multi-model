@@ -176,7 +176,7 @@ export function roadmapAnalyze(cwd: string, raw?: boolean): void {
       current_phase: currentPhase,
     };
 
-    output(result, raw, JSON.stringify(result, null, 2));
+    output(result as unknown as Record<string, unknown>, raw, JSON.stringify(result, null, 2));
   } catch (e) {
     error('Failed to analyze ROADMAP.md: ' + (e instanceof Error ? e.message : 'Unknown'));
   }

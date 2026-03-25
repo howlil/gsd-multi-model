@@ -233,10 +233,10 @@ export class CodebaseAnalyzer {
             if (content.isFile()) {
               const ext = path.extname(content.name);
               if (['.js', '.ts', '.jsx', '.tsx'].includes(ext)) {
-                structure.directories[structure.directories.length - 1].hasSource = true;
+                structure.directories[structure.directories.length - 1]!.hasSource = true;
               }
               if (content.name.includes('.test.') || content.name.includes('.spec.')) {
-                structure.directories[structure.directories.length - 1].hasTests = true;
+                structure.directories[structure.directories.length - 1]!.hasTests = true;
               }
             }
           }

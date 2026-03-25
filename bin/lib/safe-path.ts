@@ -16,7 +16,7 @@
 
 import * as path from 'path';
 import * as fs from 'fs';
-import { Logger } from './logger.js';
+import Logger from './logger.js';
 
 const logger = new Logger();
 

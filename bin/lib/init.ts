@@ -336,7 +336,7 @@ export function cmdInitExecutePhase(cwd: string, phase: string, raw?: boolean): 
     config_path: '.planning/config.json',
   };
 
-  output(result, raw);
+  output(result as unknown as Record<string, unknown>, raw);
 }
 
 /**
@@ -423,7 +423,7 @@ export function cmdInitPlanPhase(cwd: string, phase: string, raw?: boolean): voi
     }
   }
 
-  output(result, raw);
+  output(result as unknown as Record<string, unknown>, raw);
 }
 
 /**
@@ -509,7 +509,7 @@ export async function cmdInitNewProject(cwd: string, raw?: boolean): Promise<voi
     project_path: '.planning/PROJECT.md',
   };
 
-  output(result, raw);
+  output(result as unknown as Record<string, unknown>, raw);
 }
 
 /**
@@ -545,7 +545,7 @@ export function cmdInitNewMilestone(cwd: string, raw?: boolean): void {
     state_path: '.planning/STATE.md',
   };
 
-  output(result, raw);
+  output(result as unknown as Record<string, unknown>, raw);
 }
 
 /**
@@ -601,7 +601,7 @@ export function cmdInitQuick(cwd: string, description: string, raw?: boolean): v
 
   };
 
-  output(result, raw);
+  output(result as unknown as Record<string, unknown>, raw);
 }
 
 /**
@@ -640,7 +640,7 @@ export function cmdInitResume(cwd: string, raw?: boolean): void {
     commit_docs: config.commit_docs,
   };
 
-  output(result, raw);
+  output(result as unknown as Record<string, unknown>, raw);
 }
 
 /**
@@ -675,7 +675,7 @@ export function cmdInitVerifyWork(cwd: string, phase: string, raw?: boolean): vo
     has_verification: phaseInfo?.has_verification || false,
   };
 
-  output(result, raw);
+  output(result as unknown as Record<string, unknown>, raw);
 }
 
 /**
@@ -764,7 +764,7 @@ export function cmdInitPhaseOp(cwd: string, phase: string, raw?: boolean): void 
     }
   }
 
-  output(result, raw);
+  output(result as unknown as Record<string, unknown>, raw);
 }
 
 /**
@@ -802,7 +802,7 @@ export function cmdInitTodos(cwd: string, area: string, raw?: boolean): void {
     pending_dir_exists: pathExistsInternal(cwd, '.planning/todos/pending'),
   };
 
-  output(result, raw);
+  output(result as unknown as Record<string, unknown>, raw);
 }
 
 /**
@@ -874,7 +874,7 @@ export function cmdInitMilestoneOp(cwd: string, raw?: boolean): void {
     phases_dir_exists: pathExistsInternal(cwd, '.planning/phases'),
   };
 
-  output(result, raw);
+  output(result as unknown as Record<string, unknown>, raw);
 }
 
 /**
@@ -915,7 +915,7 @@ export function cmdInitMapCodebase(cwd: string, raw?: boolean): void {
     codebase_dir_exists: pathExistsInternal(cwd, '.planning/codebase'),
   };
 
-  output(result, raw);
+  output(result as unknown as Record<string, unknown>, raw);
 }
 
 /**
@@ -1022,5 +1022,5 @@ export function cmdInitProgress(cwd: string, raw?: boolean): void {
     config_path: '.planning/config.json',
   };
 
-  output(result, raw);
+  output(result as unknown as Record<string, unknown>, raw);
 }

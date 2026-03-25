@@ -19,7 +19,7 @@
 import { execFileSync } from 'child_process';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
-import { Logger } from './logger.js';
+import Logger from './logger.js';
 
 // ─── Type Definitions ────────────────────────────────────────────────────────
 

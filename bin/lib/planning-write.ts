@@ -21,16 +21,16 @@ export interface PlanningWriteOptions {
  * @param filePath - File path for context
  * @returns Normalized error
  */
-function normalizeTimeoutError(err: any, filePath: string): Error {
-  if (!err) return err;
-  const message = err.message || '';
+function normalizeTimeoutError(err: unknown, filePath: string): Error {
+  if (!err) return err as Error;
+  const message = (err as Error).message || '';
   if (message.includes('File locked:')) {
-    return err;
+    return err as Error;
   }
-  if (message.includes('timed out') || err.code === 'ELOCKED') {
+  if (message.includes('timed out') || (err as NodeJS.ErrnoException).code === 'ELOCKED') {
     return new Error(`File locked: ${filePath}`);
   }
-  return err;
+  return err as Error;
 }
 
 /**

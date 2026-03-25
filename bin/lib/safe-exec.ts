@@ -10,35 +10,19 @@
  * - Logging all commands for audit
  *
  * Usage:
- *   import { safeExec, safeExecJSON } from './safe-exec.js';
+ *   import { safeExec, safeExecJSON, ALLOWED_COMMANDS } from './safe-exec.js';
  *   const result = await safeExec('git', ['status']);
  */
 
 import { execFile } from 'child_process';
 import { promisify } from 'util';
-import { Logger } from './logger.js';
+import Logger from './logger.js';
 
 const execFileAsync = promisify(execFile);
 const logger = new Logger();
 
-// ─── Type Definitions ────────────────────────────────────────────────────────
-
-export interface ExecOptions {
-  timeout?: number;
-  cwd?: string;
-  encoding?: string;
-  maxBuffer?: number;
-}
-
-export interface AuditOptions extends ExecOptions {
-  context?: string;
-  sensitive?: boolean;
-}
-
-// ─── Constants ───────────────────────────────────────────────────────────────
-
 // Allowlist of safe commands (expanded for common development operations)
-const ALLOWED_COMMANDS = new Set([
+export const ALLOWED_COMMANDS = new Set([
   // Version control
   'git',
   // Node.js ecosystem
@@ -81,12 +65,19 @@ const NULL_BYTE_PATTERN = /\0/;
 // Hidden file access pattern (potential security risk)
 const HIDDEN_FILE_PATTERN = /\/\.[^/]/;
 
-// ─── Validation Functions ────────────────────────────────────────────────────
+/**
+ * Execution options
+ */
+export interface SafeExecOptions {
+  timeout?: number;
+  log?: boolean;
+  maxBuffer?: number;
+}
 
 /**
  * Validate command is in allowlist
  * @param cmd - Command to validate
- * @throws Error If command not allowed
+ * @throws Error if command not allowed
  */
 function validateCommand(cmd: string): void {
   const baseCmd = cmd.split(' ')[0].toLowerCase();
@@ -98,7 +89,7 @@ function validateCommand(cmd: string): void {
 /**
  * Validate arguments don't contain injection patterns
  * @param args - Arguments to validate
- * @throws Error If dangerous pattern found
+ * @throws Error if dangerous pattern found
  */
 function validateArgs(args: string[]): void {
   for (const arg of args) {
@@ -120,26 +111,7 @@ function validateArgs(args: string[]): void {
 }
 
 /**
- * Log command for audit
- * @param cmd - Command
- * @param args - Arguments
- * @param context - Context string
- */
-function auditLog(cmd: string, args: string[], context?: string): void {
-  const timestamp = new Date().toISOString();
-  const argsStr = args.join(' ');
-  logger.info('Command executed', {
-    timestamp,
-    command: cmd,
-    arguments: argsStr,
-    context: context || 'unknown'
-  });
-}
-
-// ─── Main Functions ──────────────────────────────────────────────────────────
-
-/**
- * Execute a command securely with validation
+ * Execute command safely with validation and logging
  * @param cmd - Command to execute
  * @param args - Command arguments
  * @param options - Execution options
@@ -148,76 +120,77 @@ function auditLog(cmd: string, args: string[], context?: string): void {
 export async function safeExec(
   cmd: string,
   args: string[] = [],
-  options: ExecOptions & { context?: string } = {}
+  options: SafeExecOptions = {}
 ): Promise<string> {
-  // Validate command
-  validateCommand(cmd);
+  const { timeout = 30000, log = true, maxBuffer = 1 * 1024 * 1024 } = options;
 
-  // Validate arguments
+  // Validate command and arguments
+  validateCommand(cmd);
   validateArgs(args);
 
-  // Log for audit
-  auditLog(cmd, args, options.context);
+  const startTime = Date.now();
 
   try {
-    const { stdout } = await execFileAsync(cmd, args, {
-      timeout: options.timeout,
-      cwd: options.cwd,
-      encoding: options.encoding as BufferEncoding || 'utf-8',
-      maxBuffer: options.maxBuffer
+    if (log) {
+      logger.info('Executing command', {
+        cmd,
+        args,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    const result = await execFileAsync(cmd, args, {
+      timeout,
+      maxBuffer
     });
 
-    return stdout.trim();
+    const duration = Date.now() - startTime;
+    if (log) {
+      logger.debug('Command completed', {
+        cmd,
+        duration,
+        stdout_length: result.stdout?.length || 0
+      });
+    }
+
+    return result.stdout.trim();
   } catch (err) {
+    const duration = Date.now() - startTime;
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-    logger.error('Command execution failed', {
-      command: cmd,
-      arguments: args.join(' '),
-      error: errorMessage
+    const errorCode = err instanceof Error && 'code' in err ? (err as Record<string, unknown>).code : null;
+    const errorSignal = err instanceof Error && 'signal' in err ? (err as Record<string, unknown>).signal : null;
+    
+    logger.error('Command failed', {
+      cmd,
+      args,
+      error: errorMessage,
+      duration,
+      code: errorCode,
+      signal: errorSignal
     });
     throw err;
   }
 }
 
 /**
- * Execute a command and parse JSON output
+ * Execute command and return JSON parsed output
  * @param cmd - Command to execute
  * @param args - Command arguments
- * @param options - Execution options
- * @returns Parsed JSON result
+ * @returns Parsed JSON output
  */
-export async function safeExecJSON<T = any>(
-  cmd: string,
-  args: string[] = [],
-  options: ExecOptions = {}
-): Promise<T> {
-  const stdout = await safeExec(cmd, args, options);
-  
+export async function safeExecJSON(cmd: string, args: string[] = []): Promise<Record<string, unknown>> {
+  const output = await safeExec(cmd, args);
   try {
-    return JSON.parse(stdout) as T;
+    return JSON.parse(output) as Record<string, unknown>;
   } catch (err) {
-    logger.error('Failed to parse JSON output', {
-      command: cmd,
-      output: stdout.slice(0, 200)
-    });
-    throw new Error(`Failed to parse JSON output from ${cmd}: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    logger.error('Failed to parse JSON output', { cmd, output });
+    throw new Error(`Invalid JSON from ${cmd}: ${errorMessage}`);
   }
 }
 
-/**
- * AuditExec wrapper for compatibility with existing code
- * @param cmd - Command to execute
- * @param args - Command arguments
- * @param options - Audit options with context
- * @returns Command stdout
- */
-export async function auditExec(
-  cmd: string,
-  args: string[] = [],
-  options: AuditOptions = {}
-): Promise<string> {
-  return safeExec(cmd, args, options);
-}
-
-// Default export for backward compatibility
-export default { safeExec, safeExecJSON, auditExec };
+export default {
+  safeExec,
+  safeExecJSON,
+  ALLOWED_COMMANDS
+};

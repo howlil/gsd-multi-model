@@ -16,7 +16,7 @@ export interface StackData {
   frameworks?: string[];
   infrastructure?: string[];
   databases?: string[];
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface Route {
@@ -283,12 +283,12 @@ export class BusinessFlowMapper {
     const routeGroups: Record<string, Route[]> = {};
     for (const route of routes) {
       const parts = route.path.split('/').filter(p => p && !p.startsWith(':'));
-      if (parts.length > 0) {
+      if (parts.length > 0 && parts[0]) {
         const prefix = parts[0];
         if (!routeGroups[prefix]) {
           routeGroups[prefix] = [];
         }
-        routeGroups[prefix].push(route);
+        routeGroups[prefix]!.push(route);
       }
     }
 

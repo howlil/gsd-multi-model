@@ -178,7 +178,7 @@ export class CrashRecovery {
     }
 
     if (this._exitHandlers[operation]) {
-      process.off('exit', this._exitHandlers[operation]);
+      process.off('exit', this._exitHandlers[operation]!);
       delete this._exitHandlers[operation];
     }
 

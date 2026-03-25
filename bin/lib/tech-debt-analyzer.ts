@@ -46,7 +46,7 @@ export interface TechDebtFinding {
   severity?: string;
   score: number;
   description: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface TechDebtSummary {
@@ -114,8 +114,8 @@ export class TechDebtAnalyzer {
             const parts = line.split(':');
             if (parts.length < 3) continue;
 
-            const filePath = parts[0];
-            const lineNum = parseInt(parts[1], 10);
+            const filePath = parts[0]!;
+            const lineNum = parseInt(parts[1]!, 10);
             const content = parts.slice(2).join(':').trim();
 
             results.push({
@@ -131,7 +131,7 @@ export class TechDebtAnalyzer {
         } catch (err) {
           const error = err as NodeJS.ErrnoException;
           // grep not available or no matches, use fallback
-          if (error.code === 'ENOENT' || error.status === 1) {
+          if (error.code === 'ENOENT' || (error as any).status === 1) {
             // Use pure JavaScript fallback
             const fallbackResults = this.detectDebtMarkersJS(searchPath, pattern);
             results.push(...fallbackResults);
@@ -168,7 +168,7 @@ export class TechDebtAnalyzer {
             const lines = content.split('\n');
 
             for (let i = 0; i < lines.length; i++) {
-              const line = lines[i];
+              const line = lines[i]!;
               if (line.includes(pattern.marker)) {
                 results.push({
                   file: fullPath,
@@ -250,9 +250,9 @@ export class TechDebtAnalyzer {
    */
   aggregateFindings(
     debtMarkers: DebtMarker[] = [],
-    complexityIssues: any[] = [],
-    largeFiles: any[] = [],
-    duplicates: any[] = [],
+    complexityIssues: unknown[] = [],
+    largeFiles: unknown[] = [],
+    duplicates: unknown[] = [],
     dependencyRisks: DependencyRisk[] = []
   ): TechDebtFinding[] {
     const allFindings: TechDebtFinding[] = [];

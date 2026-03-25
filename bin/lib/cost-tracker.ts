@@ -1,28 +1,16 @@
-#!/usr/bin/env node
-
+'use strict';
 /**
  * EZ Cost Tracker — Token usage and USD cost recording with budget enforcement
  * Persists entries to .planning/metrics.json using file-lock for concurrent safety.
- *
- * Usage:
- *   import CostTracker from './cost-tracker.js';
- *   const ct = new CostTracker(cwd);
- *   await ct.record({ phase: 30, provider: 'claude', model: 'claude-sonnet-4-6', input_tokens: 1000, output_tokens: 500 });
- *   const report = ct.aggregate();
- *   const budget = ct.checkBudget();
  */
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
-import { join } from 'path';
+import * as fs from 'fs';
+import * as path from 'path';
 import { withLock } from './file-lock.js';
-import { Logger } from './logger.js';
-import { CostAlerts } from './cost-alerts.js';
+import Logger, { defaultLogger as logger } from './logger.js';
+import CostAlerts from './cost-alerts.js';
 
-const logger = new Logger();
-
-// ─── Type Definitions ────────────────────────────────────────────────────────
-
-export interface CostConfig {
+interface CostConfig {
   enabled: boolean;
   budget: number | null;
   warning_threshold: number;
@@ -30,100 +18,100 @@ export interface CostConfig {
   rates: Record<string, { input: number; output: number }>;
 }
 
-export interface CostEntry {
-  phase?: number;
+interface CostEntry {
+  phase?: number | string;
   milestone?: string;
-  provider?: string;
-  model?: string;
+  provider: string;
+  model: string;
   input_tokens?: number;
   output_tokens?: number;
   cost_usd?: number;
-  agent?: string;
   timestamp?: string;
-  [key: string]: any;
+  agent?: string;
+  [key: string]: unknown;
 }
 
-export interface CostFilter {
-  phase?: number;
+interface MetricsData {
+  version: string;
+  entries: CostEntry[];
+}
+
+interface AggregateFilter {
+  phase?: number | string;
   milestone?: string;
   provider?: string;
   by_agent?: boolean;
 }
 
-export interface CostAggregate {
+interface AggregateResult {
   total: { cost: number; tokens: number };
   by_phase: Record<string, { cost: number; tokens: number }>;
   by_provider: Record<string, { cost: number }>;
   by_agent?: Record<string, { cost: number; tokens: number }>;
 }
 
-export interface BudgetResult {
+interface BudgetCheckResult {
   status: 'ok' | 'warning' | 'exceeded';
   message: string;
   total?: number;
   ceiling?: number;
   percentUsed?: number;
-  alerts?: any[];
+  alerts?: Alert[];
 }
 
-export interface CostTrackerConfig {
-  cwd?: string;
+interface Alert {
+  threshold: number;
+  level: string;
+  percentUsed: number;
+  totalSpent: number;
+  budget: number;
+  message: string;
+  timestamp: string;
 }
-
-// ─── Helper Functions ───────────────────────────────────────────────────────
 
 /**
  * Returns default cost configuration with model rates.
  */
-export function defaultCostConfig(): CostConfig {
+function defaultCostConfig(): CostConfig {
   return {
     enabled: true,
     budget: null,
     warning_threshold: 80,
     auto_pause: false,
     rates: {
-      'claude-3': { input: 0.003, output: 0.015 },
+      'claude-3':          { input: 0.003, output: 0.015 },
       'claude-sonnet-4-6': { input: 0.003, output: 0.015 },
-      'gpt-4': { input: 0.03, output: 0.06 },
-      'qwen': { input: 0.002, output: 0.006 },
-      'kimi': { input: 0.002, output: 0.006 }
-    }
+      'gpt-4':             { input: 0.03,  output: 0.06  },
+      'qwen':              { input: 0.002, output: 0.006 },
+      'kimi':              { input: 0.002, output: 0.006 },
+    },
   };
 }
 
 /**
  * Read cost_tracking section from .planning/config.json.
- * Falls back to defaultCostConfig() when absent or unreadable.
  * @param cwd - Working directory
  * @returns Cost configuration
  */
-export function readCostConfig(cwd: string): CostConfig {
-  const configPath = join(cwd, '.planning', 'config.json');
-  if (!existsSync(configPath)) return defaultCostConfig();
+function readCostConfig(cwd: string): CostConfig {
+  const configPath = path.join(cwd, '.planning', 'config.json');
+  if (!fs.existsSync(configPath)) return defaultCostConfig();
   try {
-    const raw = JSON.parse(readFileSync(configPath, 'utf8')) as any;
-    return Object.assign(defaultCostConfig(), raw.cost_tracking || {});
+    const raw = fs.readFileSync(configPath, 'utf8');
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    return Object.assign(defaultCostConfig(), (parsed.cost_tracking as CostConfig) || {});
   } catch {
     return defaultCostConfig();
   }
 }
 
-// ─── Cost Tracker Class ─────────────────────────────────────────────────────
+class CostTracker {
+  private cwd: string;
+  private metricsPath: string;
 
-/**
- * Cost Tracker class for recording and aggregating costs
- */
-export class CostTracker {
-  private readonly cwd: string;
-  private readonly metricsPath: string;
-
-  /**
-   * Create a CostTracker instance
-   * @param config - Configuration options
-   */
-  constructor(config: CostTrackerConfig = {}) {
-    this.cwd = config.cwd ?? process.cwd();
-    this.metricsPath = join(this.cwd, '.planning', 'metrics.json');
+  constructor(cwd?: string) {
+    this.cwd = cwd || process.cwd();
+    this.metricsPath = path.join(this.cwd, '.planning', 'metrics.json');
   }
 
   /**
@@ -134,35 +122,36 @@ export class CostTracker {
   }
 
   /**
-   * Record a cost entry to metrics.json atomically (via file-lock).
-   * If cost_usd is not supplied, it is computed from token counts and model rates.
+   * Record a cost entry to metrics.json atomically.
    * @param entry - Cost entry to record
    */
   async record(entry: CostEntry): Promise<void> {
-    const planningDir = join(this.cwd, '.planning');
-    if (!existsSync(planningDir)) {
-      mkdirSync(planningDir, { recursive: true });
+    const planningDir = path.join(this.cwd, '.planning');
+    if (!fs.existsSync(planningDir)) {
+      fs.mkdirSync(planningDir, { recursive: true });
     }
 
     await withLock(this.metricsPath, async () => {
-      let data: { version: string; entries: CostEntry[] } = { version: '1.0', entries: [] };
-      if (existsSync(this.metricsPath)) {
+      let data: MetricsData = { version: '1.0', entries: [] };
+      if (fs.existsSync(this.metricsPath)) {
         try {
-          data = JSON.parse(readFileSync(this.metricsPath, 'utf8'));
+          data = JSON.parse(fs.readFileSync(this.metricsPath, 'utf8')) as MetricsData;
           if (!Array.isArray(data.entries)) data.entries = [];
-        } catch {
-          logger.warn('cost-tracker: failed to parse metrics.json, reinitialising');
+        } catch (e) {
+          const error = e as Error;
+          logger.warn('cost-tracker: failed to parse metrics.json, reinitialising', { error: error.message });
           data = { version: '1.0', entries: [] };
         }
       }
 
+      // Compute cost_usd if not provided
       let cost_usd = entry.cost_usd;
       if (cost_usd === undefined || cost_usd === null) {
         const cfg = readCostConfig(this.cwd);
         const rates = cfg.rates || {};
         const modelKey = entry.model;
         const providerKey = entry.provider;
-        const rate = rates[modelKey!] || rates[providerKey!] || null;
+        const rate = rates[modelKey] || rates[providerKey] || null;
         if (rate) {
           const inputTokens = entry.input_tokens || 0;
           const outputTokens = entry.output_tokens || 0;
@@ -172,65 +161,64 @@ export class CostTracker {
         }
       }
 
-      const fullEntry: CostEntry = Object.assign({}, entry, {
+      const fullEntry: CostEntry = {
+        ...entry,
         timestamp: new Date().toISOString(),
-        cost_usd
-      });
+        cost_usd,
+      };
 
       data.entries.push(fullEntry);
-      writeFileSync(this.metricsPath, JSON.stringify(data, null, 2), 'utf8');
+      fs.writeFileSync(this.metricsPath, JSON.stringify(data, null, 2), 'utf8');
     });
   }
 
   /**
    * Aggregate cost entries, optionally filtered.
-   * @param filter - Optional filter options
-   * @returns Aggregated cost data
+   * @param filter - Optional filter
+   * @returns Aggregated results
    */
-  aggregate(filter: CostFilter = {}): CostAggregate {
-    const emptyResult = (): CostAggregate => ({ total: { cost: 0, tokens: 0 }, by_phase: {}, by_provider: {} });
+  aggregate(filter: AggregateFilter = {}): AggregateResult {
+    const emptyResult = (): AggregateResult => ({ total: { cost: 0, tokens: 0 }, by_phase: {}, by_provider: {} });
 
-    if (!existsSync(this.metricsPath)) return emptyResult();
+    if (!fs.existsSync(this.metricsPath)) return emptyResult();
 
-    let data: any;
+    let data: MetricsData;
     try {
-      data = JSON.parse(readFileSync(this.metricsPath, 'utf8'));
+      data = JSON.parse(fs.readFileSync(this.metricsPath, 'utf8')) as MetricsData;
     } catch {
       return emptyResult();
     }
 
     let entries = data.entries || [];
 
-    if (filter.phase !== undefined) entries = entries.filter((e: CostEntry) => e.phase == filter.phase);
-    if (filter.milestone) entries = entries.filter((e: CostEntry) => e.milestone === filter.milestone);
-    if (filter.provider) entries = entries.filter((e: CostEntry) => e.provider === filter.provider);
+    if (filter.phase !== undefined) entries = entries.filter(e => e.phase == filter.phase);
+    if (filter.milestone)          entries = entries.filter(e => e.milestone === filter.milestone);
+    if (filter.provider)           entries = entries.filter(e => e.provider === filter.provider);
 
-    const result: CostAggregate = { total: { cost: 0, tokens: 0 }, by_phase: {}, by_provider: {} };
+    const result: AggregateResult = { total: { cost: 0, tokens: 0 }, by_phase: {}, by_provider: {} };
 
     for (const e of entries) {
-      const phaseKey = String(e.phase ?? 'unknown');
-      const phaseData = result.by_phase[phaseKey] ?? { cost: 0, tokens: 0 };
-      phaseData.cost += e.cost_usd ?? 0;
-      phaseData.tokens += (e.input_tokens ?? 0) + (e.output_tokens ?? 0);
-      result.by_phase[phaseKey] = phaseData;
+      const phaseKey = String(e.phase || 'unknown');
+      if (!result.by_phase[phaseKey]) result.by_phase[phaseKey] = { cost: 0, tokens: 0 };
+      result.by_phase[phaseKey]!.cost   += e.cost_usd || 0;
+      result.by_phase[phaseKey]!.tokens += (e.input_tokens || 0) + (e.output_tokens || 0);
 
-      const provKey = e.provider ?? 'unknown';
-      const provData = result.by_provider[provKey] ?? { cost: 0 };
-      provData.cost += e.cost_usd ?? 0;
-      result.by_provider[provKey] = provData;
+      const provKey = e.provider || 'unknown';
+      if (!result.by_provider[provKey]) result.by_provider[provKey] = { cost: 0 };
+      result.by_provider[provKey]!.cost += e.cost_usd || 0;
 
-      result.total.cost += e.cost_usd ?? 0;
-      result.total.tokens += (e.input_tokens ?? 0) + (e.output_tokens ?? 0);
+      result.total.cost   += e.cost_usd || 0;
+      result.total.tokens += (e.input_tokens || 0) + (e.output_tokens || 0);
     }
 
+    // Add by_agent breakdown if requested
     if (filter.by_agent) {
       result.by_agent = {};
       for (const e of entries) {
-        const agentKey = e.agent ?? 'unknown';
-        const agentData = result.by_agent[agentKey] ?? { cost: 0, tokens: 0 };
-        agentData.cost += e.cost_usd ?? 0;
-        agentData.tokens += (e.input_tokens ?? 0) + (e.output_tokens ?? 0);
-        result.by_agent[agentKey] = agentData;
+        const agentKey = e.agent || 'unknown';
+        if (!result.by_agent[agentKey]) result.by_agent[agentKey] = { cost: 0, tokens: 0 };
+        result.by_agent[agentKey]!.cost += e.cost_usd || 0;
+        result.by_agent[agentKey]!.tokens += (e.input_tokens || 0) + (e.output_tokens || 0);
       }
     }
 
@@ -239,14 +227,13 @@ export class CostTracker {
 
   /**
    * Check total spending against a budget ceiling.
-   * Triggers multi-threshold alerts when thresholds are crossed.
    * @param opts - Budget options
    * @returns Budget check result
    */
-  async checkBudget(opts: { ceiling?: number; warning_threshold?: number } = {}): Promise<BudgetResult> {
+  async checkBudget(opts: Record<string, unknown> = {}): Promise<BudgetCheckResult> {
     const cfg = this.getConfig();
-    const ceiling = opts.ceiling !== undefined ? opts.ceiling : cfg.budget;
-    const warning_threshold = opts.warning_threshold !== undefined ? opts.warning_threshold : cfg.warning_threshold;
+    const ceiling = (opts.ceiling !== undefined) ? opts.ceiling as number : cfg.budget;
+    const warning_threshold = (opts.warning_threshold !== undefined) ? opts.warning_threshold as number : cfg.warning_threshold;
 
     const agg = this.aggregate();
     const total = agg.total.cost;
@@ -256,10 +243,11 @@ export class CostTracker {
     }
 
     const percentUsed = (total / ceiling) * 100;
-    const alerts = new CostAlerts({ cwd: this.cwd }).checkThresholds({ percentUsed, totalSpent: total, budget: ceiling });
+    const alerts = new CostAlerts(this.cwd).checkThresholds({ percentUsed, totalSpent: total, budget: ceiling });
 
+    // Log triggered alerts
     if (alerts.length > 0) {
-      const costAlerts = new CostAlerts({ cwd: this.cwd });
+      const costAlerts = new CostAlerts(this.cwd);
       for (const alert of alerts) {
         await costAlerts.logAlert(alert);
       }
@@ -298,37 +286,37 @@ export class CostTracker {
   }
 
   /**
-   * Persist a budget ceiling (and optional warning threshold) to .planning/config.json.
+   * Persist a budget ceiling to .planning/config.json.
    * @param ceiling - Budget ceiling
-   * @param warningThreshold - Warning threshold percentage
+   * @param warningThreshold - Warning threshold
    */
   setBudget(ceiling: number, warningThreshold?: number): void {
-    const configPath = join(this.cwd, '.planning', 'config.json');
-    const planningDir = join(this.cwd, '.planning');
+    const configPath = path.join(this.cwd, '.planning', 'config.json');
+    const planningDir = path.join(this.cwd, '.planning');
 
-    if (!existsSync(planningDir)) {
-      mkdirSync(planningDir, { recursive: true });
+    if (!fs.existsSync(planningDir)) {
+      fs.mkdirSync(planningDir, { recursive: true });
     }
 
-    let config: any = {};
-    if (existsSync(configPath)) {
+    let config: Record<string, unknown> = {};
+    if (fs.existsSync(configPath)) {
       try {
-        config = JSON.parse(readFileSync(configPath, 'utf8'));
+        config = JSON.parse(fs.readFileSync(configPath, 'utf8')) as Record<string, unknown>;
       } catch {
         config = {};
       }
     }
 
     if (!config.cost_tracking) config.cost_tracking = {};
-    config.cost_tracking.budget = ceiling;
+    (config.cost_tracking as Record<string, unknown>).budget = ceiling;
     if (warningThreshold !== undefined) {
-      config.cost_tracking.warning_threshold = warningThreshold;
+      (config.cost_tracking as Record<string, unknown>).warning_threshold = warningThreshold;
     }
 
-    writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf8');
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf8');
   }
 }
 
-// ─── Default Export ─────────────────────────────────────────────────────────
-
 export default CostTracker;
+
+export type { CostConfig, CostEntry, MetricsData, AggregateFilter, AggregateResult, BudgetCheckResult, Alert };

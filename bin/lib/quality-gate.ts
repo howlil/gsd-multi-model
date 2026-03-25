@@ -28,7 +28,7 @@ export interface GateDefinition {
   /** Zod schema for context validation */
   schema: z.ZodSchema;
   /** Gate execution function */
-  executor: (context: any) => Promise<GateExecutorResult>;
+  executor: (context: unknown) => Promise<GateExecutorResult>;
 }
 
 /**
@@ -148,7 +148,7 @@ export class QualityGate {
    * @param schema - Zod schema for context validation
    * @param executor - Async function that executes the gate logic
    */
-  registerGate(id: string, schema: z.ZodSchema, executor: (context: any) => Promise<GateExecutorResult>): void {
+  registerGate(id: string, schema: z.ZodSchema, executor: (context: unknown) => Promise<GateExecutorResult>): void {
     if (!id || typeof id !== 'string') {
       throw new Error('Gate ID must be a non-empty string');
     }
@@ -175,7 +175,7 @@ export class QualityGate {
    * @param context - Context data to validate and pass to executor
    * @returns Execution result
    */
-  async executeGate(id: string, context: any): Promise<GateExecutorResult> {
+  async executeGate(id: string, context: unknown): Promise<GateExecutorResult> {
     const gate = this.#gates.get(id);
 
     if (!gate) {

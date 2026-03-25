@@ -17,7 +17,7 @@
  *   await service.add(['lodash'], { dev: true });
  */
 
-import { Logger } from './logger.js';
+import Logger from './logger.js';
 import { PackageManagerDetector, type DetectionResult, type PackageManagerType } from './package-manager-detector.js';
 import { PackageManagerExecutor, type InstallOptions, type AddOptions, type RemoveOptions } from './package-manager-executor.js';
 import { LockfileValidator } from './lockfile-validator.js';

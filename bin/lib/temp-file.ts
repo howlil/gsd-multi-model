@@ -17,7 +17,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import * as crypto from 'crypto';
-import { Logger } from './logger.js';
+import Logger from './logger.js';
 
 const logger = new Logger();
 

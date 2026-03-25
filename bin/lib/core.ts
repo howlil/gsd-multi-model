@@ -4,70 +4,28 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { auditExec } from './safe-exec.js';
+import * as os from 'os';
+import { safeExec, auditExec } from './safe-exec.js';
 import { defaultLogger as logger } from './logger.js';
 
-// ─── Type Definitions ────────────────────────────────────────────────────────
-
-export interface ModelProfile {
-  quality: string;
-  balanced: string;
-  budget: string;
-}
-
-export interface PhaseInfo {
-  found: boolean;
-  directory: string;
-  phase_number: string;
-  phase_name: string | null;
-  phase_slug: string | null;
-  plans: string[];
-  summaries: string[];
-  incomplete_plans: string[];
-  has_research: boolean;
-  has_context: boolean;
-  has_verification: boolean;
-  archived?: string;
-}
-
-export interface ArchivedPhaseDir {
-  name: string;
-  milestone: string;
-  basePath: string;
-  fullPath: string;
-}
-
-export interface Config {
-  model_profile: string;
-  commit_docs: boolean;
-  search_gitignored: boolean;
-  branching_strategy: string;
-  phase_branch_template: string;
-  milestone_branch_template: string;
-  research: boolean;
-  plan_checker: boolean;
-  verifier: boolean;
-  nyquist_validation: boolean;
-  parallelization: boolean;
-  brave_search: boolean;
-  model_overrides: Record<string, any> | null;
-}
-
-export interface MilestoneInfo {
-  version: string;
-  name: string;
-}
-
-// ─── Path helpers ────────────────────────────────────────────────────────────
-
 /** Normalize a relative path to always use forward slashes (cross-platform). */
-export function toPosixPath(p: string): string {
+function toPosixPath(p: string): string {
   return p.split(path.sep).join('/');
 }
 
 // ─── Model Profile Table ─────────────────────────────────────────────────────
 
-export const MODEL_PROFILES: Record<string, ModelProfile> = {
+interface ModelProfile {
+  quality: string;
+  balanced: string;
+  budget: string;
+}
+
+interface ModelProfiles {
+  [key: string]: ModelProfile;
+}
+
+const MODEL_PROFILES: ModelProfiles = {
   'ez-planner':              { quality: 'opus', balanced: 'opus',   budget: 'sonnet' },
   'ez-roadmapper':           { quality: 'opus', balanced: 'sonnet', budget: 'sonnet' },
   'ez-executor':             { quality: 'opus', balanced: 'sonnet', budget: 'sonnet' },
@@ -80,30 +38,15 @@ export const MODEL_PROFILES: Record<string, ModelProfile> = {
   'ez-ui-auditor':           { quality: 'sonnet', balanced: 'sonnet', budget: 'haiku' },
 };
 
-/**
- * Get model for an agent based on profile
- * @param agent - Agent name (e.g., 'ez-planner')
- * @param profile - Model profile ('quality', 'balanced', 'budget')
- * @returns Model name or 'inherit' if not found
- */
-export function getModelForAgent(agent: string, profile: string): string {
-  const agentProfile = MODEL_PROFILES[agent];
-  if (!agentProfile) {
-    logger.warn('Unknown agent in model profile table', { agent });
-    return 'inherit';
-  }
-  return agentProfile[profile as keyof ModelProfile] || agentProfile.balanced || 'inherit';
-}
-
 // ─── Output helpers ───────────────────────────────────────────────────────────
 
 /**
- * Output result as JSON or write to file for large payloads
+ * Output result to stdout
  * @param result - Result object to output
- * @param raw - If true, output raw value
- * @param rawValue - Raw value to output if raw is true
+ * @param raw - Whether to output raw value
+ * @param rawValue - Raw value to output if raw mode
  */
-export function output(result: any, raw?: boolean, rawValue?: any): void {
+function output(result: Record<string, unknown>, raw?: boolean, rawValue?: string): void {
   if (raw && rawValue !== undefined) {
     process.stdout.write(String(rawValue));
   } else {
@@ -111,7 +54,7 @@ export function output(result: any, raw?: boolean, rawValue?: any): void {
     // Large payloads exceed Claude Code's Bash tool buffer (~50KB).
     // Write to tmpfile and output the path prefixed with @file: so callers can detect it.
     if (json.length > 50000) {
-      const tmpPath = path.join(require('os').tmpdir(), `${Date.now()}.json`);
+      const tmpPath = path.join(os.tmpdir(), `${Date.now()}.json`);
       fs.writeFileSync(tmpPath, json, 'utf-8');
       process.stdout.write('@file:' + tmpPath);
     } else {
@@ -122,10 +65,10 @@ export function output(result: any, raw?: boolean, rawValue?: any): void {
 }
 
 /**
- * Output error message and exit
+ * Output error message to stderr and exit
  * @param message - Error message
  */
-export function error(message: string): void {
+function error(message: string): void {
   process.stderr.write('Error: ' + message + '\n');
   process.exit(1);
 }
@@ -133,26 +76,47 @@ export function error(message: string): void {
 // ─── File & Config utilities ──────────────────────────────────────────────────
 
 /**
- * Safely read a file, returning null if not found
+ * Safely read a file, returning null on error
  * @param filePath - Path to file
- * @returns File contents or null
+ * @returns File content or null
  */
-export function safeReadFile(filePath: string): string | null {
+function safeReadFile(filePath: string): string | null {
   try {
     return fs.readFileSync(filePath, 'utf-8');
   } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-    logger.warn('safeReadFile failed', { filePath, error: errorMessage });
+    const error = err as Error;
+    logger.warn('safeReadFile failed', { filePath, error: error.message });
     return null;
   }
 }
 
+interface Config {
+  model_profile: string;
+  commit_docs: boolean;
+  search_gitignored: boolean;
+  branching_strategy: string;
+  phase_branch_template: string;
+  milestone_branch_template: string;
+  research: boolean;
+  plan_checker: boolean;
+  verifier: boolean;
+  nyquist_validation: boolean;
+  parallelization: boolean;
+  brave_search: boolean;
+  model_overrides?: Record<string, string> | null;
+}
+
+interface NestedField {
+  section: string;
+  field: string;
+}
+
 /**
- * Load project configuration from .planning/config.json
- * @param cwd - Current working directory
- * @returns Configuration object with defaults
+ * Load configuration from .planning/config.json
+ * @param cwd - Working directory
+ * @returns Configuration object
  */
-export function loadConfig(cwd: string): Config {
+function loadConfig(cwd: string): Config {
   const configPath = path.join(cwd, '.planning', 'config.json');
   const defaults: Config = {
     model_profile: 'balanced',
@@ -167,29 +131,29 @@ export function loadConfig(cwd: string): Config {
     nyquist_validation: true,
     parallelization: true,
     brave_search: false,
-    model_overrides: null,
   };
 
   try {
     const raw = fs.readFileSync(configPath, 'utf-8');
-    const parsed = JSON.parse(raw);
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
 
     // Migrate deprecated "depth" key to "granularity" with value mapping
     if ('depth' in parsed && !('granularity' in parsed)) {
       const depthToGranularity: Record<string, string> = { quick: 'coarse', standard: 'standard', comprehensive: 'fine' };
-      parsed.granularity = depthToGranularity[parsed.depth] || parsed.depth;
+      parsed.granularity = depthToGranularity[parsed.depth as string] || parsed.depth;
       delete parsed.depth;
       try {
         fs.writeFileSync(configPath, JSON.stringify(parsed, null, 2), 'utf-8');
       } catch (err) {
-        logger.warn('Failed to persist migrated config depth->granularity', { configPath, error: err instanceof Error ? err.message : 'Unknown' });
+        const error = err as Error;
+        logger.warn('Failed to persist migrated config depth->granularity', { configPath, error: error.message });
       }
     }
 
-    const get = (key: string, nested?: { section: string; field: string }): any => {
+    const get = (key: string, nested?: NestedField): unknown => {
       if (parsed[key] !== undefined) return parsed[key];
-      if (nested && parsed[nested.section] && parsed[nested.section][nested.field] !== undefined) {
-        return parsed[nested.section][nested.field];
+      if (nested && parsed[nested.section] && (parsed[nested.section] as Record<string, unknown>)[nested.field] !== undefined) {
+        return (parsed[nested.section] as Record<string, unknown>)[nested.field];
       }
       return undefined;
     };
@@ -197,27 +161,28 @@ export function loadConfig(cwd: string): Config {
     const parallelization = (() => {
       const val = get('parallelization');
       if (typeof val === 'boolean') return val;
-      if (typeof val === 'object' && val !== null && 'enabled' in val) return val.enabled;
+      if (typeof val === 'object' && val !== null && 'enabled' in val) return (val as Record<string, unknown>).enabled as boolean;
       return defaults.parallelization;
     })();
 
     return {
-      model_profile: get('model_profile') ?? defaults.model_profile,
-      commit_docs: get('commit_docs', { section: 'planning', field: 'commit_docs' }) ?? defaults.commit_docs,
-      search_gitignored: get('search_gitignored', { section: 'planning', field: 'search_gitignored' }) ?? defaults.search_gitignored,
-      branching_strategy: get('branching_strategy', { section: 'git', field: 'branching_strategy' }) ?? defaults.branching_strategy,
-      phase_branch_template: get('phase_branch_template', { section: 'git', field: 'phase_branch_template' }) ?? defaults.phase_branch_template,
-      milestone_branch_template: get('milestone_branch_template', { section: 'git', field: 'milestone_branch_template' }) ?? defaults.milestone_branch_template,
-      research: get('research', { section: 'workflow', field: 'research' }) ?? defaults.research,
-      plan_checker: get('plan_checker', { section: 'workflow', field: 'plan_check' }) ?? defaults.plan_checker,
-      verifier: get('verifier', { section: 'workflow', field: 'verifier' }) ?? defaults.verifier,
-      nyquist_validation: get('nyquist_validation', { section: 'workflow', field: 'nyquist_validation' }) ?? defaults.nyquist_validation,
+      model_profile: get('model_profile') as string ?? defaults.model_profile,
+      commit_docs: get('commit_docs', { section: 'planning', field: 'commit_docs' }) as boolean ?? defaults.commit_docs,
+      search_gitignored: get('search_gitignored', { section: 'planning', field: 'search_gitignored' }) as boolean ?? defaults.search_gitignored,
+      branching_strategy: get('branching_strategy', { section: 'git', field: 'branching_strategy' }) as string ?? defaults.branching_strategy,
+      phase_branch_template: get('phase_branch_template', { section: 'git', field: 'phase_branch_template' }) as string ?? defaults.phase_branch_template,
+      milestone_branch_template: get('milestone_branch_template', { section: 'git', field: 'milestone_branch_template' }) as string ?? defaults.milestone_branch_template,
+      research: get('research', { section: 'workflow', field: 'research' }) as boolean ?? defaults.research,
+      plan_checker: get('plan_checker', { section: 'workflow', field: 'plan_check' }) as boolean ?? defaults.plan_checker,
+      verifier: get('verifier', { section: 'workflow', field: 'verifier' }) as boolean ?? defaults.verifier,
+      nyquist_validation: get('nyquist_validation', { section: 'workflow', field: 'nyquist_validation' }) as boolean ?? defaults.nyquist_validation,
       parallelization,
-      brave_search: get('brave_search') ?? defaults.brave_search,
-      model_overrides: parsed.model_overrides || null,
+      brave_search: get('brave_search') as boolean ?? defaults.brave_search,
+      model_overrides: parsed.model_overrides as Record<string, string> | null ?? null,
     };
   } catch (err) {
-    logger.warn('Failed to load config, using defaults', { configPath, error: err instanceof Error ? err.message : 'Unknown' });
+    const error = err as Error;
+    logger.warn('Failed to load config, using defaults', { configPath, error: error.message });
     return defaults;
   }
 }
@@ -225,12 +190,12 @@ export function loadConfig(cwd: string): Config {
 // ─── Git utilities ────────────────────────────────────────────────────────────
 
 /**
- * Check if a path is git-ignored
- * @param cwd - Current working directory
+ * Check if a path is gitignored
+ * @param cwd - Working directory
  * @param targetPath - Path to check
- * @returns True if path is git-ignored
+ * @returns True if gitignored
  */
-export async function isGitIgnored(cwd: string, targetPath: string): Promise<boolean> {
+async function isGitIgnored(cwd: string, targetPath: string): Promise<boolean> {
   try {
     // --no-index checks .gitignore rules regardless of whether the file is tracked.
     const safePath = targetPath.replace(/[^a-zA-Z0-9._\-/]/g, '');
@@ -241,18 +206,25 @@ export async function isGitIgnored(cwd: string, targetPath: string): Promise<boo
     });
     return true;
   } catch (err) {
-    logger.warn('git check-ignore failed, assuming not ignored', { targetPath, error: err instanceof Error ? err.message : 'Unknown' });
+    const error = err as Error;
+    logger.warn('git check-ignore failed, assuming not ignored', { targetPath, error: error.message });
     return false;
   }
 }
 
+interface GitResult {
+  exitCode: number;
+  stdout: string;
+  stderr: string;
+}
+
 /**
- * Execute a git command and return result
- * @param cwd - Current working directory
- * @param args - Git command arguments
- * @returns Git command result
+ * Execute a git command
+ * @param cwd - Working directory
+ * @param args - Git arguments
+ * @returns Git execution result
  */
-export async function execGit(cwd: string, args: string[]): Promise<{ exitCode: number; stdout: string; stderr: string }> {
+async function execGit(cwd: string, args: string[]): Promise<GitResult> {
   try {
     const stdout = await auditExec('git', args, {
       cwd,
@@ -261,11 +233,12 @@ export async function execGit(cwd: string, args: string[]): Promise<{ exitCode: 
     });
     return { exitCode: 0, stdout: stdout.trim(), stderr: '' };
   } catch (err) {
-    logger.warn('execGit failed', { args, error: err instanceof Error ? err.message : 'Unknown' });
+    const error = err as Error & { status?: number; stdout?: string; stderr?: string };
+    logger.warn('execGit failed', { args, error: error.message });
     return {
-      exitCode: (err as any).status ?? 1,
-      stdout: ((err as any).stdout ?? '').toString().trim(),
-      stderr: ((err as any).stderr ?? '').toString().trim(),
+      exitCode: error.status ?? 1,
+      stdout: (error.stdout ?? '').toString().trim(),
+      stderr: (error.stderr ?? '').toString().trim(),
     };
   }
 }
@@ -273,42 +246,41 @@ export async function execGit(cwd: string, args: string[]): Promise<{ exitCode: 
 // ─── Phase utilities ──────────────────────────────────────────────────────────
 
 /**
- * Escape special regex characters in a string
+ * Escape special regex characters
  * @param value - String to escape
  * @returns Escaped string
  */
-export function escapeRegex(value: string): string {
-  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 /**
- * Normalize a phase identifier (e.g., "1" → "01", "12a.1" → "12A.1")
- * @param phase - Phase identifier
- * @returns Normalized phase identifier
+ * Normalize phase name to padded format
+ * @param phase - Phase name
+ * @returns Normalized phase name
  */
-export function normalizePhaseName(phase: string | number): string {
-  const match = String(phase).match(/^(\d+)([A-Z])?((?:\.\d+)*)/i);
-  if (!match) return String(phase);
-  const padded = match[1]!.padStart(2, '0');
+function normalizePhaseName(phase: string | number): string {
+  const phaseStr = String(phase);
+  const match = phaseStr.match(/^(\d+)([A-Z])?((?:\.\d+)*)/i);
+  if (!match) return phaseStr;
+  const padded = match[1].padStart(2, '0');
   const letter = match[2] ? match[2].toUpperCase() : '';
   const decimal = match[3] || '';
   return padded + letter + decimal;
 }
 
 /**
- * Compare two phase identifiers for sorting
- * @param a - First phase identifier
- * @param b - Second phase identifier
- * @returns Comparison result (-1, 0, or 1)
+ * Compare phase numbers for sorting
+ * @param a - First phase
+ * @param b - Second phase
+ * @returns Comparison result
  */
-export function comparePhaseNum(a: string | number, b: string | number): number {
+function comparePhaseNum(a: string | number, b: string | number): number {
   const pa = String(a).match(/^(\d+)([A-Z])?((?:\.\d+)*)/i);
   const pb = String(b).match(/^(\d+)([A-Z])?((?:\.\d+)*)/i);
   if (!pa || !pb) return String(a).localeCompare(String(b));
-
-  const intDiff = parseInt(pa[1]!, 10) - parseInt(pb[1]!, 10);
+  const intDiff = parseInt(pa[1], 10) - parseInt(pb[1], 10);
   if (intDiff !== 0) return intDiff;
-
   // No letter sorts before letter: 12 < 12A < 12B
   const la = (pa[2] || '').toUpperCase();
   const lb = (pb[2] || '').toUpperCase();
@@ -317,48 +289,51 @@ export function comparePhaseNum(a: string | number, b: string | number): number 
     if (!lb) return 1;
     return la < lb ? -1 : 1;
   }
-
-  // Segment-by-segment decimal comparison: 12A < 12A.1 < 12A.1.2 < 12A.2
+  // Segment-by-segment decimal comparison
   const aDecParts = pa[3] ? pa[3].slice(1).split('.').map(p => parseInt(p, 10)) : [];
   const bDecParts = pb[3] ? pb[3].slice(1).split('.').map(p => parseInt(p, 10)) : [];
   const maxLen = Math.max(aDecParts.length, bDecParts.length);
-
   if (aDecParts.length === 0 && bDecParts.length > 0) return -1;
   if (bDecParts.length === 0 && aDecParts.length > 0) return 1;
-
   for (let i = 0; i < maxLen; i++) {
-    const av = Number.isFinite(aDecParts[i]!) ? aDecParts[i]! : 0;
-    const bv = Number.isFinite(bDecParts[i]!) ? bDecParts[i]! : 0;
+    const av = Number.isFinite(aDecParts[i]) ? aDecParts[i] : 0;
+    const bv = Number.isFinite(bDecParts[i]) ? bDecParts[i] : 0;
     if (av !== bv) return av - bv;
   }
-
   return 0;
 }
 
+interface PhaseSearchResult {
+  found: boolean;
+  directory: string;
+  phase_number: string;
+  phase_name: string | null;
+  phase_slug: string | null;
+  plans: string[];
+  summaries: string[];
+  incomplete_plans: string[];
+  has_research: boolean;
+  has_context: boolean;
+  has_verification: boolean;
+  archived?: string;
+}
+
 /**
- * Search for a phase in a directory
+ * Search for a phase directory
  * @param baseDir - Base directory to search
- * @param relBase - Relative base path for result
- * @param normalized - Normalized phase identifier
- * @returns Phase info or null
+ * @param relBase - Relative base path
+ * @param normalized - Normalized phase name
+ * @returns Phase search result or null
  */
-function searchPhaseInDir(
-  baseDir: string,
-  relBase: string,
-  normalized: string
-): PhaseInfo | null {
+function searchPhaseInDir(baseDir: string, relBase: string, normalized: string): PhaseSearchResult | null {
   try {
     const entries = fs.readdirSync(baseDir, { withFileTypes: true });
-    const dirs = entries
-      .filter(e => e.isDirectory())
-      .map(e => e.name)
-      .sort((a, b) => comparePhaseNum(a, b));
-    
+    const dirs = entries.filter(e => e.isDirectory()).map(e => e.name).sort((a, b) => comparePhaseNum(a, b));
     const match = dirs.find(d => d.startsWith(normalized));
     if (!match) return null;
 
     const dirMatch = match.match(/^(\d+[A-Z]?(?:\.\d+)*)-?(.*)/i);
-    const phaseNumber = dirMatch ? dirMatch[1]! : normalized;
+    const phaseNumber = dirMatch ? dirMatch[1] : normalized;
     const phaseName = dirMatch && dirMatch[2] ? dirMatch[2] : null;
     const phaseDir = path.join(baseDir, match);
     const phaseFiles = fs.readdirSync(phaseDir);
@@ -391,18 +366,19 @@ function searchPhaseInDir(
       has_verification: hasVerification,
     };
   } catch (err) {
-    logger.warn('Failed to search phase directory', { baseDir, normalized, error: err instanceof Error ? err.message : 'Unknown' });
+    const error = err as Error;
+    logger.warn('Failed to search phase directory', { baseDir, normalized, error: error.message });
     return null;
   }
 }
 
 /**
- * Find a phase by identifier in the project
- * @param cwd - Current working directory
+ * Find phase internally
+ * @param cwd - Working directory
  * @param phase - Phase identifier
- * @returns Phase info or null
+ * @returns Phase search result or null
  */
-export function findPhase(cwd: string, phase: string | number): PhaseInfo | null {
+function findPhaseInternal(cwd: string, phase: string): PhaseSearchResult | null {
   if (!phase) return null;
 
   const phasesDir = path.join(cwd, '.planning', 'phases');
@@ -425,7 +401,8 @@ export function findPhase(cwd: string, phase: string | number): PhaseInfo | null
       .reverse();
 
     for (const archiveName of archiveDirs) {
-      const version = archiveName.match(/^(v[\d.]+)-phases$/)?.[1] ?? '';
+      const versionMatch = archiveName.match(/^(v[\d.]+)-phases$/);
+      const version: string = versionMatch ? versionMatch[1] ?? '' : '';
       const archivePath = path.join(milestonesDir, archiveName);
       const relBase = '.planning/milestones/' + archiveName;
       const result = searchPhaseInDir(archivePath, relBase, normalized);
@@ -435,18 +412,26 @@ export function findPhase(cwd: string, phase: string | number): PhaseInfo | null
       }
     }
   } catch (err) {
-    logger.warn('Failed while searching archived milestone phases', { milestonesDir, error: err instanceof Error ? err.message : 'Unknown' });
+    const error = err as Error;
+    logger.warn('Failed while searching archived milestone phases', { milestonesDir, error: error.message });
   }
 
   return null;
 }
 
+interface ArchivedPhaseDir {
+  name: string;
+  milestone: string;
+  basePath: string;
+  fullPath: string;
+}
+
 /**
- * Get all archived phase directories
- * @param cwd - Current working directory
- * @returns Array of archived phase directory info
+ * Get archived phase directories
+ * @param cwd - Working directory
+ * @returns Array of archived phase directories
  */
-export function getArchivedPhaseDirs(cwd: string): ArchivedPhaseDir[] {
+function getArchivedPhaseDirs(cwd: string): ArchivedPhaseDir[] {
   const milestonesDir = path.join(cwd, '.planning', 'milestones');
   const results: ArchivedPhaseDir[] = [];
 
@@ -462,13 +447,11 @@ export function getArchivedPhaseDirs(cwd: string): ArchivedPhaseDir[] {
       .reverse();
 
     for (const archiveName of phaseDirs) {
-      const version = archiveName.match(/^(v[\d.]+)-phases$/)?.[1] ?? '';
+      const versionMatch = archiveName.match(/^(v[\d.]+)-phases$/);
+      const version = versionMatch ? versionMatch[1] : '';
       const archivePath = path.join(milestonesDir, archiveName);
       const entries = fs.readdirSync(archivePath, { withFileTypes: true });
-      const dirs = entries
-        .filter(e => e.isDirectory())
-        .map(e => e.name)
-        .sort((a, b) => comparePhaseNum(a, b));
+      const dirs = entries.filter(e => e.isDirectory()).map(e => e.name).sort((a, b) => comparePhaseNum(a, b));
 
       for (const dir of dirs) {
         results.push({
@@ -480,101 +463,240 @@ export function getArchivedPhaseDirs(cwd: string): ArchivedPhaseDir[] {
       }
     }
   } catch (err) {
-    logger.warn('Failed to enumerate archived phase directories', { milestonesDir, error: err instanceof Error ? err.message : 'Unknown' });
+    const error = err as Error;
+    logger.warn('Failed to enumerate archived phase directories', { milestonesDir, error: error.message });
   }
 
   return results;
 }
 
-// ─── Internal helpers (for commands.ts) ──────────────────────────────────────
+// ─── Roadmap & model utilities ────────────────────────────────────────────────
+
+interface RoadmapPhaseResult {
+  found: boolean;
+  phase_number: string;
+  phase_name: string;
+  goal: string | null;
+  section: string;
+}
 
 /**
- * Get milestone info from STATE.md
- * @param cwd - Current working directory
- * @returns Milestone info
+ * Get roadmap phase info
+ * @param cwd - Working directory
+ * @param phaseNum - Phase number
+ * @returns Roadmap phase result or null
  */
-export function getMilestoneInfo(cwd: string): MilestoneInfo {
-  const statePath = path.join(cwd, '.planning', 'STATE.md');
-  const defaults: MilestoneInfo = { version: 'v5.0.0', name: 'Complete TypeScript Migration' };
+function getRoadmapPhaseInternal(cwd: string, phaseNum: string | number): RoadmapPhaseResult | null {
+  if (!phaseNum) return null;
+  const roadmapPath = path.join(cwd, '.planning', 'ROADMAP.md');
+  if (!fs.existsSync(roadmapPath)) return null;
 
   try {
-    if (!fs.existsSync(statePath)) return defaults;
-    const content = fs.readFileSync(statePath, 'utf-8');
-    const versionMatch = content.match(/\*\*Milestone:\*\*\s*v?([\d.]+)/i);
-    const nameMatch = content.match(/\*\*Milestone Name:\*\*\s*(.+)/i);
+    const content = fs.readFileSync(roadmapPath, 'utf-8');
+    const escapedPhase = escapeRegex(phaseNum.toString());
+    const phasePattern = new RegExp(`#{2,4}\\s*Phase\\s+${escapedPhase}:\\s*([^\\n]+)`, 'i');
+    const headerMatch = content.match(phasePattern);
+    if (!headerMatch) return null;
+
+    const phaseName = headerMatch[1].trim();
+    const headerIndex = headerMatch.index || 0;
+    const restOfContent = content.slice(headerIndex);
+    const nextHeaderMatch = restOfContent.match(/\n#{2,4}\s+Phase\s+\d/i);
+    const sectionEnd = nextHeaderMatch ? headerIndex + (nextHeaderMatch.index || 0) : content.length;
+    const section = content.slice(headerIndex, sectionEnd).trim();
+
+    const goalMatch = section.match(/\*\*Goal:\*\*\s*([^\n]+)/i);
+    const goal = goalMatch ? goalMatch[1].trim() : null;
 
     return {
-      version: versionMatch ? `v${versionMatch[1]!}` : defaults.version,
-      name: nameMatch ? nameMatch[1]!.trim() : defaults.name,
+      found: true,
+      phase_number: phaseNum.toString(),
+      phase_name: phaseName,
+      goal,
+      section,
     };
   } catch (err) {
-    logger.warn('Failed to read milestone info from STATE.md', { statePath, error: err instanceof Error ? err.message : 'Unknown' });
-    return defaults;
+    const error = err as Error;
+    logger.warn('Failed to read roadmap phase metadata', { roadmapPath, phaseNum, error: error.message });
+    return null;
   }
 }
 
 /**
- * Get a filter function to check if a phase directory belongs to the current milestone
- * based on ROADMAP.md phase headings.
- * If no ROADMAP exists or no phases are listed, returns a pass-all filter.
- * @param cwd - Current working directory
- * @returns Filter function with phaseCount property
+ * Resolve model for agent type
+ * @param cwd - Working directory
+ * @param agentType - Agent type
+ * @returns Model name
  */
-export function getMilestonePhaseFilter(cwd: string): (dirName: string) => boolean & { phaseCount: number } {
+function resolveModelInternal(cwd: string, agentType: string): string {
+  const config = loadConfig(cwd);
+
+  // Check per-agent override first
+  const override = config.model_overrides?.[agentType];
+  if (override) {
+    return override === 'opus' ? 'inherit' : override;
+  }
+
+  // Fall back to profile lookup
+  const profile = config.model_profile || 'balanced';
+  const agentModels = MODEL_PROFILES[agentType];
+  if (!agentModels) return 'sonnet';
+  const resolved = agentModels[profile] || agentModels['balanced'] || 'sonnet';
+  return resolved === 'opus' ? 'inherit' : resolved;
+}
+
+// ─── Misc utilities ───────────────────────────────────────────────────────────
+
+/**
+ * Check if path exists
+ * @param cwd - Working directory
+ * @param targetPath - Target path
+ * @returns True if exists
+ */
+function pathExistsInternal(cwd: string, targetPath: string): boolean {
+  const fullPath = path.isAbsolute(targetPath) ? targetPath : path.join(cwd, targetPath);
+  try {
+    fs.statSync(fullPath);
+    return true;
+  } catch (err) {
+    const error = err as Error;
+    logger.warn('Path existence check failed', { fullPath, error: error.message });
+    return false;
+  }
+}
+
+/**
+ * Generate slug from text
+ * @param text - Text to slugify
+ * @returns Slug string or null
+ */
+function generateSlugInternal(text: string): string | null {
+  if (!text) return null;
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
+interface MilestoneInfo {
+  version: string;
+  name: string;
+}
+
+/**
+ * Get milestone info from ROADMAP.md
+ * @param cwd - Working directory
+ * @returns Milestone info
+ */
+function getMilestoneInfo(cwd: string): MilestoneInfo {
+  try {
+    const roadmap = fs.readFileSync(path.join(cwd, '.planning', 'ROADMAP.md'), 'utf-8');
+
+    // First: check for list-format roadmaps using 🚧 (in-progress) marker
+    const inProgressMatch = roadmap.match(/🚧\s*\*\*v(\d+\.\d+)\s+([^*]+)\*\*/);
+    if (inProgressMatch) {
+      return {
+        version: 'v' + inProgressMatch[1],
+        name: inProgressMatch[2].trim(),
+      };
+    }
+
+    // Second: heading-format roadmaps
+    const cleaned = roadmap.replace(/<details>[\s\S]*?<\/details>/gi, '');
+    const headingMatch = cleaned.match(/## .*v(\d+\.\d+)[:\s]+([^\n(]+)/);
+    if (headingMatch) {
+      return {
+        version: 'v' + headingMatch[1],
+        name: headingMatch[2].trim(),
+      };
+    }
+    // Fallback: try bare version match
+    const versionMatch = cleaned.match(/v(\d+\.\d+)/);
+    return {
+      version: versionMatch ? versionMatch[0] : 'v1.0',
+      name: 'milestone',
+    };
+  } catch (err) {
+    const error = err as Error;
+    logger.warn('Failed to load milestone info, using fallback', { error: error.message });
+    return { version: 'v1.0', name: 'milestone' };
+  }
+}
+
+/**
+ * Filter function type for milestone phase filtering
+ */
+interface MilestonePhaseFilter {
+  (dirName: string): boolean;
+  phaseCount: number;
+}
+
+/**
+ * Get milestone phase filter function
+ * @param cwd - Working directory
+ * @returns Filter function
+ */
+function getMilestonePhaseFilter(cwd: string): MilestonePhaseFilter {
   const milestonePhaseNums = new Set<string>();
   try {
     const roadmap = fs.readFileSync(path.join(cwd, '.planning', 'ROADMAP.md'), 'utf-8');
     const phasePattern = /#{2,4}\s*Phase\s+(\d+[A-Z]?(?:\.\d+)*)\s*:/gi;
-    let m;
+    let m: RegExpExecArray | null;
     while ((m = phasePattern.exec(roadmap)) !== null) {
-      milestonePhaseNums.add(m[1]!);
+      milestonePhaseNums.add(m[1]);
     }
   } catch (err) {
-    logger.warn('Failed to parse milestone phases from roadmap', { error: err instanceof Error ? err.message : 'Unknown' });
+    const error = err as Error;
+    logger.warn('Failed to parse milestone phases from roadmap', { error: error.message });
   }
 
   if (milestonePhaseNums.size === 0) {
     const passAll = () => true;
     passAll.phaseCount = 0;
-    return passAll as (dirName: string) => boolean & { phaseCount: number };
+    return passAll;
   }
 
   const normalized = new Set(
     [...milestonePhaseNums].map(n => (n.replace(/^0+/, '') || '0').toLowerCase())
   );
 
-  function isDirInMilestone(dirName: string): boolean {
+  const isDirInMilestone = (dirName: string): boolean => {
     const m = dirName.match(/^0*(\d+[A-Za-z]?(?:\.\d+)*)/);
     if (!m) return false;
-    return normalized.has(m[1]!.toLowerCase());
-  }
-  (isDirInMilestone as any).phaseCount = milestonePhaseNums.size;
-  return isDirInMilestone as (dirName: string) => boolean & { phaseCount: number };
+    return normalized.has(m[1].toLowerCase());
+  };
+  isDirInMilestone.phaseCount = milestonePhaseNums.size;
+  return isDirInMilestone;
 }
 
-/**
- * Generate a URL-safe slug (internal version)
- * @param text - Text to slugify
- * @returns Slug string
- */
-export function generateSlugInternal(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-}
+export {
+  MODEL_PROFILES,
+  output,
+  error,
+  safeReadFile,
+  loadConfig,
+  isGitIgnored,
+  execGit,
+  escapeRegex,
+  normalizePhaseName,
+  comparePhaseNum,
+  searchPhaseInDir,
+  findPhaseInternal,
+  getArchivedPhaseDirs,
+  getRoadmapPhaseInternal,
+  resolveModelInternal,
+  pathExistsInternal,
+  generateSlugInternal,
+  getMilestoneInfo,
+  getMilestonePhaseFilter,
+  toPosixPath,
+};
 
-/**
- * Resolve model for an agent type (internal version)
- * @param cwd - Current working directory
- * @param agentType - Agent type
- * @returns Model name
- */
-export function resolveModelInternal(cwd: string, agentType: string): string {
-  const config = loadConfig(cwd);
-  const profile = config.model_profile || 'balanced';
-  return getModelForAgent(agentType, profile);
-}
-
-// Export additional utilities from other sections of core.cjs
-// (Roadmap utilities, milestone helpers, etc. can be added as needed)
+export type {
+  ModelProfile,
+  ModelProfiles,
+  Config,
+  GitResult,
+  PhaseSearchResult,
+  ArchivedPhaseDir,
+  RoadmapPhaseResult,
+  MilestoneInfo,
+  MilestonePhaseFilter
+};

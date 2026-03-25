@@ -1,25 +1,17 @@
-#!/usr/bin/env node
-
+'use strict';
 /**
  * EZ Cost Alerts — Multi-threshold budget alert system
  * Triggers alerts at 50%, 75%, and 90% budget usage
  * With duplicate prevention (24h window)
- *
- * Usage:
- *   import { CostAlerts, THRESHOLDS } from './cost-alerts.js';
- *   const alerts = new CostAlerts(cwd);
- *   const triggered = alerts.checkThresholds({ percentUsed: 80, totalSpent: 80, budget: 100 });
  */
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
-import { join } from 'path';
-
-// ─── Constants ──────────────────────────────────────────────────────────────
+import * as fs from 'fs';
+import * as path from 'path';
 
 /**
  * Alert threshold percentages
  */
-export const THRESHOLDS = {
+const THRESHOLDS = {
   INFO: 50,
   WARNING: 75,
   CRITICAL: 90
@@ -28,15 +20,11 @@ export const THRESHOLDS = {
 /**
  * Duplicate prevention window in milliseconds (24 hours)
  */
-export const DUPLICATE_WINDOW_MS = 24 * 60 * 60 * 1000;
+const DUPLICATE_WINDOW_MS = 24 * 60 * 60 * 1000;
 
-// ─── Type Definitions ────────────────────────────────────────────────────────
-
-export type AlertLevel = 'info' | 'warning' | 'critical';
-
-export interface Alert {
+interface Alert {
   threshold: number;
-  level: AlertLevel;
+  level: string;
   percentUsed: number;
   totalSpent: number;
   budget: number;
@@ -44,34 +32,26 @@ export interface Alert {
   timestamp: string;
 }
 
-export interface AlertOptions {
+interface CheckThresholdsOptions {
   percentUsed: number;
   totalSpent: number;
   budget: number;
 }
 
-export interface CostAlertsConfig {
-  cwd?: string;
+interface AlertsData {
+  alerts: Alert[];
+  lastUpdated?: string;
 }
 
-// ─── Cost Alerts Class ──────────────────────────────────────────────────────
+class CostAlerts {
+  private cwd: string;
+  private planningDir: string;
+  private alertsFile: string;
 
-/**
- * Cost Alerts class for managing budget alerts
- */
-export class CostAlerts {
-  private readonly cwd: string;
-  private readonly planningDir: string;
-  private readonly alertsFile: string;
-
-  /**
-   * Create a CostAlerts instance
-   * @param config - Configuration options
-   */
-  constructor(config: CostAlertsConfig = {}) {
-    this.cwd = config.cwd ?? process.cwd();
-    this.planningDir = join(this.cwd, '.planning');
-    this.alertsFile = join(this.planningDir, 'alerts.json');
+  constructor(cwd?: string) {
+    this.cwd = cwd || process.cwd();
+    this.planningDir = path.join(this.cwd, '.planning');
+    this.alertsFile = path.join(this.planningDir, 'alerts.json');
     this._ensurePlanningDir();
   }
 
@@ -79,8 +59,8 @@ export class CostAlerts {
    * Ensure .planning directory exists
    */
   private _ensurePlanningDir(): void {
-    if (!existsSync(this.planningDir)) {
-      mkdirSync(this.planningDir, { recursive: true });
+    if (!fs.existsSync(this.planningDir)) {
+      fs.mkdirSync(this.planningDir, { recursive: true });
     }
   }
 
@@ -90,8 +70,8 @@ export class CostAlerts {
    */
   private _loadAlerts(): Alert[] {
     try {
-      if (existsSync(this.alertsFile)) {
-        const data = JSON.parse(readFileSync(this.alertsFile, 'utf8'));
+      if (fs.existsSync(this.alertsFile)) {
+        const data = JSON.parse(fs.readFileSync(this.alertsFile, 'utf8')) as AlertsData;
         return data.alerts || [];
       }
     } catch {
@@ -105,11 +85,11 @@ export class CostAlerts {
    * @param alerts - Alerts to save
    */
   private _saveAlerts(alerts: Alert[]): void {
-    const data = {
+    const data: AlertsData = {
       alerts,
       lastUpdated: new Date().toISOString()
     };
-    writeFileSync(this.alertsFile, JSON.stringify(data, null, 2), 'utf8');
+    fs.writeFileSync(this.alertsFile, JSON.stringify(data, null, 2), 'utf8');
   }
 
   /**
@@ -120,7 +100,7 @@ export class CostAlerts {
    */
   private _isDuplicate(existingAlerts: Alert[], newAlert: Alert): boolean {
     const now = new Date().getTime();
-    return existingAlerts.some((alert) => {
+    return existingAlerts.some(alert => {
       if (alert.threshold !== newAlert.threshold || alert.level !== newAlert.level) {
         return false;
       }
@@ -134,11 +114,11 @@ export class CostAlerts {
    * @param opts - Alert options
    * @returns Array of triggered alerts
    */
-  checkThresholds(opts: AlertOptions): Alert[] {
+  checkThresholds(opts: CheckThresholdsOptions): Alert[] {
     const { percentUsed, totalSpent, budget } = opts;
     const triggered: Alert[] = [];
 
-    const thresholds: Array<{ level: AlertLevel; threshold: number }> = [
+    const thresholds = [
       { level: 'info', threshold: THRESHOLDS.INFO },
       { level: 'warning', threshold: THRESHOLDS.WARNING },
       { level: 'critical', threshold: THRESHOLDS.CRITICAL }
@@ -163,10 +143,9 @@ export class CostAlerts {
 
   /**
    * Build alert message
-   * @private
    */
-  private _buildMessage(level: AlertLevel, _threshold: number, percentUsed: number, totalSpent: number, budget: number): string {
-    const levelMessages: Record<AlertLevel, string> = {
+  private _buildMessage(level: string, threshold: number, percentUsed: number, totalSpent: number, budget: number): string {
+    const levelMessages: Record<string, string> = {
       info: 'Budget usage has reached',
       warning: 'Budget usage is getting high at',
       critical: 'CRITICAL: Budget usage is very high at'
@@ -203,12 +182,17 @@ export class CostAlerts {
    * @param level - Alert level (info, warning, critical)
    * @returns Filtered alerts
    */
-  getAlertsByLevel(level: AlertLevel): Alert[] {
+  getAlertsByLevel(level: string): Alert[] {
     const alerts = this._loadAlerts();
-    return alerts.filter((alert) => alert.level === level);
+    return alerts.filter(alert => alert.level === level);
   }
 }
 
-// ─── Default Export ─────────────────────────────────────────────────────────
+// Export thresholds as static property
+(CostAlerts as typeof CostAlerts & { THRESHOLDS: typeof THRESHOLDS }).THRESHOLDS = THRESHOLDS;
 
 export default CostAlerts;
+
+export { THRESHOLDS, CostAlerts };
+
+export type { Alert, CheckThresholdsOptions, AlertsData };

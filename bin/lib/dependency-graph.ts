@@ -13,13 +13,13 @@ import fs from 'fs';
 // ─── Type Definitions ────────────────────────────────────────────────────────
 
 export interface DependencyGraphOptions {
-  entry?: string | null;
+  entry?: string;
   detectCircular?: boolean;
   includeNpm?: boolean;
   tsConfig?: string;
   fileExtensions?: string[];
   extensions?: string[];
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface DependencyGraphNode {
@@ -45,7 +45,7 @@ export class DependencyGraph {
   private circular: string[];
   private orphan: string[];
   private leafs: string[];
-  private graph: any;
+  private graph: unknown;
 
   /**
    * Create a DependencyGraph instance
@@ -77,7 +77,7 @@ export class DependencyGraph {
    * @param entryPoint - Optional entry point file
    * @returns Graph object with nodes, edges, circular, orphan, leafs
    */
-  async build(rootPath: string = this.rootPath, entryPoint: string = this.options.entry || ''): Promise<DependencyGraphResult> {
+  async build(rootPath: string = this.rootPath, entryPoint: string | null = this.options.entry || null): Promise<DependencyGraphResult> {
     try {
       const madge = await import('madge');
 
@@ -105,7 +105,7 @@ export class DependencyGraph {
       }
 
       // Build glob pattern
-      const patterns = this.options.fileExtensions
+      const patterns = this.options.fileExtensions!
         .flatMap(ext => [
           path.join(searchPath, `**/*${ext}`),
           path.join(rootPath, `bin/**/*${ext}`),
@@ -113,16 +113,25 @@ export class DependencyGraph {
         ]);
 
       // Use madge to analyze dependencies
-      const depGraph = await madge.default(patterns.length > 0 ? patterns : searchPath, {
+      const madgeModule = madge as unknown as {
+        default: (path: string | string[], config?: Record<string, unknown>) => Promise<{
+          nodes: () => string[];
+          dependencies: () => Record<string, string[]>;
+          circular: () => string[];
+          orphan: () => string[];
+          leafs: () => string[];
+        }>;
+      };
+      const depGraph = await madgeModule.default(patterns.length > 0 ? patterns : searchPath, {
         ...config,
-        tsConfig: fs.existsSync(config.tsConfig) ? config.tsConfig : undefined
+        tsConfig: fs.existsSync(config.tsConfig!) ? config.tsConfig : undefined
       });
 
-      this.nodes = depGraph.nodes();
-      this.edges = depGraph.dependencies();
-      this.circular = this.options.detectCircular ? depGraph.circular() : [];
-      this.orphan = depGraph.orphan();
-      this.leafs = depGraph.leafs();
+      this.nodes = depGraph.nodes() as string[];
+      this.edges = depGraph.dependencies() as Record<string, string[]>;
+      this.circular = this.options.detectCircular ? (depGraph.circular() as string[]) : [];
+      this.orphan = depGraph.orphan() as string[];
+      this.leafs = depGraph.leafs() as string[];
       this.graph = depGraph;
 
       return {
@@ -186,7 +195,7 @@ export class DependencyGraph {
    * @returns Number of dependencies
    */
   getDependencyCount(filePath: string): number {
-    return this.edges[filePath] ? this.edges[filePath].length : 0;
+    return this.edges[filePath] ? this.edges[filePath]!.length : 0;
   }
 
   /**
@@ -267,7 +276,7 @@ export class DependencyGraph {
       }
 
       result.orphan = files.filter(file => {
-        const hasImports = result.edges[file] && result.edges[file].length > 0;
+        const hasImports = result.edges[file] && result.edges[file]!.length > 0;
         const isImported = importedFiles.has(file);
         return !hasImports && !isImported;
       });
@@ -300,7 +309,7 @@ export class DependencyGraph {
           this.getAllSourceFiles(fullPath, files);
         } else if (entry.isFile()) {
           const ext = path.extname(entry.name);
-          if (this.options.fileExtensions?.includes(ext)) {
+          if (this.options.fileExtensions!.includes(ext)) {
             files.push(fullPath);
           }
         }
@@ -327,7 +336,7 @@ export class DependencyGraph {
         if (importPath.startsWith('.')) {
           const resolved = path.resolve(path.dirname(filePath), importPath);
           // Try to find the actual file
-          for (const ext of this.options.fileExtensions || []) {
+          for (const ext of (this.options.fileExtensions || []) as string[]) {
             const withExt = resolved + ext;
             if (fs.existsSync(withExt)) {
               imports.push(withExt);
@@ -335,7 +344,7 @@ export class DependencyGraph {
             }
           }
           // Also check index files
-          for (const ext of this.options.fileExtensions || []) {
+          for (const ext of (this.options.fileExtensions || []) as string[]) {
             const indexPath = path.join(resolved, `index${ext}`);
             if (fs.existsSync(indexPath)) {
               imports.push(indexPath);

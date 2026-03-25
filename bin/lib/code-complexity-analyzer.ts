@@ -116,7 +116,7 @@ export class CodeComplexityAnalyzer {
             for (const msg of result.messages) {
               if (msg.ruleId && (msg.ruleId.includes('complexity') || msg.ruleId.includes('max-'))) {
                 issues.push({
-                  file: result.filePath,
+                  file: result.filePath || '',
                   line: msg.line,
                   rule: msg.ruleId,
                   severity: msg.severity === 2 ? 'High' : 'Medium',
@@ -332,7 +332,7 @@ export class CodeComplexityAnalyzer {
       if (!byHash[chunk.hash]) {
         byHash[chunk.hash] = [];
       }
-      byHash[chunk.hash].push(chunk);
+      byHash[chunk.hash]!.push(chunk);
     }
 
     // Find duplicates (same hash in different files)
