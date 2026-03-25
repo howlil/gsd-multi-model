@@ -154,7 +154,8 @@ None
 | 260325-ohh | Fix TypeScript errors (850 → 200) | 2026-03-25 | 4771874 | [260325-ohh-fix-ts](./quick/260325-ohh-fix-ts/) |
 | 260325-ov9 | Fix TypeScript errors (200 → 65 source) | 2026-03-25 | 1915bf4 | [260325-ov9-fix-typescript-error](./quick/260325-ov9-fix-typescript-error/) |
 | 260325-pmv | Fix TypeScript errors (65 → 35 source) | 2026-03-25 | e8930d3 | [260325-pmv-fix-typescript-error](./quick/260325-pmv-fix-typescript-error/) |
+| 260325-s26 | Health check: broken flow, missing files, broken code | 2026-03-25 | 3cfa4bb | [260325-s26-coba-lihat-apakah-ada-broken-flow-missin](./quick/260325-s26-coba-lihat-apakah-ada-broken-flow-missin/) |
 
 ---
 
-*Last updated: 2026-03-25 — Completed 8 quick tasks: 96% TypeScript errors fixed*
+*Last updated: 2026-03-25 — Completed 9 quick tasks: Build fixed, ~40 planning files need review*
