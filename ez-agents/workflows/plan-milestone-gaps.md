@@ -141,7 +141,7 @@ grep -c "Pending" .planning/REQUIREMENTS.md
 ## 8. Create Phase Directories
 
 ```bash
-mkdir -p ".planning/phases/{NN}-{name}"
+mkdir -p .planning/phases/{NN}-{name}
 ```
 
 ## 9. Commit Roadmap and Requirements Update

@@ -83,7 +83,7 @@ Quick tasks can run mid-phase - validation only checks ROADMAP.md exists, not ph
 **Step 3: Create task directory**
 
 ```bash
-mkdir -p "${task_dir}"
+mkdir -p ${task_dir}
 ```
 
 ---
@@ -94,7 +94,7 @@ Create the directory for this quick task:
 
 ```bash
 QUICK_DIR=".planning/quick/${quick_id}-${slug}"
-mkdir -p "$QUICK_DIR"
+mkdir -p ${QUICK_DIR}
 ```
 
 Report to user:

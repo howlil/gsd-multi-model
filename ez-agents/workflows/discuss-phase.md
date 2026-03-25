@@ -509,7 +509,7 @@ Use values from init: `phase_dir`, `phase_slug`, `padded_phase`.
 
 If `phase_dir` is null (phase exists in roadmap but no directory):
 ```bash
-mkdir -p ".planning/phases/${padded_phase}-${phase_slug}"
+mkdir -p .planning/phases/${padded_phase}-${phase_slug}
 ```
 
 **File location:** `${phase_dir}/${padded_phase}-CONTEXT.md`

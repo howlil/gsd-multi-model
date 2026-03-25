@@ -128,7 +128,7 @@ This catches bugs that only manifest on fresh start — race conditions in start
 **Create UAT file with all tests:**
 
 ```bash
-mkdir -p "$PHASE_DIR"
+mkdir -p ${PHASE_DIR}
 ```
 
 Build test list from extracted deliverables.
