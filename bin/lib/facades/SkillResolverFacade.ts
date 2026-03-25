@@ -187,7 +187,7 @@ export class SkillResolverFacade {
       return {
         skill,
         matchResult,
-        validation,
+        validation: validation ?? { valid: false, issues: [] },
         rationale: matchResult.rationale
       };
     } catch (error) {
@@ -285,8 +285,8 @@ export class SkillResolverFacade {
     if (skill.stack) {
       const [language, framework] = skill.stack.split('/');
       context.stack = {
-        language: language?.trim(),
-        framework: framework?.trim()
+        language: language?.trim() ?? '',
+        framework: framework?.trim() ?? ''
       };
     }
 
@@ -386,8 +386,8 @@ export class SkillResolverFacade {
         return {
           success: result.success,
           skill,
-          output: result.output,
-          error: result.error
+          output: result.output ?? '',
+          error: result.error ?? ''
         };
       }
 

@@ -32,6 +32,9 @@ import { RankByRelevanceStrategy } from './strategies/RankByRelevanceStrategy.js
 import { HybridStrategy } from './strategies/HybridStrategy.js';
 import { ContextRelevanceScorer } from './context-relevance-scorer.js';
 
+// Re-export types for backward compatibility
+export type { CompressionResult, CompressionOptions };
+
 /**
  * Compression statistics
  */

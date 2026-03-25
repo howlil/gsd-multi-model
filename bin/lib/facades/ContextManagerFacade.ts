@@ -138,7 +138,7 @@ export class ContextManagerFacade {
     const result = await contextManager.requestContext({
       files,
       urls,
-      task,
+      task: task ?? '',
       enableScoring,
       minScore,
       maxFiles,
@@ -288,20 +288,20 @@ export class ContextManagerFacade {
    * Enable or disable relevance scoring
    * @param enabled - Whether to enable scoring
    */
-  @LogExecution('ContextManagerFacade.enableScoring', { logParams: true })
-  enableScoring(enabled: boolean): void {
+  @LogExecution('ContextManagerFacade.setScoringEnabled', { logParams: true })
+  setScoringEnabled(enabled: boolean): void {
     this.enableScoring = enabled;
-    logger.info('ContextManagerFacade.enableScoring', { enabled });
+    logger.info('ContextManagerFacade.setScoringEnabled', { enabled });
   }
 
   /**
    * Enable or disable deduplication
    * @param enabled - Whether to enable deduplication
    */
-  @LogExecution('ContextManagerFacade.enableDeduplication', { logParams: true })
-  enableDeduplication(enabled: boolean): void {
+  @LogExecution('ContextManagerFacade.setDeduplicationEnabled', { logParams: true })
+  setDeduplicationEnabled(enabled: boolean): void {
     this.enableDeduplication = enabled;
-    logger.info('ContextManagerFacade.enableDeduplication', { enabled });
+    logger.info('ContextManagerFacade.setDeduplicationEnabled', { enabled });
   }
 
   /**

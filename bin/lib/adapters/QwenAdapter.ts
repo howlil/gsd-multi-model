@@ -94,15 +94,15 @@ export class QwenAdapter implements ModelProviderAdapter {
         result_format: 'message',
         max_tokens: options.maxTokens || 4096
       }
-    };
+    } as any;
 
     if (options.temperature !== undefined) {
-      requestBody.parameters.temperature = options.temperature;
+      (requestBody.parameters as any).temperature = options.temperature;
     }
 
     // Add tools if provided
     if (options.tools && options.tools.length > 0) {
-      requestBody.parameters.tools = options.tools.map(tool => ({
+      (requestBody.parameters as any).tools = options.tools.map(tool => ({
         name: tool.name,
         description: tool.description,
         parameters: tool.inputSchema
