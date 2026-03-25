@@ -39,10 +39,10 @@ function extractFrontmatter(content: string): Frontmatter {
 
     // Calculate indentation (number of leading spaces)
     const indentMatch = line.match(/^(\s*)/);
-    const indent = indentMatch ? indentMatch[1].length : 0;
+    const indent = indentMatch?.[1]?.length ?? 0;
 
     // Pop stack back to appropriate level
-    while (stack.length > 1 && indent <= stack[stack.length - 1].indent) {
+    while (stack.length > 1 && indent <= (stack[stack.length - 1]?.indent ?? 0)) {
       stack.pop();
     }
 
@@ -221,7 +221,7 @@ function parseMustHavesBlock(content: string, blockName: string): MustHaveItem[]
   for (const line of blockLines) {
     if (line.trim() === '') continue;
     const indentMatch = line.match(/^(\s*)/);
-    const indent = indentMatch ? indentMatch[1].length : 0;
+    const indent = indentMatch?.[1]?.length ?? 0;
     if (indent <= 4 && line.trim() !== '') break;
 
     if (line.match(/^\s{6}-\s+/)) {
@@ -346,7 +346,7 @@ function cmdFrontmatterMerge(cwd: string, filePath: string, data: string, raw?: 
 function cmdFrontmatterValidate(cwd: string, filePath: string, schemaName: string, raw?: boolean): void {
   if (!filePath || !schemaName) { error('file and schema required'); }
   const schema = FRONTMATTER_SCHEMAS[schemaName];
-  if (!schema) { error(`Unknown schema: ${schemaName}. Available: ${Object.keys(FRONTMATTER_SCHEMAS).join(', ')}`); }
+  if (!schema) { error(`Unknown schema: ${schemaName}. Available: ${Object.keys(FRONTMATTER_SCHEMAS).join(', ')}`); return; }
   const fullPath = path.isAbsolute(filePath) ? filePath : path.join(cwd, filePath);
   const content = safeReadFile(fullPath);
   if (!content) { output({ error: 'File not found', path: filePath }, raw); return; }
