@@ -514,6 +514,45 @@ export function getMilestoneInfo(cwd: string): MilestoneInfo {
 }
 
 /**
+ * Get a filter function to check if a phase directory belongs to the current milestone
+ * based on ROADMAP.md phase headings.
+ * If no ROADMAP exists or no phases are listed, returns a pass-all filter.
+ * @param cwd - Current working directory
+ * @returns Filter function with phaseCount property
+ */
+export function getMilestonePhaseFilter(cwd: string): (dirName: string) => boolean & { phaseCount: number } {
+  const milestonePhaseNums = new Set<string>();
+  try {
+    const roadmap = fs.readFileSync(path.join(cwd, '.planning', 'ROADMAP.md'), 'utf-8');
+    const phasePattern = /#{2,4}\s*Phase\s+(\d+[A-Z]?(?:\.\d+)*)\s*:/gi;
+    let m;
+    while ((m = phasePattern.exec(roadmap)) !== null) {
+      milestonePhaseNums.add(m[1]!);
+    }
+  } catch (err) {
+    logger.warn('Failed to parse milestone phases from roadmap', { error: err instanceof Error ? err.message : 'Unknown' });
+  }
+
+  if (milestonePhaseNums.size === 0) {
+    const passAll = () => true;
+    passAll.phaseCount = 0;
+    return passAll as (dirName: string) => boolean & { phaseCount: number };
+  }
+
+  const normalized = new Set(
+    [...milestonePhaseNums].map(n => (n.replace(/^0+/, '') || '0').toLowerCase())
+  );
+
+  function isDirInMilestone(dirName: string): boolean {
+    const m = dirName.match(/^0*(\d+[A-Za-z]?(?:\.\d+)*)/);
+    if (!m) return false;
+    return normalized.has(m[1]!.toLowerCase());
+  }
+  (isDirInMilestone as any).phaseCount = milestonePhaseNums.size;
+  return isDirInMilestone as (dirName: string) => boolean & { phaseCount: number };
+}
+
+/**
  * Generate a URL-safe slug (internal version)
  * @param text - Text to slugify
  * @returns Slug string
