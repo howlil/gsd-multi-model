@@ -74,7 +74,7 @@ function extractFrontmatter(content: string): Frontmatter {
       const itemValue = line.trim().slice(2).replace(/^["']|["']$/g, '');
 
       // If current context is an empty object, convert to array
-      if (typeof current.obj === 'object' && !Array.isArray(current.obj) && Object.keys(current.obj).length === 0) {
+      if (current && typeof current.obj === 'object' && !Array.isArray(current.obj) && Object.keys(current.obj).length === 0) {
         // Find the key in parent that points to this object and convert it
         const parent = stack.length > 1 ? stack[stack.length - 2] : null;
         if (parent) {
@@ -86,7 +86,7 @@ function extractFrontmatter(content: string): Frontmatter {
             }
           }
         }
-      } else if (Array.isArray(current.obj)) {
+      } else if (current && Array.isArray(current.obj)) {
         current.obj.push(itemValue);
       }
     }

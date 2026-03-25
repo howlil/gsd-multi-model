@@ -157,7 +157,7 @@ function parseAgentSections(lines: string[]): AgentSection[] {
     // Check if line starts a known section
     const matchedHeading = agentHeadings.find(h => h.pattern.test(line));
 
-    if (matchedHeading) {
+    if (matchedHeading && matchedHeading.agent) {
       // Save previous section
       if (currentSection) {
         sections.push({
@@ -166,7 +166,7 @@ function parseAgentSections(lines: string[]): AgentSection[] {
           content: currentContent.join('\n').trim()
         });
       }
-      currentSection = { agent: matchedHeading.agent!, heading: line };
+      currentSection = { agent: matchedHeading.agent, heading: line };
       currentContent = [];
     } else if (currentSection) {
       currentContent.push(line);
@@ -342,7 +342,7 @@ export function checkParticipation(discussionPath: string): ParticipationCheck {
     needsObserver: !populated('observer'),
     needsTechLead: !populated('tech-lead'),
     needsScrumMaster: !populated('scrum-master'),
-    needsRequirements: populated('requirements') ? !populated('requirements') : undefined
+    needsRequirements: populated('requirements') ? !populated('requirements') : false
   };
 }
 

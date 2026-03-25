@@ -252,13 +252,15 @@ export class FrameworkDetector {
                   evidence: []
                 };
               }
-              if (!detected[key].files.includes(file)) {
+              if (detected[key] && !detected[key].files.includes(file)) {
                 detected[key].files.push(file);
               }
-              detected[key].evidence.push({
-                file,
-                pattern
-              });
+              if (detected[key]) {
+                detected[key].evidence.push({
+                  file,
+                  pattern
+                });
+              }
               break;
             }
           }
@@ -388,9 +390,10 @@ export class FrameworkDetector {
 
     // Add import-based detections
     for (const [framework, evidence] of Object.entries(importDetection)) {
-      if (frameworks[framework]) {
-        frameworks[framework].importEvidence = evidence;
-        frameworks[framework].confidence = 'high';
+      const existing = frameworks[framework];
+      if (existing) {
+        existing.importEvidence = evidence;
+        existing.confidence = 'medium';
       } else {
         frameworks[framework] = {
           detected: true,
@@ -405,8 +408,9 @@ export class FrameworkDetector {
 
     // Add pattern-based detections
     for (const [framework, patterns] of Object.entries(patternDetection)) {
-      if (frameworks[framework]) {
-        frameworks[framework].patternEvidence = patterns;
+      const existing = frameworks[framework];
+      if (existing) {
+        existing.patternEvidence = patterns;
       } else {
         frameworks[framework] = {
           detected: true,
