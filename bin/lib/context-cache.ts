@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 /**
  * Context Cache (Session-Only)
  *
@@ -7,16 +5,51 @@
  * Cache is stored in system temp directory and auto-cleared on process exit.
  */
 
-const os = require('os');
-const path = require('path');
-const fs = require('fs');
+import * as os from 'os';
+import * as path from 'path';
+import * as fs from 'fs';
 
-class ContextCache {
+/**
+ * Cache entry metadata
+ */
+export interface CacheEntry {
+  content: string;
+  type: string;
+  contentType?: string;
+  timestamp: number;
+  [key: string]: unknown;
+}
+
+/**
+ * Cache entry input (without required type for flexibility)
+ */
+export interface CacheEntryInput {
+  type?: string;
+  contentType?: string;
+  timestamp?: number;
+  [key: string]: unknown;
+}
+
+/**
+ * Cache statistics
+ */
+export interface CacheStats {
+  size: number;
+  keys: string[];
+}
+
+/**
+ * ContextCache class for session-only caching
+ */
+export class ContextCache {
+  private cacheDir: string;
+  private cache: Map<string, CacheEntry>;
+
   constructor() {
     // Cache stored in system temp directory with PID for isolation
     this.cacheDir = path.join(os.tmpdir(), `ez-agents-context-${process.pid}`);
-    this.cache = new Map();
-    
+    this.cache = new Map<string, CacheEntry>();
+
     // Register process exit handlers
     this._registerExitHandlers();
   }
@@ -25,7 +58,7 @@ class ContextCache {
    * Register process exit handlers to clean up cache
    * @private
    */
-  _registerExitHandlers() {
+  private _registerExitHandlers(): void {
     // Clean up on normal exit
     process.on('exit', () => {
       this.clear();
@@ -51,57 +84,66 @@ class ContextCache {
 
   /**
    * Get cached content by key
-   * @param {string} key - The cache key (usually URL or file path)
-   * @returns {{content: string, timestamp: number, type: string, contentType?: string}|undefined}
+   * @param key - The cache key (usually URL or file path)
+   * @returns Cached entry or undefined
    */
-  get(key) {
+  get(key: string): CacheEntry | undefined {
     return this.cache.get(key);
   }
 
   /**
    * Store content in cache
-   * @param {string} key - The cache key
-   * @param {string} content - The content to cache
-   * @param {Object} metadata - Additional metadata (type, contentType, etc.)
+   * @param key - The cache key
+   * @param content - The content to cache
+   * @param metadata - Additional metadata (type, contentType, etc.)
    */
-  set(key, content, metadata = {}) {
-    this.cache.set(key, {
+  set(key: string, content: string, metadata: CacheEntryInput = {}): void {
+    const entry: CacheEntry = {
       content,
-      ...metadata,
-      timestamp: Date.now()
-    });
+      type: metadata.type ?? 'unknown',
+      timestamp: metadata.timestamp ?? Date.now()
+    };
+    
+    if (metadata.contentType !== undefined) {
+      entry.contentType = metadata.contentType;
+    }
+    
+    // Copy any additional metadata properties
+    Object.assign(entry, metadata);
+    
+    this.cache.set(key, entry);
   }
 
   /**
    * Check if key exists in cache
-   * @param {string} key - The cache key
-   * @returns {boolean} - True if key exists
+   * @param key - The cache key
+   * @returns True if key exists
    */
-  has(key) {
+  has(key: string): boolean {
     return this.cache.has(key);
   }
 
   /**
    * Remove item from cache
-   * @param {string} key - The cache key
-   * @returns {boolean} - True if item was removed
+   * @param key - The cache key
+   * @returns True if item was removed
    */
-  delete(key) {
+  delete(key: string): boolean {
     return this.cache.delete(key);
   }
 
   /**
    * Get the size of the cache
-   * @returns {number} - Number of items in cache
+   * @returns Number of items in cache
    */
-  size() {
+  size(): number {
     return this.cache.size;
   }
 
   /**
    * Clear all cached content and remove temp directory
    */
-  clear() {
+  clear(): void {
     // Clear the in-memory cache
     this.cache.clear();
 
@@ -109,7 +151,7 @@ class ContextCache {
     if (fs.existsSync(this.cacheDir)) {
       try {
         fs.rmSync(this.cacheDir, { recursive: true, force: true });
-      } catch (err) {
+      } catch (_err) {
         // Ignore errors during cleanup (directory may already be gone)
       }
     }
@@ -117,33 +159,33 @@ class ContextCache {
 
   /**
    * Get cache directory path
-   * @returns {string} - Path to cache directory
+   * @returns Path to cache directory
    */
-  getCacheDir() {
+  getCacheDir(): string {
     return this.cacheDir;
   }
 
   /**
    * Get all cache keys
-   * @returns {Array<string>} - Array of cache keys
+   * @returns Array of cache keys
    */
-  keys() {
+  keys(): string[] {
     return Array.from(this.cache.keys());
   }
 
   /**
    * Get all cached entries
-   * @returns {Array<{key: string, value: Object}>} - Array of key-value pairs
+   * @returns Array of key-value pairs
    */
-  entries() {
+  entries(): Array<{ key: string; value: CacheEntry }> {
     return Array.from(this.cache.entries()).map(([key, value]) => ({ key, value }));
   }
 
   /**
    * Get cache statistics
-   * @returns {{size: number, keys: Array<string>}} - Cache statistics
+   * @returns Cache statistics
    */
-  stats() {
+  stats(): CacheStats {
     return {
       size: this.cache.size,
       keys: this.keys()
@@ -151,4 +193,4 @@ class ContextCache {
   }
 }
 
-module.exports = ContextCache;
+export default ContextCache;
