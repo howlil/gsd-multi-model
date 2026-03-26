@@ -22,7 +22,7 @@ describe('ez-agents analytics', () => {
 
   test('analytics track --event records event with properties', () => {
     const result = runEzTools(
-      ['analytics', 'track', '--event', 'page_view', '--user', 'user-123', '--props', '{"page":"/home"}'],
+      ['analytics', 'track', '--event page_view', '--user user-123', '--props {"page":"/home"}'],
       tmpDir
     );
     expect(result.success).toBeTruthy() // 'analytics track must exit 0: ' + result.error;
@@ -34,7 +34,7 @@ describe('ez-agents analytics', () => {
 
   test('analytics session --start creates new session', () => {
     const result = runEzTools(
-      ['analytics', 'session', '--start', '--user', 'user-456'],
+      ['analytics', 'session', '--start', '--user user-456'],
       tmpDir
     );
     expect(result.success).toBeTruthy() // 'analytics session --start must exit 0: ' + result.error;
@@ -61,7 +61,7 @@ describe('ez-agents analytics', () => {
 
     // End session
     const endResult = runEzTools(
-      ['analytics', 'session', '--end', '--id', sessionId],
+      ['analytics', 'session', '--end', '--id ' + sessionId],
       tmpDir
     );
     expect(endResult.success).toBeTruthy() // 'analytics session --end must exit 0: ' + endResult.error;
@@ -70,7 +70,7 @@ describe('ez-agents analytics', () => {
 
   test('analytics report --type generates report in specified format', () => {
     const result = runEzTools(
-      ['analytics', 'report', '--type', 'weekly', '--format', 'json'],
+      ['analytics', 'report', '--type=weekly', '--format json'],
       tmpDir
     );
     expect(result.success).toBeTruthy() // 'analytics report must exit 0: ' + result.error;
@@ -86,7 +86,7 @@ describe('ez-agents analytics', () => {
 
   test('analytics export --format csv exports data to file', () => {
     const result = runEzTools(
-      ['analytics', 'export', '--format', 'csv', '--output', 'analytics-export'],
+      ['analytics', 'export', '--format csv', '--output analytics-export'],
       tmpDir
     );
     expect(result.success).toBeTruthy() // 'analytics export must exit 0: ' + result.error;

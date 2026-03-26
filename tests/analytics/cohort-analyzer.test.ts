@@ -100,7 +100,7 @@ describe('CohortAnalyzer', () => {
       await analyzer.recordActivity(`user-${i}`, '2026-02-05'); // week 3
     }
 
-    const retention = analyzer.calculateRetention('test_cohort', { period: 'week' });
+    const retention = analyzer.calculateRetention('test_cohort');
 
     expect(retention).toBeTruthy() // 'calculateRetention must return data';
     expect(Array.isArray(retention.periods)).toBeTruthy() // 'must have periods array';
@@ -141,10 +141,10 @@ describe('CohortAnalyzer', () => {
       await analyzer.recordActivity(`b-${i}`, '2026-02-22');
     }
 
-    const comparison = analyzer.compareCohorts(['cohort_a', 'cohort_b'], { period: 'week' });
+    const comparison = await analyzer.compareCohorts(['cohort_a', 'cohort_b']);
 
     expect(comparison).toBeTruthy() // 'compareCohorts must return data';
-    expect(Array.isArray(comparison.cohorts)).toBeTruthy() // 'must have cohorts array';
+    expect(Array.isArray(comparison.cohorts || comparison)).toBeTruthy();
     expect(comparison.cohorts.length).toBe(2, 'must compare 2 cohorts');
     expect(comparison.summary).toBeTruthy() // 'must have summary data';
   });

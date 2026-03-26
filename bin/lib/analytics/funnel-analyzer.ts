@@ -210,7 +210,8 @@ export class FunnelAnalyzer {
    * @param funnelName - Funnel name
    * @returns Drop-off analysis
    */
-  async getDropOffPoints(funnelName: string): Promise<{ steps: FunnelStep[]; dropOff: DropOffAnalysis[]; totalUsers: number }> {
+  
+  async getDropOffPoints(funnelName: string): Promise<{ points: Array<{ fromStep: string; toStep: string; dropRate: number }>; totalUsers: number }> {
     const data = this.getFunnelsData();
     const funnel = data.funnels.find(f => f.name === funnelName);
     
@@ -222,7 +223,6 @@ export class FunnelAnalyzer {
     const stepCounts: Record<string, number> = {};
     const userSteps: Record<string, Set<string>> = {};
 
-    // Count unique users at each step
     for (const conv of conversions) {
       if (!userSteps[conv.userId]) {
         userSteps[conv.userId] = new Set();
@@ -232,7 +232,6 @@ export class FunnelAnalyzer {
       }
     }
 
-    // Count users at each step
     for (const userStepSet of Object.values(userSteps)) {
       for (const step of userStepSet) {
         stepCounts[step] = (stepCounts[step] || 0) + 1;
@@ -240,31 +239,25 @@ export class FunnelAnalyzer {
     }
 
     const totalUsers = Object.keys(userSteps).length;
+    const points: Array<{ fromStep: string; toStep: string; dropRate: number }> = [];
     
-    // Build steps array
-    const steps: FunnelStep[] = funnel.steps.map(step => ({
-      name: step.name,
-      users: stepCounts[step.name] || 0
-    }));
-
-    // Calculate drop-off between consecutive steps
-    const dropOff: DropOffAnalysis[] = [];
     for (let i = 0; i < funnel.steps.length - 1; i++) {
       const currentStep = funnel.steps[i];
       const nextStep = funnel.steps[i + 1];
       const current = stepCounts[currentStep.name] || 0;
       const next = stepCounts[nextStep.name] || 0;
+      const dropRate = current > 0 ? Math.round(((current - next) / current) * 100) : 0;
       
-      dropOff.push({
-        from: currentStep.name,
-        to: nextStep.name,
-        dropOff: current - next,
-        dropOffRate: current > 0 ? Math.round(((current - next) / current) * 100) : 0
+      points.push({
+        fromStep: currentStep.name,
+        toStep: nextStep.name,
+        dropRate
       });
     }
 
-    return { steps, dropOff, totalUsers };
+    return { points, totalUsers };
   }
+
 
   /**
    * Compare multiple funnels
