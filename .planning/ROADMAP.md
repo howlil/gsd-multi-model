@@ -1,218 +1,363 @@
-# ez-agents v7.0.0 Roadmap — Zero TypeScript Errors
+# ez-agents v8.0.0 Roadmap — Test Quality (100% Pass Rate)
 
-**Project:** ez-agents v7.0.0 TypeScript Error Fix
-**Created:** 2026-03-26
-**Milestone:** v7.0.0
+**Project:** ez-agents v8.0.0 Test Quality Improvement
+**Created:** 2026-03-27
+**Milestone:** v8.0.0
 **Mode:** YOLO | **Granularity:** Standard | **Parallel:** Yes
 
 ## Overview
 
-3 phases to fix all 586 TypeScript compilation errors across the codebase.
+5 phases to fix all 104 failing tests and achieve 100% test pass rate.
 
-**Total Requirements:** 38 across 3 categories
-- CORE-01 to CORE-25: Core Library Error Fixes (25 requirements)
-- ENTRY-01 to ENTRY-02: Entry Point Error Fixes (2 requirements)
-- TEST-01 to TEST-11: Test File Error Fixes (11 requirements)
+**Total Requirements:** 38 across 5 categories
+- ANALYTICS-01 to ANALYTICS-06: Analytics Implementation (6 requirements)
+- FINOPS-01 to FINOPS-06: FinOps Implementation (6 requirements)
+- CONTEXT-01 to CONTEXT-08: Context Module Tests (8 requirements)
+- CORE-01 to CORE-10: Core Module Tests (10 requirements)
+- INTEGRATION-01 to INTEGRATION-08: Integration Tests (8 requirements)
 
 ---
 
-## Phase 16: Core Library Error Fixes
+## Phase 19: Analytics Implementation Tests
 
-**Goal:** Fix all TypeScript errors in `bin/lib/` core library files.
+**Goal:** Implement missing analytics methods and fix test expectations.
 
-**Requirements Covered:** CORE-01 to CORE-25 (25 requirements)
+**Requirements Covered:** ANALYTICS-01 to ANALYTICS-06 (6 requirements)
+
+**Status:** 🔄 In progress (1/6 complete)
+
+### Plans
+
+- [x] **Plan 19.1**: Implement NPSTracker methods (ANALYTICS-01) ✅
+  - Implement `recordResponse()` method
+  - Implement `calculateScore()` method
+  - Implement `getTrend()` method
+  - Fix test expectations
+
+- [ ] **Plan 19.2**: Implement AnalyticsCollector methods (ANALYTICS-02)
+  - Implement `track()` method with proper metadata
+  - Implement `startSession()` with unique ID generation
+  - Implement `endSession()` with duration calculation
+  - Implement `getEvents()` filtering
+
+- [ ] **Plan 19.3**: Implement AnalyticsReporter methods (ANALYTICS-03)
+  - Implement `generateReport()` method
+  - Implement `aggregateMetrics()` method
+  - Implement `exportReport()` method
+  - Implement `scheduleReport()` method
+
+- [ ] **Plan 19.4**: Implement CohortAnalyzer methods (ANALYTICS-04)
+  - Implement `defineCohort()` method
+  - Implement `addUserToCohort()` method
+  - Implement `calculateRetention()` method
+  - Implement `compareCohorts()` method
+
+- [ ] **Plan 19.5**: Implement FunnelAnalyzer methods (ANALYTICS-05)
+  - Implement `defineFunnel()` method
+  - Implement `trackConversion()` method
+  - Implement `getConversionRates()` method
+  - Implement `getDropOffPoints()` method
+
+- [ ] **Plan 19.6**: Fix analytics CLI tests (ANALYTICS-06)
+  - Fix `analytics track --event` test
+  - Fix `analytics session --start` test
+  - Fix `analytics session --end` test
+  - Fix `analytics report --type` test
+  - Fix `analytics export --format` test
+
+---
+
+## Phase 20: FinOps Implementation Tests
+
+**Goal:** Implement missing FinOps methods and fix test expectations.
+
+**Requirements Covered:** FINOPS-01 to FINOPS-06 (6 requirements)
 
 **Status:** Not started
 
 ### Plans
 
-- [ ] **Plan 16.1**: Fix type incompatibility errors (CORE-01, CORE-04, CORE-05, CORE-10)
-  - Fix `exactOptionalPropertyTypes` errors with proper undefined handling
-  - Fix index signature errors with proper type narrowing
-  - Fix barrel export circular dependency errors
-  - Fix property access on potentially undefined values
+- [ ] **Plan 20.1**: Implement BudgetEnforcer methods (FINOPS-01)
+  - Implement `setBudget()` with warning threshold
+  - Implement `checkBudget()` status logic
+  - Implement `enforce()` blocking logic
+  - Implement `getSpendingByCategory()` method
 
-- [ ] **Plan 16.2**: Fix spawn and process type errors (CORE-02)
-  - Fix `spawn()` call with proper argument types
-  - Fix ChildProcess stream type conflicts
-  - Add proper type guards for process streams
+- [ ] **Plan 20.2**: Implement CostReporter methods (FINOPS-02)
+  - Implement `generateReport()` method
+  - Implement `getCostByService()` method
+  - Implement `getCostByPeriod()` method
+  - Implement `exportReport()` method
+  - Implement `comparePeriods()` method
 
-- [ ] **Plan 16.3**: Fix string | undefined type errors (CORE-03, CORE-14, CORE-23)
-  - Add proper null/undefined checks before string operations
-  - Use optional chaining and nullish coalescing
-  - Add type predicates for type narrowing
+- [ ] **Plan 20.3**: Implement FinOpsAnalyzer methods (FINOPS-03)
+  - Implement `analyzeCosts()` method
+  - Implement `getOptimizationRecommendations()` method
+  - Implement `detectAnomalies()` method
+  - Implement `forecastSpending()` method
+  - Implement `getCostPerUnit()` method
 
-- [ ] **Plan 16.4**: Fix array method type errors (CORE-01, CORE-22)
-  - Fix `flatMap` type errors with proper type annotations
-  - Fix array method chaining with proper generics
+- [ ] **Plan 20.4**: Implement SpotManager methods (FINOPS-04)
+  - Implement `requestSpotInstance()` method
+  - Implement `handleInterruption()` method
+  - Implement `getSpotSavings()` method
+  - Implement `getOptimalSpotConfig()` method
 
-- [ ] **Plan 16.5**: Fix error handling type errors (CORE-06, CORE-07, CORE-08, CORE-09)
-  - Fix error type narrowing (no `any` or untyped `unknown`)
-  - Add proper try-catch with typed errors
-  - Fix error message property access
+- [ ] **Plan 20.5**: Fix FinOps CLI tests (FINOPS-05)
+  - Fix `finops budget --set` test
+  - Fix `finops budget --status` test
+  - Fix `finops record --cost` test
+  - Fix `finops report --period` test
+  - Fix `finops analyze --recommendations` test
+  - Fix `finops export --format` test
 
-- [ ] **Plan 16.6**: Fix observer pattern type errors (CORE-11)
-  - Fix EventEmitter type errors
-  - Fix event handler type signatures
-  - Add proper type guards for event data
-
-- [ ] **Plan 16.7**: Fix strategy pattern type errors (CORE-19)
-  - Fix strategy interface implementation errors
-  - Fix factory function return types
-  - Add proper type annotations for strategy methods
-
-- [ ] **Plan 16.8**: Fix remaining core library errors (CORE-12, CORE-13, CORE-15, CORE-16, CORE-17, CORE-18, CORE-20, CORE-21, CORE-24, CORE-25)
-  - Fix perf monitor type errors
-  - Fix phase type errors
-  - Fix release validator errors
-  - Fix safe-exec errors
-  - Fix skill resolver errors
-  - Fix task formatter errors
-  - Fix template errors
-  - Fix tradeoff analyzer errors
-  - Fix url-fetch errors
-
-**Success Criteria:**
-- Zero TypeScript errors in `bin/lib/` directory
-- All type annotations correct
-- Proper error handling throughout
-- Build passes `tsc --noEmit` for core library
-
-**Status:** Not started
+- [ ] **Plan 20.6**: Fix circuit breaker integration tests (FINOPS-06)
+  - Fix state transition tests
+  - Fix CircuitBreakerAdapter tests
+  - Fix configuration tests
 
 ---
 
-## Phase 17: Entry Point Error Fixes
+## Phase 21: Context Module Tests
 
-**Goal:** Fix all TypeScript errors in entry point files.
+**Goal:** Fix parse errors and test expectations in context module tests.
 
-**Requirements Covered:** ENTRY-01 to ENTRY-02 (2 requirements)
+**Requirements Covered:** CONTEXT-01 to CONTEXT-08 (8 requirements)
 
 **Status:** Not started
 
 ### Plans
 
-- [ ] **Plan 17.1**: Fix script type errors (ENTRY-01, ENTRY-02)
-  - Fix `check-tsdoc-coverage.ts` type errors
-  - Fix `migrate-cjs-to-ts.ts` type errors
+- [ ] **Plan 21.1**: Fix ArchetypeDetector tests (CONTEXT-01)
+  - Fix parse errors in test syntax
+  - Fix test expectations for archetype detection
+  - Fix confidence score tests
 
-**Success Criteria:**
-- Zero TypeScript errors in entry point files
-- All scripts compile successfully
+- [ ] **Plan 21.2**: Fix BusinessFlowMapper tests (CONTEXT-02)
+  - Fix parse errors in test syntax
+  - Fix `analyzeDataFlow()` tests
+  - Fix `findIntegrationPoints()` tests
 
-**Status:** Not started
+- [ ] **Plan 21.3**: Fix CodebaseAnalyzer tests (CONTEXT-03)
+  - Fix parse errors in test syntax
+  - Fix `classifyFile()` tests
+  - Fix entry point detection tests
+
+- [ ] **Plan 21.4**: Fix ConcernsReport tests (CONTEXT-04)
+  - Fix parse errors in test syntax
+  - Fix severity assignment tests
+  - Fix file size threshold tests
+
+- [ ] **Plan 21.5**: Fix ConstraintExtractor tests (CONTEXT-05)
+  - Fix parse errors in test syntax
+  - Fix extraction logic tests
+
+- [ ] **Plan 21.6**: Fix DependencyGraph tests (CONTEXT-06)
+  - Fix parse errors in test syntax
+  - Fix graph construction tests
+
+- [ ] **Plan 21.7**: Fix FrameworkDetector tests (CONTEXT-07)
+  - Fix parse errors in test syntax
+  - Fix framework detection tests
+
+- [ ] **Plan 21.8**: Fix StackDetector tests (CONTEXT-08)
+  - Fix parse errors in test syntax
+  - Fix stack detection tests
+  - Fix tech debt analyzer tests
 
 ---
 
-## Phase 18: Test File Error Fixes
+## Phase 22: Core Module Tests
 
-**Goal:** Fix all TypeScript errors in test files.
+**Goal:** Fix core module test failures and parse errors.
 
-**Requirements Covered:** TEST-01 to TEST-11 (11 requirements)
+**Requirements Covered:** CORE-01 to CORE-10 (10 requirements)
 
 **Status:** Not started
 
 ### Plans
 
-- [ ] **Plan 18.1**: Fix analytics test errors (TEST-01)
-  - Fix 6 files, 24 errors in `tests/analytics/`
+- [ ] **Plan 22.1**: Fix commands.test.ts (CORE-01)
+  - Fix parse errors
+  - Fix command execution tests
 
-- [ ] **Plan 18.2**: Fix context test errors (TEST-02)
-  - Fix 10 files, 37 errors in `tests/context/`
+- [ ] **Plan 22.2**: Fix config.test.ts (CORE-02)
+  - Fix `config-ensure-section` tests
+  - Fix `config-set` tests
+  - Fix `config-get` tests
+  - Fix type coercion tests
 
-- [ ] **Plan 18.3**: Fix deploy test errors (TEST-03)
-  - Fix 9 files, 32 errors in `tests/deploy/`
+- [ ] **Plan 22.3**: Fix content-scanner.test.ts (CORE-03)
+  - Fix parse errors
+  - Fix content scanning tests
 
-- [ ] **Plan 18.4**: Fix finops test errors (TEST-04)
-  - Fix 6 files, 18 errors in `tests/finops/`
+- [ ] **Plan 22.4**: Fix context-manager.test.ts (CORE-04)
+  - Fix parse errors
+  - Fix context management tests
 
-- [ ] **Plan 18.5**: Fix gates test errors (TEST-05)
-  - Fix 2 files, 26 errors in `tests/gates/`
+- [ ] **Plan 22.5**: Fix core.test.ts (CORE-05)
+  - Fix parse errors
+  - Fix core utility tests
 
-- [ ] **Plan 18.6**: Fix test helper errors (TEST-06)
-  - Fix 2 files, 2 errors in `tests/helpers/`
+- [ ] **Plan 22.6**: Fix dispatcher.test.ts (CORE-06)
+  - Fix error path tests
+  - Fix routing branch tests
+  - Fix `find-phase` tests
+  - Fix `roadmap update-plan-progress` tests
+  - Fix `state` command tests
+  - Fix `summary-extract` tests
 
-- [ ] **Plan 18.7**: Fix integration test errors (TEST-07)
-  - Fix 7 files, 43 errors in `tests/integration/`
+- [ ] **Plan 22.7**: Fix file-access.test.ts (CORE-07)
+  - Fix parse errors
+  - Fix file access tests
 
-- [ ] **Plan 18.8**: Fix perf test errors (TEST-08)
-  - Fix 6 files, 28 errors in `tests/perf/`
+- [ ] **Plan 22.8**: Fix file-lock-timeout.test.ts (CORE-08)
+  - Fix LOCK-02 timeout test
+  - Fix error shape tests
 
-- [ ] **Plan 18.9**: Fix type test errors (TEST-09)
-  - Fix 2 files, 2 errors in `tests/types/`
+- [ ] **Plan 22.9**: Fix health-route.test.ts (CORE-09)
+  - Fix health payload test
+  - Fix status/checks/timestamp tests
 
-- [ ] **Plan 18.10**: Fix unit test errors (TEST-10)
-  - Fix 20 files, 157 errors in `tests/unit/`
+- [ ] **Plan 22.10**: Fix planning-write-temp.test.ts (CORE-10)
+  - Fix temp staging tests
+  - Fix cleanup tests
 
-- [ ] **Plan 18.11**: Fix test utils errors (TEST-11)
-  - Fix 1 file, 1 error in `tests/utils/`
+---
 
-**Success Criteria:**
-- Zero TypeScript errors in test files
-- All tests compile successfully
-- Test execution works correctly
+## Phase 23: Integration & Roadmap Tests
+
+**Goal:** Fix integration tests and roadmap test failures.
+
+**Requirements Covered:** INTEGRATION-01 to INTEGRATION-08 (8 requirements)
 
 **Status:** Not started
 
----
+### Plans
 
-## Phase Dependencies
+- [ ] **Plan 23.1**: Fix e2e-workflow.test.ts (INTEGRATION-01)
+  - Fix parse errors
+  - Fix end-to-end workflow tests
 
-```
-Phase 16: Core Library Error Fixes
-    ↓
-Phase 17: Entry Point Error Fixes
-    ↓
-Phase 18: Test File Error Fixes
-```
+- [ ] **Plan 23.2**: Fix foundation-logging-integration.test.ts (INTEGRATION-02)
+  - Fix parse errors
+  - Fix logging integration tests
 
----
+- [ ] **Plan 23.3**: Fix frontmatter-cli.test.ts (INTEGRATION-03)
+  - Fix parse errors
+  - Fix frontmatter CLI tests
 
-## Error Summary by Category
+- [ ] **Plan 23.4**: Fix verify.test.ts (INTEGRATION-04)
+  - Fix parse errors
+  - Fix verification tests
 
-| Category | Files | Errors | Priority |
-|----------|-------|--------|----------|
-| Core Library | 25 | ~200 | High |
-| Entry Points | 2 | 2 | Medium |
-| Test Files | 70 | ~384 | Low |
-| **Total** | **97** | **586** | - |
+- [ ] **Plan 23.5**: Fix roadmap.test.ts - analyze command (INTEGRATION-05)
+  - Fix phase parsing tests
+  - Fix goal extraction tests
+  - Fix depends_on extraction tests
+  - Fix disk status tests
+  - Fix milestone extraction tests
+
+- [ ] **Plan 23.6**: Fix roadmap.test.ts - missing phase details (INTEGRATION-06)
+  - Fix checklist-only phase detection tests
+  - Fix missing details tests
+
+- [ ] **Plan 23.7**: Fix roadmap.test.ts - update-plan-progress (INTEGRATION-07)
+  - Fix missing phase number error test
+  - Fix nonexistent phase error test
+  - Fix no plans found test
+  - Fix partial completion test
+  - Fix checkbox completion test
+  - Fix missing ROADMAP.md test
+
+- [ ] **Plan 23.8**: Fix remaining unit tests (INTEGRATION-08)
+  - Fix learning-tracker.test.ts
+  - Fix milestone.test.ts
+  - Fix phase.test.ts
+  - Fix quality-detector.test.ts
+  - Fix quality-gate.test.ts
+  - Fix rca-engine.test.ts
+  - Fix revision-loop.test.ts
+  - Fix security-fixes.test.ts
+  - Fix skill-resolver.test.ts
+  - Fix skill-validator.test.ts
+  - Fix state.test.ts
+  - Fix task-formatter.test.ts
+  - Fix timeout-exec.test.ts
+  - Fix tradeoff-analyzer.test.ts
+  - Fix url-fetch.test.ts
+  - Fix verify-health.test.ts
 
 ---
 
 ## Success Criteria
 
-- [ ] Zero TypeScript errors in `bin/lib/` (Phase 16)
-- [ ] Zero TypeScript errors in entry points (Phase 17)
-- [ ] Zero TypeScript errors in test files (Phase 18)
-- [ ] `npm run build` passes successfully
-- [ ] `tsc --noEmit` passes with zero errors
-- [ ] All existing tests still pass
+- [ ] All 104 failing tests pass
+- [ ] Test pass rate: 100% (307/307)
+- [ ] No parse errors in test files
+- [ ] All analytics methods implemented
+- [ ] All FinOps methods implemented
+- [ ] All context module tests fixed
+- [ ] All core module tests fixed
+- [ ] All integration tests fixed
+- [ ] Test coverage maintained at 70%+
+- [ ] No new TypeScript errors introduced
 
 ---
 
 ## Technical Approach
 
-**Error Categories:**
+**Test Fix Strategy:**
+1. Fix parse errors first (syntax issues)
+2. Implement missing methods (analytics, FinOps)
+3. Fix test expectations (assertion mismatches)
+4. Run tests after each phase
+5. Maintain backward compatibility
 
-1. **`exactOptionalPropertyTypes` errors** — Properties with `T | undefined` need explicit `undefined` in target types
-2. **Property access on `never` type** — Intersection type conflicts (especially ChildProcess)
-3. **`any` and `unknown` error types** — Need proper type narrowing before accessing `.message`
-4. **Module resolution errors** — Import paths not resolving correctly
-5. **Function signature mismatches** — Parameter/return type incompatibilities
-6. **Null/undefined access** — Accessing properties on potentially null values
-7. **Array method type errors** — `flatMap`, `find`, etc. with improper generics
+**Implementation Priority:**
+1. Phase 19: Analytics (6 requirements, 24 tests)
+2. Phase 20: FinOps (6 requirements, 23 tests)
+3. Phase 21: Context modules (8 requirements, 20 tests)
+4. Phase 22: Core modules (10 requirements, 25 tests)
+5. Phase 23: Integration (8 requirements, 12 tests)
 
-**Fix Strategy:**
-1. Fix core library first (foundation for everything)
-2. Fix entry points (depend on core library)
-3. Fix test files last (depend on both)
-
-**Type Safety Rules:**
-- No `any` types (use proper types or `unknown` with narrowing)
-- No direct property access on `T | undefined` (use optional chaining or guards)
-- No untyped error access (narrow `unknown` to `Error` first)
-- Proper generics for array methods
-- Explicit return types on public APIs
+**Testing:**
+- Run `npm test` after each plan
+- Maintain 70%+ coverage threshold
+- No new TypeScript errors
+- All existing passing tests remain passing
 
 ---
-*Last updated: 2026-03-26 after roadmap creation*
+
+## Dependencies
+
+**Requires:**
+- v7.0.0 Zero TypeScript Errors ✅ (Complete)
+- Clean TypeScript compilation
+- Working test infrastructure (vitest)
+
+**Blocks:**
+- v9.0.0 Performance Optimization
+- Production deployment confidence
+- Feature development velocity
+
+---
+
+## Risks
+
+**High Risk:**
+- Analytics/FinOps implementations may require significant refactoring
+- Some tests may have incorrect expectations
+
+**Medium Risk:**
+- Parse errors may indicate deeper test infrastructure issues
+- Integration tests may fail due to external dependencies
+
+**Mitigation:**
+- Implement stubs first, then full implementations
+- Fix syntax errors before functional issues
+- Skip external dependency tests if needed
+
+---
+
+*Last updated: 2026-03-27*
