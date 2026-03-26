@@ -9,16 +9,28 @@
     "plugin:@typescript-eslint/recommended"
   ],
   "parser": "@typescript-eslint/parser",
-  "plugins": ["@typescript-eslint"],
+  "plugins": ["@typescript-eslint", "complexity", "sonarjs", "tsdoc"],
   "parserOptions": {
     "ecmaVersion": 2022,
-    "sourceType": "module"
+    "sourceType": "module",
+    "project": "./tsconfig.json"
   },
   "rules": {
     "no-console": "off",
     "@typescript-eslint/no-explicit-any": "warn",
     "@typescript-eslint/explicit-function-return-type": "off",
-    "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }]
+    "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+
+    "complexity": ["error", { "max": 10 }],
+    "max-depth": ["error", { "max": 4 }],
+    "max-lines-per-function": ["warn", { "max": 50 }],
+    "max-params": ["error", { "max": 5 }],
+
+    "sonarjs/cognitive-complexity": ["error", 15],
+    "sonarjs/no-duplicated-branches": "error",
+    "sonarjs/no-collection-size-mischeck": "error",
+
+    "tsdoc/syntax": "error"
   },
   "ignorePatterns": [
     "node_modules/",
@@ -26,6 +38,7 @@
     ".planning/",
     "dist/",
     "*.cjs",
-    "*.js"
+    "*.js",
+    "reports/"
   ]
 }
