@@ -8,6 +8,9 @@
 import * as helpers from './helpers.js';
 import * as fs from 'fs';
 
+// Enable analytics for testing
+process.env.EZ_ANALYTICS_ENABLED = 'true';
+
 // Declare global test helpers
 declare global {
   var createTempProject: typeof helpers.createTempProject;
