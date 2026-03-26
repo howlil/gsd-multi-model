@@ -946,14 +946,14 @@ export class GitWorkflowEngine {
 
     this.logger.info('Release merged to develop', {
       branch: 'develop',
-      version
+      version: version ?? ''
     });
 
     return {
       success: true,
       releaseBranch,
       mainTag: tagName,
-      version
+      version: version ?? ''
     };
   }
 
@@ -1030,7 +1030,7 @@ export class GitWorkflowEngine {
       success: true,
       hotfixBranch,
       mergedTo: ['main', 'develop'],
-      version
+      version: version ?? ''
     };
   }
 
@@ -1072,15 +1072,15 @@ export class GitWorkflowEngine {
 
         this.logger.info('Phase rollback completed', {
           phaseNumber,
-          revertedCommit: mergeCommit,
-          rollbackBranch
+          revertedCommit: mergeCommit ?? '',
+          rollbackBranch: rollbackBranch ?? ''
         });
 
         return {
           success: true,
           phaseNumber,
-          revertedCommit: mergeCommit,
-          rollbackBranch
+          revertedCommit: mergeCommit ?? '',
+          rollbackBranch: rollbackBranch ?? ''
         };
       } else {
         // Phase not merged yet, just delete the branch
@@ -1095,7 +1095,7 @@ export class GitWorkflowEngine {
           success: true,
           phaseNumber,
           deleted: true,
-          rollbackBranch
+          rollbackBranch: rollbackBranch ?? ''
         };
       }
     } finally {

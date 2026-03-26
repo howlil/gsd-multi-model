@@ -35,7 +35,7 @@ export class SummarizeStrategy implements CompressionStrategy {
    * @param modelName - Optional AI model name for summarization
    */
   constructor(modelName?: string) {
-    this.modelName = modelName;
+    this.modelName = modelName ?? 'claude-sonnet';
   }
 
   /**

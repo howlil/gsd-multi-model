@@ -74,8 +74,8 @@ export class HybridStrategy implements CompressionStrategy {
     } = hybridOptions;
 
     this.options = {
-      scorer,
-      modelName,
+      scorer: scorer ?? new ContextRelevanceScorer(),
+      modelName: modelName ?? 'claude-sonnet',
       maxTokens,
       enableRanking,
       enableSummarization,
