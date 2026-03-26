@@ -14,10 +14,10 @@ export default defineConfig({
   outDir: 'dist',
   clean: true,
   dts: true, // Enable type declaration generation (v5.0.0)
-  sourcemap: true,
+  sourcemap: 'inline', // Inline source maps for debugging (v6.0.0 BUILD-06)
   target: 'node18',
   treeshake: true,
-  splitting: false,
+  splitting: true, // Bundle splitting for OOP-optimized builds (v6.0.0 BUILD-01)
   platform: 'node',
   // Don't add banner - source files already have shebangs
   ignoreWatch: ['**/*.cjs', '**/*.js']
