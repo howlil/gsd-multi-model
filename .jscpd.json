@@ -1,0 +1,15 @@
+{
+  "threshold": 10,
+  "minLines": 5,
+  "minTokens": 70,
+  "ignore": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "**/fixtures/**"
+  ],
+  "reporters": ["console", "markdown"],
+  "output": "./.planning/reports/jscpd",
+  "gitignore": true
+}

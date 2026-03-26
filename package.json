@@ -3,6 +3,7 @@
   "version": "4.0.0",
   "description": "EZ Agents — Meta-prompting with multi-model support (Qwen, Kimi, OpenAI)",
   "type": "module",
+  "sideEffects": false,
   "bin": {
     "ez-agents": "dist/bin/install.js",
     "ez-agents-update": "dist/bin/update.js"
@@ -12,9 +13,45 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./*": {
-      "types": "./dist/lib/*.d.ts",
-      "import": "./dist/lib/*.js"
+    "./factories": {
+      "types": "./dist/lib/factories/index.d.ts",
+      "import": "./dist/lib/factories/index.js"
+    },
+    "./strategies": {
+      "types": "./dist/lib/strategies/index.d.ts",
+      "import": "./dist/lib/strategies/index.js"
+    },
+    "./adapters": {
+      "types": "./dist/lib/adapters/index.d.ts",
+      "import": "./dist/lib/adapters/index.js"
+    },
+    "./observer": {
+      "types": "./dist/lib/observer/index.d.ts",
+      "import": "./dist/lib/observer/index.js"
+    },
+    "./decorators": {
+      "types": "./dist/lib/decorators/index.d.ts",
+      "import": "./dist/lib/decorators/index.js"
+    },
+    "./facades": {
+      "types": "./dist/lib/facades/index.d.ts",
+      "import": "./dist/lib/facades/index.js"
+    },
+    "./commands": {
+      "types": "./dist/lib/commands/index.d.ts",
+      "import": "./dist/lib/commands/index.js"
+    },
+    "./services": {
+      "types": "./dist/lib/services/index.d.ts",
+      "import": "./dist/lib/services/index.js"
+    },
+    "./repositories": {
+      "types": "./dist/lib/repositories/index.d.ts",
+      "import": "./dist/lib/repositories/index.js"
+    },
+    "./fp": {
+      "types": "./dist/lib/fp/index.d.ts",
+      "import": "./dist/lib/fp/index.js"
     }
   },
   "main": "./dist/index.js",
@@ -101,6 +138,7 @@
     "security:scan": "npm audit --audit-level=moderate",
     "docs:generate": "jsdoc -c jsdoc.json -r bin/ ez-agents/bin/lib/",
     "analyze:duplicates": "jscpd --config .jscpd.json",
+    "check:duplicates": "jscpd --config .jscpd.json",
     "analyze:complexity": "eslint --rule 'complexity: error' bin/lib/",
     "prepare": "husky"
   },
