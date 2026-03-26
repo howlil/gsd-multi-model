@@ -1,12 +1,11 @@
-﻿/**
+/**
  * EZ Tools Tests - core.cjs
  *
  * Tests for the foundational module's exports including regressions
  * for known bugs (REG-01: loadConfig model_overrides, REG-02: getRoadmapPhaseInternal export).
  */
 
-const { test, describe, beforeEach, afterEach } = require('node:test');
-import assert from 'node:assert';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -26,9 +25,9 @@ import {
   getRoadmapPhaseInternal,
   searchPhaseInDir,
   findPhaseInternal,
-} from '../../ez-agents/bin/lib/core.js';
+} from '../../bin/lib/core.js';
 
-// â”€â”€â”€ loadConfig â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── loadConfig ────────────────────────────────────────────────────────────────
 
 describe('loadConfig', () => {
   let tmpDir;
@@ -48,7 +47,7 @@ describe('loadConfig', () => {
   function writeConfig(obj) {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'config.json'),
-      JSON.stringify(obj, null, 2)
+      JSON.stringify(obj, undefined, 2)
     );
   }
 
@@ -91,7 +90,7 @@ describe('loadConfig', () => {
   test('returns model_overrides as null when not in config', () => {
     writeConfig({ model_profile: 'balanced' });
     const config = loadConfig(tmpDir);
-    assert.strictEqual(config.model_overrides, null);
+    expect(config.model_overrides).toBeUndefined();
   });
 
   test('returns defaults when config.json contains invalid JSON', () => {
@@ -123,7 +122,7 @@ describe('loadConfig', () => {
   });
 });
 
-// â”€â”€â”€ resolveModelInternal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── resolveModelInternal ──────────────────────────────────────────────────────
 
 describe('resolveModelInternal', () => {
   let tmpDir;
@@ -140,7 +139,7 @@ describe('resolveModelInternal', () => {
   function writeConfig(obj) {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'config.json'),
-      JSON.stringify(obj, null, 2)
+      JSON.stringify(obj, undefined, 2)
     );
   }
 
@@ -203,7 +202,7 @@ describe('resolveModelInternal', () => {
   });
 });
 
-// â”€â”€â”€ escapeRegex â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── escapeRegex ───────────────────────────────────────────────────────────────
 
 describe('escapeRegex', () => {
   test('escapes dots', () => {
@@ -239,7 +238,7 @@ describe('escapeRegex', () => {
   });
 });
 
-// â”€â”€â”€ generateSlugInternal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── generateSlugInternal ──────────────────────────────────────────────────────
 
 describe('generateSlugInternal', () => {
   test('converts text to lowercase kebab-case', () => {
@@ -255,15 +254,16 @@ describe('generateSlugInternal', () => {
   });
 
   test('returns null for null input', () => {
-    assert.strictEqual(generateSlugInternal(null), null);
+    // @ts-expect-error Testing with undefined for edge case
+    assert.strictEqual(generateSlugInternal(undefined), undefined);
   });
 
   test('returns null for empty string', () => {
-    assert.strictEqual(generateSlugInternal(''), null);
+    assert.strictEqual(generateSlugInternal(''), undefined);
   });
 });
 
-// â”€â”€â”€ normalizePhaseName â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── normalizePhaseName ────────────────────────────────────────────────────────
 
 describe('normalizePhaseName', () => {
   test('pads single digit', () => {
@@ -291,7 +291,7 @@ describe('normalizePhaseName', () => {
   });
 });
 
-// â”€â”€â”€ comparePhaseNum â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── comparePhaseNum ───────────────────────────────────────────────────────────
 
 describe('comparePhaseNum', () => {
   test('sorts integer phases numerically', () => {
@@ -320,7 +320,7 @@ describe('comparePhaseNum', () => {
   });
 });
 
-// â”€â”€â”€ safeReadFile â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── safeReadFile ──────────────────────────────────────────────────────────────
 
 describe('safeReadFile', () => {
   let tmpDir;
@@ -340,11 +340,11 @@ describe('safeReadFile', () => {
   });
 
   test('returns null for missing file', () => {
-    assert.strictEqual(safeReadFile('/nonexistent/path/file.txt'), null);
+    assert.strictEqual(safeReadFile('/nonexistent/path/file.txt'), undefined);
   });
 });
 
-// â”€â”€â”€ pathExistsInternal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── pathExistsInternal ────────────────────────────────────────────────────────
 
 describe('pathExistsInternal', () => {
   let tmpDir;
@@ -371,7 +371,7 @@ describe('pathExistsInternal', () => {
   });
 });
 
-// â”€â”€â”€ getMilestoneInfo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── getMilestoneInfo ──────────────────────────────────────────────────────────
 
 describe('getMilestoneInfo', () => {
   let tmpDir;
@@ -411,7 +411,7 @@ describe('getMilestoneInfo', () => {
       '| v0.2    | Active |',
       '',
       '<details>',
-      '<summary>v0.1 â€” Legacy Feature Parity (Shipped)</summary>',
+      '<summary>v0.1 — Legacy Feature Parity (Shipped)</summary>',
       '',
       '## Roadmap v0.1: Legacy Feature Parity',
       '',
@@ -442,14 +442,14 @@ describe('getMilestoneInfo', () => {
       '| v0.3    | Active |',
       '',
       '<details>',
-      '<summary>v0.1 â€” Initial Release (Shipped)</summary>',
+      '<summary>v0.1 — Initial Release (Shipped)</summary>',
       '',
       '## Roadmap v0.1: Initial Release',
       '',
       '</details>',
       '',
       '<details>',
-      '<summary>v0.2 â€” Feature Expansion (Shipped)</summary>',
+      '<summary>v0.2 — Feature Expansion (Shipped)</summary>',
       '',
       '## Roadmap v0.2: Feature Expansion',
       '',
@@ -476,7 +476,7 @@ describe('getMilestoneInfo', () => {
   });
 });
 
-// â”€â”€â”€ searchPhaseInDir â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── searchPhaseInDir ──────────────────────────────────────────────────────────
 
 describe('searchPhaseInDir', () => {
   let tmpDir;
@@ -495,9 +495,9 @@ describe('searchPhaseInDir', () => {
   test('finds phase directory by normalized prefix', () => {
     fs.mkdirSync(path.join(phasesDir, '01-foundation'));
     const result = searchPhaseInDir(phasesDir, '.planning/phases', '01');
-    assert.strictEqual(result.found, true);
-    assert.strictEqual(result.phase_number, '01');
-    assert.strictEqual(result.phase_name, 'foundation');
+    assert.strictEqual(result?.found, true);
+    assert.strictEqual(result?.phase_number, '01');
+    assert.strictEqual(result?.phase_name, 'foundation');
   });
 
   test('returns plans and summaries', () => {
@@ -506,9 +506,9 @@ describe('searchPhaseInDir', () => {
     fs.writeFileSync(path.join(phaseDir, '01-01-PLAN.md'), '# Plan');
     fs.writeFileSync(path.join(phaseDir, '01-01-SUMMARY.md'), '# Summary');
     const result = searchPhaseInDir(phasesDir, '.planning/phases', '01');
-    assert.ok(result.plans.includes('01-01-PLAN.md'));
-    assert.ok(result.summaries.includes('01-01-SUMMARY.md'));
-    assert.strictEqual(result.incomplete_plans.length, 0);
+    assert.ok(result?.plans.includes('01-01-PLAN.md'));
+    assert.ok(result?.summaries.includes('01-01-SUMMARY.md'));
+    assert.strictEqual(result?.incomplete_plans.length, 0);
   });
 
   test('identifies incomplete plans', () => {
@@ -518,7 +518,7 @@ describe('searchPhaseInDir', () => {
     fs.writeFileSync(path.join(phaseDir, '01-02-PLAN.md'), '# Plan 2');
     fs.writeFileSync(path.join(phaseDir, '01-01-SUMMARY.md'), '# Summary 1');
     const result = searchPhaseInDir(phasesDir, '.planning/phases', '01');
-    assert.strictEqual(result.incomplete_plans.length, 1);
+    assert.strictEqual(result?.incomplete_plans.length, 1);
     assert.ok(result.incomplete_plans.includes('01-02-PLAN.md'));
   });
 
@@ -528,24 +528,24 @@ describe('searchPhaseInDir', () => {
     fs.writeFileSync(path.join(phaseDir, '01-RESEARCH.md'), '# Research');
     fs.writeFileSync(path.join(phaseDir, '01-CONTEXT.md'), '# Context');
     const result = searchPhaseInDir(phasesDir, '.planning/phases', '01');
-    assert.strictEqual(result.has_research, true);
-    assert.strictEqual(result.has_context, true);
+    assert.strictEqual(result?.has_research, true);
+    assert.strictEqual(result?.has_context, true);
   });
 
   test('returns null when phase not found', () => {
     fs.mkdirSync(path.join(phasesDir, '01-foundation'));
     const result = searchPhaseInDir(phasesDir, '.planning/phases', '99');
-    assert.strictEqual(result, null);
+    assert.strictEqual(result, undefined);
   });
 
   test('generates phase_slug from directory name', () => {
     fs.mkdirSync(path.join(phasesDir, '01-core-cjs-tests'));
     const result = searchPhaseInDir(phasesDir, '.planning/phases', '01');
-    assert.strictEqual(result.phase_slug, 'core-cjs-tests');
+    assert.strictEqual(result?.phase_slug, 'core-cjs-tests');
   });
 });
 
-// â”€â”€â”€ findPhaseInternal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── findPhaseInternal ─────────────────────────────────────────────────────────
 
 describe('findPhaseInternal', () => {
   let tmpDir;
@@ -562,18 +562,19 @@ describe('findPhaseInternal', () => {
   test('finds phase in current phases directory', () => {
     fs.mkdirSync(path.join(tmpDir, '.planning', 'phases', '01-foundation'));
     const result = findPhaseInternal(tmpDir, '1');
-    assert.strictEqual(result.found, true);
-    assert.strictEqual(result.phase_number, '01');
+    assert.strictEqual(result?.found, true);
+    assert.strictEqual(result?.phase_number, '01');
   });
 
   test('returns null for non-existent phase', () => {
     const result = findPhaseInternal(tmpDir, '99');
-    assert.strictEqual(result, null);
+    assert.strictEqual(result, undefined);
   });
 
   test('returns null for null phase', () => {
-    const result = findPhaseInternal(tmpDir, null);
-    assert.strictEqual(result, null);
+    // @ts-expect-error Testing with undefined for edge case
+    const result = findPhaseInternal(tmpDir, undefined);
+    assert.strictEqual(result, undefined);
   });
 
   test('searches archived milestones when not in current', () => {
@@ -581,12 +582,12 @@ describe('findPhaseInternal', () => {
     const archiveDir = path.join(tmpDir, '.planning', 'milestones', 'v1.0-phases', '01-foundation');
     fs.mkdirSync(archiveDir, { recursive: true });
     const result = findPhaseInternal(tmpDir, '1');
-    assert.strictEqual(result.found, true);
-    assert.strictEqual(result.archived, 'v1.0');
+    assert.strictEqual(result?.found, true);
+    assert.strictEqual(result?.archived, 'v1.0');
   });
 });
 
-// â”€â”€â”€ getRoadmapPhaseInternal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── getRoadmapPhaseInternal ───────────────────────────────────────────────────
 
 describe('getRoadmapPhaseInternal', () => {
   let tmpDir;
@@ -609,9 +610,9 @@ describe('getRoadmapPhaseInternal', () => {
       '### Phase 1: Foundation\n**Goal:** Build the base\n'
     );
     const result = getRoadmapPhaseInternal(tmpDir, '1');
-    assert.strictEqual(result.found, true);
-    assert.strictEqual(result.phase_name, 'Foundation');
-    assert.strictEqual(result.goal, 'Build the base');
+    assert.strictEqual(result?.found, true);
+    assert.strictEqual(result?.phase_name, 'Foundation');
+    assert.strictEqual(result?.goal, 'Build the base');
   });
 
   test('extracts phase name and goal from roadmap', () => {
@@ -620,8 +621,8 @@ describe('getRoadmapPhaseInternal', () => {
       '### Phase 2: API Layer\n**Goal:** Create REST endpoints\n**Depends on**: Phase 1\n'
     );
     const result = getRoadmapPhaseInternal(tmpDir, '2');
-    assert.strictEqual(result.phase_name, 'API Layer');
-    assert.strictEqual(result.goal, 'Create REST endpoints');
+    assert.strictEqual(result?.phase_name, 'API Layer');
+    assert.strictEqual(result?.goal, 'Create REST endpoints');
   });
 
   test('returns null goal when Goal uses colon-outside-bold format', () => {
@@ -631,14 +632,14 @@ describe('getRoadmapPhaseInternal', () => {
       '### Phase 1: Foundation\n**Goal**: Build the base\n'
     );
     const result = getRoadmapPhaseInternal(tmpDir, '1');
-    assert.strictEqual(result.found, true);
-    assert.strictEqual(result.phase_name, 'Foundation');
-    assert.strictEqual(result.goal, null);
+    assert.strictEqual(result?.found, true);
+    assert.strictEqual(result?.phase_name, 'Foundation');
+    assert.strictEqual(result?.goal, undefined);
   });
 
   test('returns null when roadmap missing', () => {
     const result = getRoadmapPhaseInternal(tmpDir, '1');
-    assert.strictEqual(result, null);
+    assert.strictEqual(result, undefined);
   });
 
   test('returns null when phase not in roadmap', () => {
@@ -647,12 +648,13 @@ describe('getRoadmapPhaseInternal', () => {
       '### Phase 1: Foundation\n**Goal**: Build the base\n'
     );
     const result = getRoadmapPhaseInternal(tmpDir, '99');
-    assert.strictEqual(result, null);
+    assert.strictEqual(result, undefined);
   });
 
   test('returns null for null phase number', () => {
-    const result = getRoadmapPhaseInternal(tmpDir, null);
-    assert.strictEqual(result, null);
+    // @ts-expect-error Testing with undefined for edge case
+    const result = getRoadmapPhaseInternal(tmpDir, undefined);
+    assert.strictEqual(result, undefined);
   });
 
   test('extracts full section text', () => {
@@ -661,14 +663,14 @@ describe('getRoadmapPhaseInternal', () => {
       '### Phase 1: Foundation\n**Goal**: Build the base\n**Requirements**: TEST-01\nSome details here\n\n### Phase 2: API\n**Goal**: REST\n'
     );
     const result = getRoadmapPhaseInternal(tmpDir, '1');
-    assert.ok(result.section.includes('Phase 1: Foundation'));
-    assert.ok(result.section.includes('Some details here'));
+    assert.ok(result?.section.includes('Phase 1: Foundation'));
+    assert.ok(result?.section.includes('Some details here'));
     // Should not include Phase 2 content
-    assert.ok(!result.section.includes('Phase 2: API'));
+    assert.ok(!result?.section.includes('Phase 2: API'));
   });
 });
 
-// â”€â”€â”€ getMilestonePhaseFilter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── getMilestonePhaseFilter ────────────────────────────────────────────────────
 
 describe('getMilestonePhaseFilter', () => {
   let tmpDir;

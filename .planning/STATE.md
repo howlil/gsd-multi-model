@@ -4,12 +4,17 @@ milestone: v7.0
 milestone_name: milestone
 current_phase: Complete
 status: completed
-last_updated: "2026-03-26T14:31:51.136Z"
+last_updated: "2026-03-26T14:47:03.176Z"
 progress:
   total_phases: 3
   completed_phases: 3
   total_plans: 3
   completed_plans: 3
+quick_tasks:
+  - id: 260326-u97
+    description: Fix test import paths (ESM + Vitest)
+    status: in_progress
+    created: 2026-03-26
 ---
 
 # ez-agents Project State
