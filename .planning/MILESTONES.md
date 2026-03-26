@@ -2,11 +2,11 @@
 
 ## v5.0 Complete TypeScript & OOP Transformation 🔄
 
-**Status:** IN PROGRESS — 126/203 requirements complete (62%)
+**Status:** IN PROGRESS — 126/208 requirements complete (61%)
 
 **Timeline:** 2026-03-24 to TBD
 
-**Phases:** 29 total (18 complete, 5 in progress, 6 planned)
+**Phases:** 30 total (18 complete, 5 in progress, 7 planned)
 
 ---
 
@@ -18,8 +18,8 @@
 | **Part 2** | OOP Refactoring | 47 | 45 (96%) | ✅ Complete |
 | **Part 3** | Zero TypeScript Errors | 38 | 38 (100%) | ✅ Complete |
 | **Part 4** | Test Quality | 38 | 1 (3%) | 🔄 In Progress |
-| **Part 5** | Performance Optimization | 38 | 0 (0%) | 📋 Planned |
-| **Total** | **Complete Transformation** | **203** | **126 (62%)** | 🔄 **In Progress** |
+| **Part 5** | Performance Optimization | 43 | 0 (0%) | 📋 Planned |
+| **Total** | **Complete Transformation** | **208** | **126 (61%)** | 🔄 **In Progress** |
 
 ---
 
@@ -44,6 +44,8 @@
 - Token waste reduction: 70% target (~132.5K → ~40K tokens/phase)
 - Time waste reduction: 60% target (~1080ms → ~300ms/phase)
 - Code complexity reduction: 65% target (3500+ → 1200 lines)
+- CLI timeout fix: 60s → 120s+ for context-heavy tasks
+- Exit Code 143: Fix SIGTERM issues in Qwen CLI tests
 
 ---
 
