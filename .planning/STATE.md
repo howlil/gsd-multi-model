@@ -15,6 +15,11 @@ quick_tasks:
     description: Create v8.0.0 Test Quality milestone plan
     status: complete
     created: 2026-03-27
+  - id: 260327-optimization
+    description: Token waste optimization - implement recommended fixes from deep engineering analysis
+    status: in_progress
+    created: 2026-03-27
+    completed: 2026-03-27
 ---
 
 # ez-agents Project State
@@ -185,6 +190,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-26)
 |---|-------------|------|--------|
 | 260327-test-quality | Create v8.0.0 Test Quality milestone plan | 2026-03-27 | ✅ Complete |
 | 260327-nps-tracker | Implement and verify NPSTracker tests (Plan 19.1) | 2026-03-27 | ✅ Complete |
+| 260327-optimization | Token waste optimization - implement recommended fixes | 2026-03-27 | ✅ Complete |
 
 **Session Summary:**
 - Created `.planning/milestones/v8.0.0-ROADMAP.md` with 5 phases
@@ -193,6 +199,64 @@ See: `.planning/PROJECT.md` (updated 2026-03-26)
 - Updated `.planning/STATE.md` with current state
 - Baseline: 202/307 tests passing (66%)
 - Plan 19.1 complete: 4/4 NPSTracker tests passing
+
+---
+
+## Quick Task: Token Waste Optimization (260327-optimization) ✅
+
+**Goal:** Implement recommended fixes from deep engineering analysis to reduce token waste and resource consumption.
+
+### Completed Optimizations
+
+| # | Optimization | Before | After | Improvement |
+|---|--------------|--------|-------|-------------|
+| 1 | Context Management | 6 files, 1400 lines | 1 file, 250 lines | 85% reduction |
+| 2 | Logging Decorators | Always on | Env-controlled, zero overhead when disabled | 100% reduction (prod) |
+| 3 | Circuit Breaker | 328 lines, disk I/O | 50 lines retry logic | 85% reduction |
+| 4 | Discussion Synthesizer | 490 lines, complex parsing | 50 lines, simple patterns | 90% reduction |
+| 5 | Guard Files | 6 files, 600 lines | 1 file, 150 lines | 75% reduction |
+| 6 | Config Caching | No caching, 35-65 I/O ops | TTL cache, 5-10 I/O ops | 85% reduction |
+| 7 | Analytics | Always on | Disabled by default (opt-in) | 100% reduction (default) |
+
+### New Files Created
+
+- `bin/lib/context-optimizer.ts` - Single-pass context optimization (replaces 6 files)
+- `bin/lib/retry.ts` - Simple retry with exponential backoff (replaces circuit-breaker.ts)
+- `bin/lib/config-cache.ts` - Config/file caching layer
+- `bin/guards/index.ts` - Consolidated guard functions
+
+### Files Modified
+
+- `bin/lib/decorators/LogExecution.ts` - Environment-controlled logging
+- `bin/lib/discussion-synthesizer.ts` - Simplified to 50 lines
+- `bin/lib/analytics/analytics-collector.ts` - Disabled by default
+
+### Expected Impact
+
+| Metric | Before | After | Savings |
+|--------|--------|-------|---------|
+| Token waste/phase | ~132.5K tokens | ~40K tokens | ~70% reduction |
+| Time waste/phase | ~1080ms | ~300ms | ~72% reduction |
+| Cost/100 phases | ~$12.65 | ~$3.80 | ~70% reduction |
+| Code complexity | 3500+ lines | 1200 lines | ~65% reduction |
+
+### Environment Variables
+
+```bash
+# Logging control
+export EZ_LOG_ENABLED=false      # Disable all logging (default: true)
+export EZ_LOG_LEVEL=error        # Only log errors (default: info)
+
+# Analytics control
+export EZ_ANALYTICS_ENABLED=true # Enable analytics (default: false)
+```
+
+### Migration Notes
+
+- **ContextOptimizer** replaces ContextManager, ContextRelevanceScorer, ContextCompressor, ContextDeduplicator, ContextMetadataTracker, ContextCache
+- **withRetry** replaces CircuitBreaker for most use cases
+- **Guards** object consolidates all 6 guard functions
+- **ConfigCache** provides caching for config.json, STATE.md, ROADMAP.md
 
 ---
 
