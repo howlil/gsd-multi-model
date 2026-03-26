@@ -135,19 +135,28 @@ export class AnalyticsCollector {
 
     session.endTime = new Date().toISOString();
     session.duration = Date.now() - new Date(session.startTime).getTime();
+    session.status = 'completed';
 
     this.saveAnalyticsData(analytics);
   }
 
   /**
-   * Get events by name
-   * @param name - Event name to filter
+   * Get events by filter options
+   * @param options - Filter options { name?, userId? }
    * @returns Filtered events
    */
-  getEvents(name?: string): AnalyticsEvent[] {
+  getEvents(options?: { name?: string; userId?: string }): AnalyticsEvent[] {
     const analytics = this.getAnalyticsData();
-    if (!name) return analytics.events;
-    return analytics.events.filter(e => e.name === name);
+    let events = analytics.events;
+    
+    if (options?.name) {
+      events = events.filter(e => e.name === options.name);
+    }
+    if (options?.userId) {
+      events = events.filter(e => e.userId === options.userId);
+    }
+    
+    return events;
   }
 
   /**

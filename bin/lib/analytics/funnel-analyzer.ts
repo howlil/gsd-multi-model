@@ -160,7 +160,7 @@ export class FunnelAnalyzer {
    * @param funnelName - Funnel name
    * @returns Conversion rates by step
    */
-  async getConversionRates(funnelName: string): Promise<{ steps: FunnelStep[]; totalUsers: number }> {
+  async getConversionRates(funnelName: string): Promise<{ funnel: string; steps: Array<{ name: string; users: number; rate: number }> }> {
     const data = this.getFunnelsData();
     const funnel = data.funnels.find(f => f.name === funnelName);
     
@@ -196,7 +196,13 @@ export class FunnelAnalyzer {
       conversionRate: totalUsers > 0 ? Math.round(((stepCounts[step.name] || 0) / totalUsers) * 100) : 0
     }));
 
-    return { steps, totalUsers };
+    const stepsWithRate = funnel.steps.map(step => ({
+      name: step.name,
+      users: stepCounts[step.name] || 0,
+      rate: totalUsers > 0 ? Math.round(((stepCounts[step.name] || 0) / totalUsers) * 100) : 0
+    }));
+    
+    return { funnel: funnelName, steps: stepsWithRate };
   }
 
   /**

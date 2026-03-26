@@ -34,6 +34,22 @@ export interface CohortsData {
   cohorts: Cohort[];
   /** User memberships */
   memberships: Record<string, string[]>;
+  /** Activity records */
+  activities?: Record<string, { userId: string; timestamp: string }[]>;
+  /** Activity records by user */
+  activities: Record<string, ActivityRecord[]>;
+}
+
+/**
+ * Activity record
+ */
+export interface ActivityRecord {
+  /** User ID */
+  userId: string;
+  /** Activity timestamp */
+  timestamp: string;
+  /** Activity type */
+  type?: string;
 }
 
 /**
@@ -42,10 +58,10 @@ export interface CohortsData {
 export interface RetentionPeriod {
   /** Period name */
   period: string;
-  /** Number of active users */
-  activeUsers: number;
   /** Retention rate percentage */
-  retentionRate: number;
+  rate: number;
+  /** Active users count */
+  activeUsers?: number;
 }
 
 /**
@@ -55,9 +71,9 @@ export interface RetentionResult {
   /** Cohort name */
   cohort: string;
   /** Retention data by period */
-  retention: RetentionPeriod[];
+  periods: RetentionPeriod[];
   /** Initial cohort size */
-  initialSize: number;
+  initialSize?: number;
 }
 
 /**
@@ -146,7 +162,7 @@ export class CohortAnalyzer {
    * @param periods - Time periods to analyze
    * @returns Retention data
    */
-  async calculateRetention(cohortName: string, periods: Period[] = []): Promise<RetentionResult> {
+  calculateRetention(cohortName: string, options?: { period?: string }): RetentionResult {
     const data = this.getCohortsData();
     const cohort = data.cohorts.find(c => c.name === cohortName);
 
@@ -156,19 +172,32 @@ export class CohortAnalyzer {
 
     const members = data.memberships[cohortName] || [];
     const initialSize = members.length;
-    const retention: RetentionPeriod[] = [];
-
-    for (const period of periods) {
-      // Placeholder - would track actual user activity
-      const activeUsers = members.length; // Return all for now
-      retention.push({
-        period: period.name,
-        activeUsers,
-        retentionRate: initialSize > 0 ? Math.round((activeUsers / initialSize) * 100) : 0
+    const periods: RetentionPeriod[] = [];
+    
+    // Calculate retention by week (default 4 weeks)
+    const activities = data.activities || {};
+    const cohortObj = data.cohorts.find(c => c.name === cohortName);
+    const cohortStart = cohortObj ? new Date(cohortObj.startDate).getTime() : Date.now();
+    
+    for (let week = 0; week < 4; week++) {
+      let activeCount = 0;
+      const weekMs = (week + 1) * 7 * 24 * 60 * 60 * 1000;
+      
+      for (const userActivities of Object.values(activities)) {
+        for (const activity of userActivities) {
+          const activityTime = new Date(activity.timestamp).getTime();
+          const weeksSinceCohort = Math.floor((activityTime - cohortStart) / (7 * 24 * 60 * 60 * 1000));
+          if (weeksSinceCohort === week) activeCount++;
+        }
+      }
+      
+      periods.push({
+        period: 'week_' + week,
+        rate: initialSize > 0 ? Math.round((activeCount / initialSize) * 100) : 0
       });
     }
 
-    return { cohort: cohortName, retention, initialSize };
+    return { cohort: cohortName, periods, initialSize };
   }
 
   /**
@@ -176,19 +205,18 @@ export class CohortAnalyzer {
    * @param cohortNames - Array of cohort names to compare
    * @returns Comparative metrics
    */
-  async compareCohorts(cohortNames: string[]): Promise<Record<string, { size: number; retention?: number }>> {
+  async compareCohorts(cohortNames: string[]): Promise<{ cohorts: Array<{ name: string; size: number; retention?: number }> }> {
     const data = this.getCohortsData();
-    const result: Record<string, { size: number; retention?: number }> = {};
-
-    for (const name of cohortNames) {
+    const cohorts = cohortNames.map(name => {
       const members = data.memberships[name] || [];
-      result[name] = {
+      return {
+        name,
         size: members.length,
         retention: members.length > 0 ? 100 : 0
       };
-    }
-
-    return result;
+    });
+    
+    return { cohorts };
   }
 
   /**
@@ -196,7 +224,7 @@ export class CohortAnalyzer {
    * @param cohortName - Cohort name
    * @returns Cohort metrics
    */
-  async getCohortMetrics(cohortName: string): Promise<{ name: string; size: number; activity?: number; lifetimeValue?: number }> {
+  async getCohortMetrics(cohortName: string): Promise<{ cohort: string; size: number; activity?: number; lifetimeValue?: number }> {
     const data = this.getCohortsData();
     const cohort = data.cohorts.find(c => c.name === cohortName);
 
@@ -207,7 +235,7 @@ export class CohortAnalyzer {
     const members = data.memberships[cohortName] || [];
 
     return {
-      name: cohortName,
+      cohort: cohortName,
       size: members.length,
       activity: members.length > 0 ? 100 : 0,
       lifetimeValue: members.length * 10 // Placeholder
@@ -236,6 +264,18 @@ export class CohortAnalyzer {
   /**
    * Ensure cohorts file exists
    */
+  
+  /**
+   * Record user activity
+   */
+  async recordActivity(userId: string, timestamp: string): Promise<void> {
+    const data = this.getCohortsData();
+    if (!data.activities) data.activities = {};
+    if (!data.activities[userId]) data.activities[userId] = [];
+    data.activities[userId].push({ userId, timestamp });
+    this.saveCohortsData(data);
+  }
+
   private ensureFile(): void {
     const dir = path.dirname(this.cohortsPath);
     if (!fs.existsSync(dir)) {
