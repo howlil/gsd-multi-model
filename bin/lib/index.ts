@@ -136,8 +136,7 @@ export {
 export type {
   SkillAdapter,
   SkillContext,
-  SkillResult,
-  ValidationResult
+  SkillResult
 } from './adapters/index.js';
 
 // ─── Lock & Validator ────────────────────────────────────────────────────────
