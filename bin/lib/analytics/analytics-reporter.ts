@@ -78,10 +78,13 @@ export class AnalyticsReporter {
     // Group events by type
     const eventsByType: Record<string, number> = {};
     for (const event of events) {
-      if (!eventsByType[event.eventType]) {
-        eventsByType[event.eventType] = 0;
+      const eventType = event.eventType;
+      if (eventType) {
+        if (!eventsByType[eventType]) {
+          eventsByType[eventType] = 0;
+        }
+        eventsByType[eventType]++;
       }
-      eventsByType[event.eventType]++;
     }
 
     return {

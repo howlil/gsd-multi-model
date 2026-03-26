@@ -314,5 +314,5 @@ export function stateRecordMetric(cwd: string, options: MetricOptions, raw?: boo
   }
 }
 
-// Export additional state functions as needed
-// (stateUpdateProgress, stateAddDecision, stateAddBlocker, etc.)
+// Alias exports for test compatibility
+export { extractStateField as stateExtractField, replaceStateField as stateReplaceField };

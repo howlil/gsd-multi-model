@@ -48,7 +48,7 @@ export interface ValidationResult {
  * @param taskMarkdown - Task() call in markdown format
  * @returns Parsed arguments or null if invalid
  */
-function parseTaskMarkdown(taskMarkdown: string | null | undefined): TaskArgs | null {
+export function parseTaskMarkdown(taskMarkdown: string | null | undefined): TaskArgs | null {
   if (!taskMarkdown || typeof taskMarkdown !== 'string') {
     return null;
   }

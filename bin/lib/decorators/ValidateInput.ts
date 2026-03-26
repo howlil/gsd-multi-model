@@ -27,7 +27,9 @@ import type { ValidateInputOptions } from './types.js';
  * @returns Method decorator
  */
 export function ValidateInput(validatorFn: (...args: any[]) => void) {
-  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+  return function (target: any, propertyKey: string, descriptor?: PropertyDescriptor) {
+    if (!descriptor) return;
+    
     const originalMethod = descriptor.value;
 
     descriptor.value = function (...args: any[]) {
@@ -39,3 +41,5 @@ export function ValidateInput(validatorFn: (...args: any[]) => void) {
     return descriptor;
   };
 }
+
+export default ValidateInput;
