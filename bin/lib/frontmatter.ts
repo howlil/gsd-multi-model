@@ -207,7 +207,7 @@ function parseMustHavesBlock(content: string, blockName: string): MustHaveItem[]
   const fmMatch = content.match(/^---\n([\s\S]+?)\n---/);
   if (!fmMatch) return [];
 
-  const yaml = fmMatch[1];
+  const yaml = fmMatch[1] ?? '';
   const blockPattern = new RegExp(`^\\s{4}${blockName}:\\s*$`, 'm');
   const blockStart = yaml.search(blockPattern);
   if (blockStart === -1) return [];
@@ -344,7 +344,7 @@ function cmdFrontmatterMerge(cwd: string, filePath: string, data: string, raw?: 
  * @param raw - Raw output mode
  */
 function cmdFrontmatterValidate(cwd: string, filePath: string, schemaName: string, raw?: boolean): void {
-  if (!filePath || !schemaName) { error('file and schema required'); }
+  if (!filePath || !schemaName) { error('file and schema required'); return; }
   const schema = FRONTMATTER_SCHEMAS[schemaName];
   if (!schema) { error(`Unknown schema: ${schemaName}. Available: ${Object.keys(FRONTMATTER_SCHEMAS).join(', ')}`); return; }
   const fullPath = path.isAbsolute(filePath) ? filePath : path.join(cwd, filePath);

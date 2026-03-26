@@ -162,7 +162,7 @@ function parseAgentSections(lines: string[]): AgentSection[] {
       if (currentSection) {
         sections.push({
           agent: currentSection.agent,
-          heading: currentSection.heading!,
+          heading: currentSection.heading ?? '',
           content: currentContent.join('\n').trim()
         });
       }
@@ -177,7 +177,7 @@ function parseAgentSections(lines: string[]): AgentSection[] {
   if (currentSection) {
     sections.push({
       agent: currentSection.agent,
-      heading: currentSection.heading!,
+      heading: currentSection.heading ?? '',
       content: currentContent.join('\n').trim()
     });
   }
