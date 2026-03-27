@@ -21,10 +21,13 @@ export type { WorkType, AgentResult, SynthesizedResult } from './WorkRouter.js';
 export { SubagentCoordinator } from './SubagentCoordinator.js';
 export type { SubagentResult } from './SubagentCoordinator.js';
 
-// Handoff Manager (to be implemented)
-// export { HandoffManager } from './HandoffManager.js';
-// export type { AgentState, HandoffContext, HandoffStep, Workflow } from './HandoffManager.js';
+// Handoff Manager
+export { HandoffManager } from './HandoffManager.js';
+export type { AgentState, HandoffContext, HandoffStep, Workflow } from './HandoffManager.js';
 
-// Peer Mesh (to be implemented)
-// export { AgentMesh } from './AgentMesh.js';
-// export type { SharedTaskPool, MessageQueue, Message } from './AgentMesh.js';
+// Peer Mesh
+export { AgentMesh, SharedTaskPool, MessageQueue } from './AgentMesh.js';
+export type { Task, TaskStatus, Message } from './AgentMesh.js';
+
+// Type definitions
+export type { IAgent, AgentExecutionResult } from './types.js';
