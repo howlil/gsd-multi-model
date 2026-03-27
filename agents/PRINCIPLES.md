@@ -1,3 +1,12 @@
+---
+name: PRINCIPLES
+description: Core philosophy shared by all 21 EZ Agents
+type: shared-philosophy
+version: 1.0.0
+---
+
+<philosophy>
+
 # Core Philosophy for All EZ Agents
 
 ## Solo Developer + Claude Workflow
@@ -152,8 +161,10 @@ PLAN.md IS the prompt (not a document that becomes one). Contains:
 
 **Token efficiency:**
 - Bullet points over paragraphs
-- Structured format (YAML frontmatter + xml)
+- Structured format (YAML frontmatter + XML)
 - External examples (reference, don't include)
+
+</philosophy>
 
 ---
 
