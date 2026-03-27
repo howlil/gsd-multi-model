@@ -6,6 +6,55 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [5.0.0] - 2026-03-27
+
+### 🎉 Major Release: Complete TypeScript & OOP Transformation
+
+**Milestone:** v5.0 Complete TypeScript & OOP Transformation
+**Total Requirements:** 215 (126 complete, 59%)
+**Phases:** 31 (18 complete, 5 in progress, 8 planned)
+**Test Coverage:** 206/307 passing (67%) → Target: 100%
+
+### ⚠️ BREAKING CHANGES
+
+#### Phase 28: Remove Over-Engineering
+
+**Removed circuit-breaker.ts (328 lines)**
+- `CircuitBreaker` class removed
+- `CircuitBreakerAdapter` removed
+- CLI commands `ez-tools circuit-breaker status` and `reset` removed
+- **Migration:** Use `withRetry()` from `bin/lib/retry.ts` instead
+  ```typescript
+  // Before
+  import { CircuitBreaker } from './circuit-breaker.js';
+  const breaker = new CircuitBreaker();
+  const result = await breaker.execute(() => apiCall());
+
+  // After
+  import { withRetry } from './retry.js';
+  const result = await withRetry(() => apiCall(), { maxRetries: 3 });
+  ```
+
+**Removed analytics/ module (5 files, 1200 lines)**
+- `AnalyticsCollector` removed
+- `AnalyticsReporter` removed
+- `CohortAnalyzer` removed
+- `FunnelAnalyzer` removed
+- `NpsTracker` removed
+- **Reason:** Zero production usage, 83% test failure rate (20/24 tests failing)
+- **Migration:** If you need analytics, implement custom solution or use external service
+
+**Removed environment variables:**
+- `EZ_LOG_CIRCUIT_BREAKER` - No longer needed (circuit breaker removed)
+- `EZ_LOG_ANALYTICS` - No longer needed (analytics removed)
+
+**Impact:**
+- Code reduction: 1528 lines removed
+- Token savings: ~600 tokens/phase
+- Phase 19 unblocked (20 failing analytics tests marked as won't fix)
+
+---
+
 ## [4.0.0] - 2026-03-24
 
 ### 🎉 Major Release: Production Hardening & TypeScript Migration

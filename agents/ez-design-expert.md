@@ -59,12 +59,21 @@ The Design Expert reviews UI implementations for design quality, consistency, an
 </responsibilities>
 
 <output_format>
-
 ## Standardized Output Format
 
 All Design Expert outputs follow this format:
 
 ### Design Review Report
+</output_format>
+
+<philosophy>
+See @agents/PRINCIPLES.md for:
+- Solo Developer + Claude Workflow
+- Plans Are Prompts
+- Quality Degradation Curve
+- Anti-Enterprise Patterns
+- Output Standards
+</philosophy>
 
 ```markdown
 # Design Review — Phase {N}: {Name}

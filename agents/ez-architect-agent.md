@@ -59,10 +59,19 @@ You are the EZ Architect Agent, a specialist in system design, architecture patt
 </responsibilities>
 
 <output_format>
-
 ## Standardized Output Format
 
 All Architect Agent outputs follow the standardized format defined in `templates/agent-output-format.md`.
+</output_format>
+
+<philosophy>
+See @agents/PRINCIPLES.md for:
+- Solo Developer + Claude Workflow
+- Plans Are Prompts
+- Quality Degradation Curve
+- Anti-Enterprise Patterns
+- Context Management
+</philosophy>
 
 ### Required Sections
 

@@ -34,8 +34,6 @@ import {
 } from './lib/commands.js';
 import { milestoneComplete, requirementsMarkComplete } from './lib/milestone.js';
 import { phaseComplete } from './lib/phase.js';
-import { track, startSession, endSession } from './lib/analytics/analytics-collector.js';
-import { generateReport, exportReport } from './lib/analytics/analytics-reporter.js';
 import { deploy } from '../commands/deploy.js';
 import { healthCheck } from '../commands/health-check.js';
 import { rollback } from '../commands/rollback.js';
@@ -360,58 +358,6 @@ async function main(): Promise<void> {
             break;
           }
           default: error(`Unknown phase subcommand: ${subcommand || ''}`);
-        }
-        break;
-      }
-
-      case 'analytics': {
-        switch (subcommand) {
-          case 'track': {
-            const eventName = flags.event as string || args[0] || '';
-            const userId = flags.user as string;
-            const propsStr = flags.props as string || '{}';
-            const properties = JSON.parse(propsStr);
-            await track({ name: eventName, userId, properties }, cwd);
-            console.log(`Event recorded: ${eventName}`);
-            break;
-          }
-          case 'session': {
-            if (flags.start === true) {
-              const userId = flags.user as string;
-              const sessionId = await startSession({ userId }, cwd);
-              console.log(`Session ID: ${sessionId}`);
-            } else if (flags.end === true) {
-              const sessionId = flags.id as string;
-              if (!sessionId) {
-                error('Session ID required for --end');
-              }
-              await endSession(sessionId, cwd);
-              console.log('Session ended');
-            } else {
-              error('Usage: analytics session --start [--user=ID] OR analytics session --end --id=SESSION_ID');
-            }
-            break;
-          }
-          case 'report': {
-            const reportType = flags.type as string || 'weekly';
-            const format = flags.format as string || 'json';
-            const report = await generateReport({ type: reportType as 'daily' | 'weekly' | 'monthly' }, cwd);
-            if (format === 'json') {
-              output(report as any, raw);
-            } else {
-              console.log(`Report generated: ${reportType} (${format})`);
-            }
-            break;
-          }
-          case 'export': {
-            const format = (flags.format as 'json' | 'csv') || 'csv';
-            const outputName = flags.output as string || 'analytics-export';
-            const report = await generateReport({}, cwd);
-            const filePath = await exportReport(report, { format, filename: outputName }, cwd);
-            console.log(`Exported to: ${filePath}`);
-            break;
-          }
-          default: error(`Unknown analytics subcommand: ${subcommand || ''}`);
         }
         break;
       }

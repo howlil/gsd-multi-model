@@ -152,7 +152,7 @@ PLAN.md IS the prompt (not a document that becomes one). Contains:
 
 **Token efficiency:**
 - Bullet points over paragraphs
-- Structured format (YAML frontmatter + markdown)
+- Structured format (YAML frontmatter + xml)
 - External examples (reference, don't include)
 
 ---

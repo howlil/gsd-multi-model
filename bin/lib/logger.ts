@@ -42,10 +42,8 @@ const MODULE_LOG_LEVELS: Record<string, string> = {
   adapters: process.env.EZ_LOG_ADAPTERS || '',
   strategies: process.env.EZ_LOG_STRATEGIES || '',
   context: process.env.EZ_LOG_CONTEXT || '',
-  circuitBreaker: process.env.EZ_LOG_CIRCUIT_BREAKER || '',
   decorators: process.env.EZ_LOG_DECORATORS || '',
-  finops: process.env.EZ_LOG_FINOPS || '',
-  analytics: process.env.EZ_LOG_ANALYTICS || ''
+  finops: process.env.EZ_LOG_FINOPS || ''
 };
 
 /**
@@ -235,16 +233,14 @@ const defaultLogger = new Logger();
 const adapterLogger = new Logger('adapters');
 const strategyLogger = new Logger('strategies');
 const contextLogger = new Logger('context');
-const circuitBreakerLogger = new Logger('circuitBreaker');
 
 export default Logger;
-export { 
-  defaultLogger, 
+export {
+  defaultLogger,
   Logger,
   adapterLogger,
   strategyLogger,
   contextLogger,
-  circuitBreakerLogger,
   generateTraceId,
   getOrGenerateTraceId
 };
