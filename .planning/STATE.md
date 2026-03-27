@@ -541,8 +541,9 @@ See `.planning/ROADMAP.md` for complete details on all 61 phases.
 |---|-------------|------|--------|-----------|
 | 260328-6dr | Legacy code analysis & cleanup | 2026-03-27 | 96997f2 | [260328-6dr-coba-lihat-semua-code-base-list-semua-fi](./quick/260328-6dr-coba-lihat-semua-code-base-list-semua-fi/) |
 | 260328-6le | Run all tests including Docker staging | 2026-03-28 | dc040b8 | [260328-6le-lakuakn-semua-test-untk-mastiing-koden-i](./quick/260328-6le-lakuakn-semua-test-untk-mastiing-koden-i/) |
+| 260328-72l | Fix test failures iteratively (Iteration 1/4) | 2026-03-28 | b0125d8 | [260328-72l-fix-sampai-0-fail-error-lakukan-looping-](./quick/260328-72l-fix-sampai-0-fail-error-lakukan-looping-) |
 
-**Last activity:** 2026-03-28 - Completed quick task 260328-6le: Run all tests including Docker staging
+**Last activity:** 2026-03-28 - Completed quick task 260328-72l: Fix test failures (19 fixed, ~95 remaining)
 
 ---
 
