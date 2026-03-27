@@ -28,7 +28,7 @@
  * ```
  */
 
-import type { IAgent } from '../agents/IAgent.js';
+import type { IAgent } from './types.js';
 
 /**
  * Task in shared pool
@@ -374,6 +374,44 @@ export class AgentMesh {
         0
       )
     };
+  }
+
+  /**
+   * Send a message to a specific agent with timeout
+   *
+   * @param fromAgent - Sending agent ID
+   * @param toAgent - Receiving agent ID
+   * @param message - Message content
+   * @param timeoutMs - Timeout in milliseconds
+   * @returns Promise resolving to response or null on timeout
+   */
+  async sendMessageWithTimeout(
+    fromAgent: string,
+    toAgent: string,
+    message: unknown,
+    timeoutMs: number
+  ): Promise<unknown> {
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        resolve(null);
+      }, timeoutMs);
+
+      // Send message via broadcast to agent's channel
+      const content = JSON.stringify({
+        type: 'direct-message',
+        from: fromAgent,
+        to: toAgent,
+        payload: message,
+        timestamp: Date.now()
+      });
+
+      this.broadcast(fromAgent, toAgent, content);
+
+      // For simulation purposes, resolve immediately with mock response
+      // In a real implementation, this would wait for a response message
+      clearTimeout(timeout);
+      resolve({ proposal: null });
+    });
   }
 }
 

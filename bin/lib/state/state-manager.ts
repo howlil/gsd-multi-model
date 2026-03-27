@@ -668,6 +668,39 @@ export class StateManager extends EventEmitter {
   }
 
   /**
+   * Apply resolved state after conflict resolution
+   *
+   * Updates task state with the resolved state from conflict resolution.
+   * Emits 'state-resolved' event on success.
+   *
+   * @param taskId - Task identifier
+   * @param resolvedState - Resolved state to apply
+   * @returns Promise resolving to true on success
+   */
+  async applyResolvedState(taskId: string, resolvedState: Record<string, unknown>): Promise<boolean> {
+    try {
+      const existingState = this.globalState.taskStates.get(taskId);
+
+      if (existingState) {
+        // Update existing state with resolved state
+        const updatedState: TaskState = {
+          ...existingState,
+          ...resolvedState,
+          updatedAt: Date.now()
+        };
+        this.globalState.taskStates.set(taskId, updatedState);
+        this.emit('state-resolved', { taskId, state: updatedState });
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      this.emit('state-error', { error, taskId });
+      return false;
+    }
+  }
+
+  /**
    * Stop the checkpoint timer
    *
    * Call this when shutting down the StateManager.

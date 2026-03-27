@@ -3,12 +3,13 @@
  * Gate Executor — Quality gate execution coordinator
  *
  * Executes all registered quality gates and reports results.
- * Supports bypass with audit trail.
+ * Supports bypass with audit trail, caching, and CI mode.
  *
  * Usage:
- *   node gate-executor.js --pre-commit
+ *   node gate-executor.js --gate gate-04 --timeout 2000
+ *   node gate-executor.js --ci --cache --timeout 30000
  *   node gate-executor.js --status
- *   node gate-executor.js --bypass "reason"
+ *   node gate-executor.js --bypass "reason" --gate gate-04
  */
 
 import * as fs from 'fs';
@@ -19,6 +20,9 @@ import { z } from 'zod';
 
 const AUDIT_FILE = path.join(process.cwd(), '.planning', 'gate-audit.json');
 const STATUS_FILE = path.join(process.cwd(), '.planning', 'quality-status.json');
+const BYPASS_LOG = path.join(process.cwd(), '.planning', 'gates', 'bypass-log.md');
+const RESULTS_FILE = path.join(process.cwd(), 'gate-results.json');
+const CONFIG_FILE = path.join(process.cwd(), '.planning', 'config.json');
 
 // Initialize quality gate coordinator
 const qg = new QualityGate();
@@ -157,7 +161,7 @@ function saveStatus(status: GateStatusData): void {
 }
 
 /**
- * Record gate bypass to audit trail
+ * Record gate bypass to audit trail and bypass log
  */
 function recordBypass(gateId: string, reason: string): void {
   const audit = {
@@ -179,7 +183,108 @@ function recordBypass(gateId: string, reason: string): void {
 
   auditTrail.push(audit);
   fs.writeFileSync(AUDIT_FILE, JSON.stringify(auditTrail, null, 2), 'utf8');
+  
+  // Also log to bypass-log.md
+  try {
+    const dir = path.dirname(BYPASS_LOG);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    
+    const date = new Date().toISOString().split('T')[0];
+    const commit = execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim();
+    const author = execSync('git config user.name', { encoding: 'utf8' }).trim();
+    
+    const logEntry = `| ${date} | ${gateId} | ${commit} | ${author} | ${reason} |\n`;
+    
+    // Read existing log and add entry before the statistics section
+    let logContent = '';
+    if (fs.existsSync(BYPASS_LOG)) {
+      logContent = fs.readFileSync(BYPASS_LOG, 'utf8');
+      const lines = logContent.split('\n');
+      const statsIdx = lines.findIndex(line => line.includes('## Bypass Statistics'));
+      if (statsIdx > 0) {
+        // Insert before statistics
+        lines.splice(statsIdx, 0, logEntry);
+        logContent = lines.join('\n');
+      } else {
+        // Append to table
+        logContent = logContent.trimEnd() + '\n' + logEntry + '\n';
+      }
+    } else {
+      logContent = `# Gate Bypass Log\n\n| Date | Gate | Commit | Author | Reason |\n|------|------|--------|--------|--------|\n${logEntry}\n`;
+    }
+    
+    fs.writeFileSync(BYPASS_LOG, logContent, 'utf8');
+  } catch (err) {
+    console.error('Failed to log bypass:', (err as Error).message);
+  }
+  
   console.warn(`[GATE BYPASS] ${gateId} bypassed: ${reason}`);
+}
+
+/**
+ * Check if gate should run based on cache
+ */
+async function shouldRunGate(gateId: string, relevancePatterns: string[]): Promise<boolean> {
+  const cacheFile = path.join(process.cwd(), '.planning', 'gate-cache.json');
+  
+  try {
+    let cache: Record<string, { hash: string; timestamp: number }> = {};
+    if (fs.existsSync(cacheFile)) {
+      cache = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
+    }
+    
+    // Calculate hash of relevant files
+    const crypto = await import('crypto');
+    const hash = crypto.createHash('md5');
+    
+    for (const pattern of relevancePatterns) {
+      const dir = path.dirname(pattern.replace(/^\*\*\//, ''));
+      const ext = path.extname(pattern);
+      
+      if (fs.existsSync(dir)) {
+        const files = fs.readdirSync(dir, { recursive: true }) as string[];
+        for (const file of files.filter(f => f.endsWith(ext))) {
+          const filePath = path.join(dir, file);
+          if (fs.existsSync(filePath)) {
+            hash.update(fs.readFileSync(filePath, 'utf8'));
+          }
+        }
+      }
+    }
+    
+    const newHash = hash.digest('hex');
+    const now = Date.now();
+    
+    // Check if cache is valid (5 minutes)
+    if (cache[gateId] && cache[gateId].hash === newHash && (now - cache[gateId].timestamp) < 300000) {
+      return false; // Skip gate, cache is valid
+    }
+    
+    // Update cache
+    cache[gateId] = { hash: newHash, timestamp: now };
+    fs.writeFileSync(cacheFile, JSON.stringify(cache, null, 2), 'utf8');
+    
+    return true; // Run gate
+  } catch (err) {
+    console.error('Cache check failed, running gate:', (err as Error).message);
+    return true; // Run gate on error
+  }
+}
+
+/**
+ * Load configuration
+ */
+function loadConfig(): Record<string, unknown> {
+  try {
+    if (fs.existsSync(CONFIG_FILE)) {
+      return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+    }
+  } catch (err) {
+    // Ignore
+  }
+  return {};
 }
 
 /**
@@ -188,43 +293,83 @@ function recordBypass(gateId: string, reason: string): void {
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const status = loadStatus();
-
+  const config = loadConfig() as Record<string, Record<string, unknown>>;
+  
+  // Parse arguments
+  const gateIdx = args.indexOf('--gate');
+  const singleGate = gateIdx !== -1 && args[gateIdx + 1] ? args[gateIdx + 1] : null;
+  const cacheEnabled = args.includes('--cache');
+  const timeoutIdx = args.indexOf('--timeout');
+  const timeout = timeoutIdx !== -1 && args[timeoutIdx + 1] ? parseInt(args[timeoutIdx + 1], 10) : 30000;
+  const ciMode = args.includes('--ci');
+  
   // Check for bypass flag
   const bypassIdx = args.indexOf('--bypass');
   if (bypassIdx !== -1 && args[bypassIdx + 1]) {
     const reason = args[bypassIdx + 1];
-    const gateIdx = args.indexOf('--gate');
-    if (gateIdx !== -1 && args[gateIdx + 1] && reason) {
-      const gateId = args[gateIdx + 1];
-      if (gateId) {
-        recordBypass(gateId, reason);
-      }
+    if (singleGate && reason) {
+      recordBypass(singleGate, reason);
+      process.exit(0);
     } else {
       console.error('Error: --bypass requires --gate <gate-id>');
       process.exit(1);
     }
   }
-
-  // Execute all gates
+  
+  // Get gate list
+  let gatesToRun: string[] = [];
+  if (singleGate) {
+    gatesToRun = [singleGate];
+  } else if (ciMode && config.quality_gates?.ci?.gates) {
+    gatesToRun = config.quality_gates.ci.gates as string[];
+  } else {
+    gatesToRun = qg.getRegisteredGates();
+  }
+  
+  // Get relevance patterns for caching
+  const relevancePatterns: Record<string, string[]> = config.quality_gates?.relevance_patterns as Record<string, string[]> || {};
+  
+  // Execute gates
   const results: Record<string, GateResultData> = {};
   const startTime = Date.now();
-
+  
   console.log('Executing quality gates...');
   console.log('');
-
-  for (const gateId of qg.getRegisteredGates()) {
+  
+  for (const gateId of gatesToRun) {
     try {
-      const result = await qg.executeGate(gateId, {});
+      // Check cache if enabled
+      if (cacheEnabled && relevancePatterns[gateId]) {
+        const shouldRun = await shouldRunGate(gateId, relevancePatterns[gateId]);
+        if (!shouldRun) {
+          console.log(`⊘ ${gateId} (cached - no relevant changes)`);
+          results[gateId] = {
+            passed: true,
+            timestamp: new Date().toISOString(),
+            errors: [],
+            warnings: ['Skipped (cached)'],
+          };
+          continue;
+        }
+      }
+      
+      // Execute gate with timeout
+      const gatePromise = qg.executeGate(gateId, {});
+      const timeoutPromise = new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error(`Timeout after ${timeout}ms`)), timeout)
+      );
+      
+      const result = await Promise.race([gatePromise, timeoutPromise]);
       results[gateId] = {
         passed: result.passed,
         timestamp: new Date().toISOString(),
         errors: (result.errors || []).map((e) => e.message),
         warnings: result.warnings || [],
       };
-
+      
       const icon = result.passed ? '✓' : '✗';
       console.log(`${icon} ${gateId}`);
-
+      
       if (result.warnings && result.warnings.length > 0) {
         result.warnings.forEach((w) => console.warn(`  ⚠ ${w}`));
       }
@@ -238,16 +383,28 @@ async function main(): Promise<void> {
       console.log(`✗ ${gateId}: ${(err as Error).message}`);
     }
   }
-
+  
   const duration = Date.now() - startTime;
   status.lastRun = new Date().toISOString();
   status.gates = results;
   status.duration = duration;
   saveStatus(status);
-
+  
+  // Save results for CI mode
+  if (ciMode) {
+    const resultsData = Object.entries(results).map(([gateId, result]) => ({
+      name: gateId,
+      passed: result.passed,
+      errors: result.errors,
+      warnings: result.warnings,
+      timestamp: result.timestamp,
+    }));
+    fs.writeFileSync(RESULTS_FILE, JSON.stringify(resultsData, null, 2), 'utf8');
+  }
+  
   console.log('');
   console.log(`Quality gates completed in ${(duration / 1000).toFixed(1)}s`);
-
+  
   // Check for failures
   const failed = Object.entries(results).filter(([_, r]) => !r.passed);
   if (failed.length > 0) {
@@ -260,13 +417,13 @@ async function main(): Promise<void> {
     console.log('Use --bypass "reason" to bypass a gate (requires audit trail)');
     process.exit(1);
   }
-
+  
   console.log('');
   console.log('All quality gates passed ✓');
 }
 
-// Handle pre-commit mode
-if (process.argv.includes('--pre-commit')) {
+// Handle different modes
+if (process.argv.includes('--pre-commit') || process.argv.includes('--gate') || process.argv.includes('--ci')) {
   main().catch((err) => {
     console.error('Gate execution failed:', (err as Error).message);
     process.exit(1);
@@ -280,14 +437,14 @@ if (process.argv.includes('--status')) {
   console.log('Quality Gate Status');
   console.log('═══════════════════');
   console.log('');
-
+  
   if (!status.lastRun) {
     console.log('No gate runs recorded');
   } else {
     console.log(`Last run: ${new Date(status.lastRun).toLocaleString()}`);
     console.log(`Duration: ${status.duration || 0}ms`);
     console.log('');
-
+    
     const passed = Object.values(status.gates).filter((g) => g.passed).length;
     const failed = Object.values(status.gates).filter((g) => !g.passed).length;
     console.log(`Results: ${passed} passed, ${failed} failed`);

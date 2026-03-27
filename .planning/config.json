@@ -31,5 +31,79 @@
       "enabled": true,
       "granularity": "per-phase"
     }
+  },
+  "quality_gates": {
+    "enabled": true,
+    "precommit": {
+      "gates": ["gate-04"],
+      "timeout": 2000
+    },
+    "ci": {
+      "gates": ["gate-01", "gate-02", "gate-03", "gate-04"],
+      "timeout": 30000,
+      "cache": true,
+      "post_pr_comment": true
+    },
+    "thresholds": {
+      "mvp": {
+        "gate-01": { "min_requirements_coverage": 50 },
+        "gate-03": { "min_test_coverage": 50, "max_eslint_warnings": 50 },
+        "gate-04": { "block_on_secrets": true }
+      },
+      "medium": {
+        "gate-01": { "min_requirements_coverage": 70 },
+        "gate-03": { "min_test_coverage": 70, "max_eslint_warnings": 20 },
+        "gate-04": { "block_on_secrets": true, "block_on_sql_injection": true }
+      },
+      "enterprise": {
+        "gate-01": { "min_requirements_coverage": 90 },
+        "gate-03": { "min_test_coverage": 90, "max_eslint_warnings": 0 },
+        "gate-04": { "block_on_secrets": true, "block_on_sql_injection": true, "block_on_eval": true }
+      }
+    },
+    "bypass": {
+      "enabled": true,
+      "min_reason_length": 10,
+      "log_file": ".planning/gates/bypass-log.md"
+    },
+    "relevance_patterns": {
+      "gate-01": ["*.md", ".planning/**"],
+      "gate-02": ["src/**/*.ts", "bin/**/*.ts"],
+      "gate-03": ["src/**/*.ts", "bin/**/*.ts"],
+      "gate-04": ["**/*.ts", "**/*.js", "**/*.env", "**/package.json"]
+    }
+  },
+  "sandbox": {
+    "enabled": true,
+    "isolation": "cgroups",
+    "resource_limits": {
+      "planner": { "memory": "1G", "cpu": 0.5, "timeout": 60000 },
+      "executor": { "memory": "1.5G", "cpu": 1, "timeout": 60000 },
+      "verifier": { "memory": "512M", "cpu": 0.25, "timeout": 60000 },
+      "researcher": { "memory": "1G", "cpu": 0.5, "timeout": 120000 }
+    },
+    "network": {
+      "default_policy": "deny_all",
+      "researcher_allowlist": [
+        "registry.npmjs.org",
+        "github.com",
+        "raw.githubusercontent.com",
+        "api.openai.com",
+        "api.anthropic.com",
+        "api.qwen.ai",
+        "api.kimi.ai"
+      ]
+    },
+    "secrets": {
+      "injection_method": "env_vars",
+      "audit_logging": true,
+      "expiry_ms": 3600000
+    },
+    "workspace": {
+      "ephemeral": true,
+      "read_only_default": true,
+      "writable_paths": [".planning", "src", "tmp"],
+      "cleanup_age_ms": 3600000
+    }
   }
 }

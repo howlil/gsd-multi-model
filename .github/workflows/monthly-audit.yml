@@ -1,0 +1,121 @@
+name: Monthly Dependency Audit
+
+on:
+  schedule:
+    # Run on the first day of every month at 09:00 UTC
+    - cron: '0 9 1 * *'
+  workflow_dispatch:
+    # Allow manual trigger
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit
+        run: |
+          # Run audit and save results
+          npm audit --json > audit-results.json || true
+          
+          # Parse results
+          TOTAL_VULNS=$(node -e "
+            const audit = JSON.parse(require('fs').readFileSync('audit-results.json', 'utf8'));
+            const total = (audit.metadata?.total || 0);
+            console.log(total);
+          ")
+          
+          echo "Total vulnerabilities: $TOTAL_VULNS"
+          echo "AUDIT_TOTAL=$TOTAL_VULNS" >> $GITHUB_ENV
+
+      - name: Generate audit report
+        run: |
+          node scripts/analyze-audit-trends.js
+
+      - name: Upload audit results
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-results
+          path: |
+            audit-results.json
+            .planning/audit-trends.json
+
+      - name: Create issue for high/critical vulnerabilities
+        if: env.AUDIT_TOTAL > 0
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            
+            try {
+              const audit = JSON.parse(fs.readFileSync('audit-results.json', 'utf8'));
+              const vulnerabilities = audit.vulnerabilities || [];
+              
+              // Filter high and critical
+              const severe = vulnerabilities.filter(v => 
+                v.severity === 'high' || v.severity === 'critical'
+              );
+              
+              if (severe.length > 0) {
+                let body = '## Monthly Dependency Audit\n\n';
+                body += `**Date:** ${new Date().toISOString().split('T')[0]}\n`;
+                body += `**Total vulnerabilities:** ${vulnerabilities.length}\n`;
+                body += `**High/Critical:** ${severe.length}\n\n`;
+                
+                body += '### Severe Vulnerabilities\n\n';
+                
+                severe.forEach((v, i) => {
+                  body += `#### ${i + 1}. ${v.name}\n\n`;
+                  body += `- **Severity:** ${v.severity}\n`;
+                  body += `- **Vulnerable versions:** ${v.vulnerable_versions}\n`;
+                  body += `- **Patched in:** ${v.patched_versions}\n`;
+                  body += `- **Overview:** ${v.overview}\n`;
+                  body += `- **Recommendation:** ${v.recommendation}\n\n`;
+                });
+                
+                body += '---\n\n';
+                body += '**Action Required:**\n';
+                body += '1. Review each vulnerability above\n';
+                body += '2. Update affected packages if patches available\n';
+                body += '3. Test thoroughly before merging\n';
+                body += '4. Document any decisions to delay updates\n';
+                
+                // Check if similar issue already exists
+                const existingIssues = await github.rest.issues.listForRepo({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  state: 'open',
+                  labels: 'security,dependencies'
+                });
+                
+                if (existingIssues.data.length === 0) {
+                  await github.rest.issues.create({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    title: `Security Audit: ${severe.length} High/Critical Vulnerabilities Found`,
+                    body: body,
+                    labels: ['security', 'dependencies', 'monthly-audit']
+                  });
+                  
+                  console.log('Created issue for vulnerabilities');
+                } else {
+                  console.log('Similar issue already exists');
+                }
+              } else {
+                console.log('No high/critical vulnerabilities found');
+              }
+            } catch (error) {
+              console.error('Failed to create issue:', error);
+            }
