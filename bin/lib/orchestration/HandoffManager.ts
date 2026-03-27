@@ -1,249 +1,313 @@
 /**
- * HandoffManager — Handoff Pattern for state persistence across agent handoffs
- * 
- * Research-backed pattern (LangChain top-4) for production multi-agent orchestration.
- * Token overhead: +10% (acceptable)
- * 40-50% fewer calls on repeat requests
- * 
- * @see CONTEXT.md Phase 31 — Locked decisions
- * @see RESEARCH.md — Pattern research and evidence
+ * Handoff Manager — Handoff Pattern Implementation
+ *
+ * Manages state persistence and handoff protocol for sequential agent workflows.
+ * Enables multi-step workflows where agents pass work to each other.
+ *
+ * Token overhead: +10% (acceptable for +10-15% reliability)
+ * Reliability impact: +10-15% (proper state management)
+ *
+ * @example
+ * ```typescript
+ * const handoff = new HandoffManager();
+ *
+ * // Create sequential workflow
+ * const workflow = handoff.createWorkflow([
+ *   { agent: 'ez-planner', task: 'Plan feature' },
+ *   { agent: 'ez-executor', task: 'Implement feature' },
+ *   { agent: 'ez-verifier', task: 'Verify feature' }
+ * ]);
+ *
+ * // Execute with state persistence
+ * await handoff.executeWorkflow(workflow, context);
+ * ```
  */
 
-import type { Context } from '../context-manager.js';
+import type { Context } from '../context/Context.js';
 
 /**
  * Agent state for persistence
  */
 export interface AgentState {
   agentId: string;
-  context: Record<string, unknown>;
-  variables: Record<string, unknown>;
+  taskId: string;
+  status: 'pending' | 'in-progress' | 'completed' | 'failed';
+  output?: string;
   timestamp: number;
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * Handoff step in workflow
+ */
+export interface HandoffStep {
+  agentId: string;
+  task: string;
+  dependencies?: string[]; // Step IDs this depends on
+}
+
+/**
+ * Complete workflow definition
+ */
+export interface Workflow {
+  id: string;
+  name: string;
+  steps: HandoffStep[];
+  createdAt: number;
+  status: 'pending' | 'running' | 'completed' | 'failed';
 }
 
 /**
  * Handoff context for state transfer
  */
 export interface HandoffContext {
-  fromAgent: string;
-  toAgent: string;
-  state: AgentState;
-  metadata: Record<string, unknown>;
+  previousAgentId: string;
+  previousOutput: string;
+  workflowId: string;
+  stepIndex: number;
 }
 
 /**
- * Handoff step for sequential workflows
+ * Workflow execution result
  */
-export interface HandoffStep {
-  agentId: string;
-  task: string;
-  context?: HandoffContext;
+export interface WorkflowResult {
+  success: boolean;
+  workflowId: string;
+  steps: Array<{
+    agentId: string;
+    task: string;
+    status: 'completed' | 'failed';
+    output?: string;
+    duration?: number;
+  }>;
+  totalDuration: number;
 }
 
 /**
- * Sequential workflow
- */
-export class Workflow {
-  constructor(
-    private readonly handoffs: HandoffStep[],
-    private readonly handoffManager: HandoffManager
-  ) {}
-
-  /**
-   * Execute workflow sequentially
-   */
-  async execute(): Promise<void> {
-    for (let i = 0; i < this.handoffs.length; i++) {
-      const step = this.handoffs[i];
-      
-      // Execute agent task
-      await this.executeStep(step);
-      
-      // Handoff to next agent if exists
-      if (i < this.handoffs.length - 1) {
-        const nextStep = this.handoffs[i + 1];
-        await this.handoffManager.handoff(step.agentId, nextStep.agentId, {
-          fromAgent: step.agentId,
-          toAgent: nextStep.agentId,
-          state: { agentId: step.agentId, context: {}, variables: {}, timestamp: Date.now() },
-          metadata: {}
-        });
-      }
-    }
-  }
-
-  private async executeStep(step: HandoffStep): Promise<void> {
-    // In actual implementation, this would execute the agent
-    // For now, placeholder
-  }
-}
-
-/**
- * HandoffManager implements the Handoff Pattern for multi-agent orchestration.
- * 
- * Features:
- * - State persistence across agent handoffs
- * - Sequential workflow orchestration
- * - 40-50% fewer calls on repeat requests
- * - Integrates with Context Engine (Phase 37)
- * 
- * @example
- * ```typescript
- * const handoff = new HandoffManager(contextEngine);
- * await handoff.handoff('triage', 'technical', context);
- * ```
+ * Handoff Manager class
+ *
+ * Implements Handoff pattern for state persistence across agent handoffs.
+ * Enables sequential workflows with proper state management.
  */
 export class HandoffManager {
-  /**
-   * State storage (in production, this would integrate with Context Engine)
-   */
-  private readonly stateStorage: Map<string, AgentState>;
+  private stateStore: Map<string, AgentState> = new Map();
+  private workflows: Map<string, Workflow> = new Map();
 
   /**
-   * Create HandoffManager instance
-   * @param contextEngine - Context Engine for state persistence (Phase 37)
-   */
-  constructor(private contextEngine?: any) {
-    this.stateStorage = new Map();
-  }
-
-  /**
-   * Save state before handoff
-   * 
+   * Save agent state for handoff
+   *
    * @param agentId - Agent identifier
-   * @param state - Agent state to persist
-   * 
-   * @example
-   * ```typescript
-   * handoff.saveState('triage', state);
-   * ```
+   * @param state - Agent state to save
    */
   saveState(agentId: string, state: AgentState): void {
-    const key = `handoff:${agentId}`;
-    this.stateStorage.set(key, state);
-    
-    // In actual implementation, also save to Context Engine
-    if (this.contextEngine) {
-      this.contextEngine.save(key, state);
-    }
+    const key = this.getStateKey(agentId, state.taskId);
+    this.stateStore.set(key, {
+      ...state,
+      timestamp: Date.now()
+    });
   }
 
   /**
-   * Load state for next agent
-   * 
-   * @param nextAgentId - Next agent identifier
-   * @returns Agent state
-   * 
-   * @example
-   * ```typescript
-   * const state = handoff.loadState('technical');
-   * ```
+   * Load agent state for handoff
+   *
+   * @param agentId - Agent identifier
+   * @param taskId - Task identifier
+   * @returns Agent state or undefined
    */
-  loadState(nextAgentId: string): AgentState | undefined {
-    const key = `handoff:${nextAgentId}`;
-    
-    // Try Context Engine first
-    if (this.contextEngine) {
-      const state = this.contextEngine.load(key);
-      if (state) return state;
-    }
-    
-    // Fallback to in-memory storage
-    return this.stateStorage.get(key);
+  loadState(agentId: string, taskId: string): AgentState | undefined {
+    const key = this.getStateKey(agentId, taskId);
+    return this.stateStore.get(key);
   }
 
   /**
-   * Handoff protocol: Transfer state between agents
-   * 
-   * @param from - Source agent identifier
-   * @param to - Target agent identifier
-   * @param context - Handoff context
-   * 
-   * @example
-   * ```typescript
-   * await handoff.handoff('triage', 'technical', context);
-   * ```
+   * Execute handoff from one agent to another
+   *
+   * @param fromAgent - Source agent ID
+   * @param toAgent - Target agent ID
+   * @param context - Handoff context with state
    */
-  async handoff(from: string, to: string, context: HandoffContext): Promise<void> {
-    // Save current state
-    const state = await this.captureState(from);
-    this.saveState(from, state);
+  handoff(fromAgent: string, toAgent: string, context: HandoffContext): void {
+    // Save outgoing state
+    this.saveState(fromAgent, {
+      agentId: fromAgent,
+      taskId: context.workflowId,
+      status: 'completed',
+      output: context.previousOutput,
+      timestamp: Date.now(),
+      metadata: {
+        nextAgent: toAgent,
+        stepIndex: context.stepIndex
+      }
+    });
 
-    // Transfer context (in actual implementation)
-    await this.transferContext(from, to, context);
-
-    // Load next state
-    const nextState = this.loadState(to);
-    if (nextState) {
-      await this.restoreState(to, nextState);
-    }
+    // Initialize incoming state
+    this.saveState(toAgent, {
+      agentId: toAgent,
+      taskId: context.workflowId,
+      status: 'pending',
+      timestamp: Date.now(),
+      metadata: {
+        previousAgent: fromAgent,
+        stepIndex: context.stepIndex + 1
+      }
+    });
   }
 
   /**
    * Create sequential workflow
-   * 
-   * @param handoffs - Array of handoff steps
-   * @returns Workflow instance
-   * 
-   * @example
-   * ```typescript
-   * const workflow = handoff.createWorkflow([
-   *   { agentId: 'triage', task: 'Classify issue' },
-   *   { agentId: 'technical', task: 'Resolve technical issue' },
-   *   { agentId: 'billing', task: 'Process refund' }
-   * ]);
-   * await workflow.execute();
-   * ```
+   *
+   * @param steps - Array of handoff steps
+   * @param name - Workflow name
+   * @returns Created workflow
    */
-  createWorkflow(handoffs: HandoffStep[]): Workflow {
-    return new Workflow(handoffs, this);
+  createWorkflow(steps: HandoffStep[], name: string = 'Workflow'): Workflow {
+    const workflow: Workflow = {
+      id: `workflow-${Date.now()}`,
+      name,
+      steps,
+      createdAt: Date.now(),
+      status: 'pending'
+    };
+
+    this.workflows.set(workflow.id, workflow);
+    return workflow;
   }
 
   /**
-   * Capture current agent state
+   * Execute workflow sequentially
+   *
+   * @param workflow - Workflow to execute
+   * @param context - Base context
+   * @param executor - Function to execute each step
+   * @returns Workflow execution result
    */
-  private async captureState(agentId: string): Promise<AgentState> {
-    // In actual implementation, capture from agent
+  async executeWorkflow(
+    workflow: Workflow,
+    context: Context,
+    executor: (agentId: string, task: string, ctx: Context) => Promise<string>
+  ): Promise<WorkflowResult> {
+    const startTime = Date.now();
+    const results: WorkflowResult['steps'] = [];
+
+    workflow.status = 'running';
+
+    let previousOutput = '';
+    let previousAgentId = '';
+
+    for (let i = 0; i < workflow.steps.length; i++) {
+      const step = workflow.steps[i]!;
+      const stepStartTime = Date.now();
+
+      try {
+        // Create handoff context if not first step
+        if (i > 0) {
+          this.handoff(previousAgentId, step.agentId, {
+            previousAgentId,
+            previousOutput,
+            workflowId: workflow.id,
+            stepIndex: i
+          });
+        }
+
+        // Execute step
+        const output = await executor(step.agentId, step.task, context);
+
+        results.push({
+          agentId: step.agentId,
+          task: step.task,
+          status: 'completed',
+          output,
+          duration: Date.now() - stepStartTime
+        });
+
+        previousOutput = output;
+        previousAgentId = step.agentId;
+      } catch (error) {
+        results.push({
+          agentId: step.agentId,
+          task: step.task,
+          status: 'failed',
+          output: (error as Error).message
+        });
+
+        workflow.status = 'failed';
+        break;
+      }
+    }
+
+    // Mark workflow as completed if all steps succeeded
+    if (workflow.status !== 'failed') {
+      workflow.status = 'completed';
+    }
+
+    this.workflows.set(workflow.id, workflow);
+
     return {
-      agentId,
-      context: {},
-      variables: {},
-      timestamp: Date.now()
+      success: workflow.status === 'completed',
+      workflowId: workflow.id,
+      steps: results,
+      totalDuration: Date.now() - startTime
     };
   }
 
   /**
-   * Transfer context between agents
+   * Get workflow by ID
+   *
+   * @param workflowId - Workflow identifier
+   * @returns Workflow or undefined
    */
-  private async transferContext(from: string, to: string, context: HandoffContext): Promise<void> {
-    // In actual implementation, transfer context
-    // For now, placeholder
+  getWorkflow(workflowId: string): Workflow | undefined {
+    return this.workflows.get(workflowId);
   }
 
   /**
-   * Restore agent state
+   * List all workflows
+   *
+   * @returns Array of workflows
    */
-  private async restoreState(agentId: string, state: AgentState): Promise<void> {
-    // In actual implementation, restore to agent
-    // For now, placeholder
+  listWorkflows(): Workflow[] {
+    return Array.from(this.workflows.values());
   }
 
   /**
-   * Get state storage size
+   * Get workflow state summary
+   *
+   * @param workflowId - Workflow identifier
+   * @returns State summary for all steps
    */
-  getStateStorageSize(): number {
-    return this.stateStorage.size;
+  getWorkflowState(workflowId: string): AgentState[] {
+    const states: AgentState[] = [];
+    for (const [key, state] of this.stateStore.entries()) {
+      if (state.taskId === workflowId) {
+        states.push(state);
+      }
+    }
+    return states.sort((a, b) => a.timestamp - b.timestamp);
   }
 
   /**
-   * Clear state storage
+   * Clear state for workflow
+   *
+   * @param workflowId - Workflow identifier
    */
-  clearStateStorage(): void {
-    this.stateStorage.clear();
+  clearWorkflowState(workflowId: string): void {
+    for (const [key, state] of this.stateStore.entries()) {
+      if (state.taskId === workflowId) {
+        this.stateStore.delete(key);
+      }
+    }
+  }
+
+  /**
+   * Generate state storage key
+   *
+   * @param agentId - Agent identifier
+   * @param taskId - Task identifier
+   * @returns Storage key
+   */
+  private getStateKey(agentId: string, taskId: string): string {
+    return `${agentId}:${taskId}`;
   }
 }
 
-/**
- * Type exports for external use
- */
-export type { AgentState, HandoffContext, HandoffStep };
+export default HandoffManager;

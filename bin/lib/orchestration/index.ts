@@ -1,33 +1,26 @@
 /**
- * Orchestration Module — Advanced multi-agent orchestration patterns
- * 
- * Research-backed patterns for production multi-agent orchestration:
- * - Router Pattern (LangChain top-4)
- * - Subagents Pattern (LangChain top-4)
- * - Handoff Manager (LangChain top-4)
- * - Peer Mesh (High-impact pattern)
- * 
- * Token efficiency: 1.55x overhead (64% savings vs 7 patterns)
- * 
- * @see CONTEXT.md Phase 31 — Locked decisions
- * @see RESEARCH.md — Pattern research and evidence
+ * Orchestration Patterns
+ *
+ * Advanced orchestration patterns for agent coordination.
+ * Implements Router, Subagents, Handoff, and Peer Mesh patterns.
  */
 
 // Router Pattern
-export { WorkRouter } from './WorkRouter.js';
-export type { WorkType, AgentResult, SynthesizedResult } from './WorkRouter.js';
+export { WorkRouter, type WorkType, type AgentResult, type SynthesizedResult } from './WorkRouter.js';
 
 // Subagents Pattern
-export { SubagentCoordinator } from './SubagentCoordinator.js';
-export type { SubagentResult } from './SubagentCoordinator.js';
+export { SubagentCoordinator, type SubagentRegistration, type SubagentResult } from './SubagentCoordinator.js';
 
-// Handoff Manager
-export { HandoffManager } from './HandoffManager.js';
-export type { AgentState, HandoffContext, HandoffStep, Workflow } from './HandoffManager.js';
+// Handoff Pattern
+export { HandoffManager, type AgentState, type HandoffStep, type Workflow, type HandoffContext, type WorkflowResult } from './HandoffManager.js';
 
-// Peer Mesh
-export { AgentMesh, SharedTaskPool, MessageQueue } from './AgentMesh.js';
-export type { Task, TaskStatus, Message } from './AgentMesh.js';
+// Peer Mesh Pattern
+export { AgentMesh, type Task, type Message, type MeshAgent } from './AgentMesh.js';
 
-// Type definitions
-export type { IAgent, AgentExecutionResult } from './types.js';
+// Default export
+export default {
+  WorkRouter: (await import('./WorkRouter.js')).WorkRouter,
+  SubagentCoordinator: (await import('./SubagentCoordinator.js')).SubagentCoordinator,
+  HandoffManager: (await import('./HandoffManager.js')).HandoffManager,
+  AgentMesh: (await import('./AgentMesh.js')).AgentMesh
+};

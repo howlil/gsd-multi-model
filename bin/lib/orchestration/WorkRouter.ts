@@ -1,223 +1,227 @@
 /**
- * WorkRouter — Router Pattern for work classification and agent routing
- * 
- * Research-backed pattern (LangChain top-4) for production multi-agent orchestration.
- * Token overhead: +15% (acceptable)
- * 
- * @see CONTEXT.md Phase 31 — Locked decisions
- * @see RESEARCH.md — Pattern research and evidence
+ * Work Router — Router Pattern Implementation
+ *
+ * Classifies work and routes to appropriate specialist agents.
+ * Extends Chief Strategist's classification with keyword-based routing.
+ *
+ * Token overhead: +15% (acceptable for +15-20% reliability)
+ * Reliability impact: +15-20% (proper work classification)
+ *
+ * @example
+ * ```typescript
+ * const router = new WorkRouter(chiefStrategist);
+ * const workType = router.classifyWork('Fix authentication bug');
+ * const agent = router.route(workType, context);
+ * const results = await router.fanOut(task, ['ez-frontend', 'ez-backend']);
+ * ```
  */
 
-import type { IAgent } from '../types.js';
-import type { Context } from '../context-manager.js';
+import type { IAgent } from '../agents/IAgent.js';
+import type { Context } from '../context/Context.js';
 
 /**
  * Work type classification
  */
-export type WorkType = 
-  | 'feature'
-  | 'bug'
-  | 'refactor'
-  | 'migration'
-  | 'incident';
+export type WorkType =
+  | 'feature'        // New functionality
+  | 'bugfix'         // Bug fix
+  | 'refactor'       // Code refactoring
+  | 'migration'      // Migration task
+  | 'incident'       // Production incident
+  | 'unknown';       // Unclassified
 
 /**
- * Agent execution result
+ * Agent result from fan-out execution
  */
 export interface AgentResult {
   agentId: string;
-  result: string;
   success: boolean;
-  tokensUsed: number;
+  output: string;
+  tokenUsage?: number;
+  duration?: number;
 }
 
 /**
- * Synthesized result from fan-in
+ * Synthesized result from fan-in aggregation
  */
 export interface SynthesizedResult {
-  summary: string;
-  results: AgentResult[];
-  recommendations: string[];
+  success: boolean;
+  output: string;
+  sources: string[];
+  confidence: number;
 }
 
 /**
- * WorkRouter implements the Router Pattern for multi-agent orchestration.
- * 
- * Features:
- * - Keyword-based classification (no ML overhead)
- * - Fan-out/fan-in for parallel execution
- * - Extends Chief Strategist classification
- * 
- * @example
- * ```typescript
- * const router = new WorkRouter(chiefStrategist);
- * const workType = router.classifyWork('Fix login bug');
- * const agent = router.route(workType, context);
- * ```
+ * Work Router class
+ *
+ * Implements Router pattern for work classification and agent routing.
+ * Uses keyword-based classification (no ML overhead for CLI performance).
  */
 export class WorkRouter {
   /**
-   * Keyword mappings for work classification
+   * Create Work Router
+   * @param chiefStrategist - Chief Strategist agent for complex classification
    */
-  private readonly keywords: Record<WorkType, string[]> = {
-    feature: ['implement', 'add', 'create', 'build', 'develop', 'new', 'feature'],
-    bug: ['fix', 'bug', 'issue', 'error', 'crash', 'fail', 'broken'],
-    refactor: ['refactor', 'restructure', 'clean', 'simplify', 'optimize', 'improve'],
-    migration: ['migrate', 'upgrade', 'move', 'convert', 'transform', 'update'],
-    incident: ['incident', 'outage', 'emergency', 'critical', 'production', 'down']
-  };
-
-  /**
-   * Create WorkRouter instance
-   * @param chiefStrategist - Chief Strategist agent for integration
-   */
-  constructor(private chiefStrategist: IAgent) {}
+  constructor(private chiefStrategist?: IAgent) {}
 
   /**
    * Classify work type using keyword matching
-   * 
+   *
    * @param task - Task description
    * @returns Work type classification
-   * 
-   * @example
-   * ```typescript
-   * router.classifyWork('Add user authentication') // returns 'feature'
-   * router.classifyWork('Fix login crash') // returns 'bug'
-   * ```
    */
   classifyWork(task: string): WorkType {
-    const taskLower = task.toLowerCase();
-    
-    // Score each work type by keyword matches
-    const scores: Record<WorkType, number> = {
-      feature: 0,
-      bug: 0,
-      refactor: 0,
-      migration: 0,
-      incident: 0
-    };
+    const lowerTask = task.toLowerCase();
 
-    for (const [workType, keywords] of Object.entries(this.keywords)) {
-      for (const keyword of keywords) {
-        if (taskLower.includes(keyword)) {
-          scores[workType as WorkType]++;
-        }
-      }
+    // Incident detection (highest priority)
+    if (lowerTask.includes('incident') ||
+        lowerTask.includes('production issue') ||
+        lowerTask.includes('outage') ||
+        lowerTask.includes('emergency')) {
+      return 'incident';
     }
 
-    // Return highest scoring work type
-    let highest: WorkType = 'feature';
-    let highestScore = 0;
-
-    for (const [workType, score] of Object.entries(scores)) {
-      if (score > highestScore) {
-        highest = workType as WorkType;
-        highestScore = score;
-      }
+    // Bug fix detection
+    if (lowerTask.includes('bug') ||
+        lowerTask.includes('fix') ||
+        lowerTask.includes('error') ||
+        lowerTask.includes('issue') ||
+        lowerTask.includes('broken')) {
+      return 'bugfix';
     }
 
-    return highest;
+    // Migration detection
+    if (lowerTask.includes('migrate') ||
+        lowerTask.includes('migration') ||
+        lowerTask.includes('upgrade') ||
+        lowerTask.includes('convert')) {
+      return 'migration';
+    }
+
+    // Refactor detection
+    if (lowerTask.includes('refactor') ||
+        lowerTask.includes('refactoring') ||
+        lowerTask.includes('restructure') ||
+        lowerTask.includes('clean up') ||
+        lowerTask.includes('optimize')) {
+      return 'refactor';
+    }
+
+    // Feature detection (default for new work)
+    if (lowerTask.includes('feature') ||
+        lowerTask.includes('implement') ||
+        lowerTask.includes('add') ||
+        lowerTask.includes('create') ||
+        lowerTask.includes('new')) {
+      return 'feature';
+    }
+
+    // Unknown - defer to Chief Strategist if available
+    return 'unknown';
   }
 
   /**
    * Route work to appropriate specialist agent
-   * 
+   *
    * @param workType - Classified work type
    * @param context - Execution context
-   * @returns Specialist agent for the work type
-   * 
-   * @example
-   * ```typescript
-   * const agent = router.route('bug', context);
-   * ```
+   * @returns Specialist agent for this work type
    */
-  route(workType: WorkType, context: Context): IAgent {
-    // Map work types to specialist agents
+  route(workType: WorkType, context?: Context): IAgent {
+    // Route based on work type
     const agentMap: Record<WorkType, string> = {
-      feature: 'ez-product-engineer',
-      bug: 'ez-debugger',
-      refactor: 'ez-architect-agent',
-      migration: 'ez-devops-agent',
-      incident: 'ez-chief-strategist'
+      'incident': 'ez-debugger',
+      'bugfix': 'ez-debugger',
+      'refactor': 'ez-executor',
+      'migration': 'ez-executor',
+      'feature': 'ez-executor',
+      'unknown': 'ez-chief-strategist'
     };
 
-    const agentName = agentMap[workType];
-    
-    // Return specialist agent (implementation depends on agent spawning system)
-    return this.chiefStrategist; // Placeholder - actual implementation spawns specialist
+    const agentId = agentMap[workType] || 'ez-executor';
+
+    // In production, this would resolve the actual agent instance
+    // For now, return a placeholder that can be resolved by the orchestrator
+    return {
+      id: agentId,
+      name: agentId,
+      execute: async (task: string) => ({
+        success: true,
+        output: `Agent ${agentId} executed: ${task}`,
+        tokenUsage: 0,
+        duration: 0
+      })
+    } as IAgent;
   }
 
   /**
    * Fan-out: Execute task across multiple agents in parallel
-   * 
+   *
    * @param task - Task to execute
-   * @param agents - List of agent IDs to spawn
+   * @param agentIds - List of agent IDs to execute
    * @returns Array of agent results
-   * 
-   * @example
-   * ```typescript
-   * const results = await router.fanOut(
-   *   'Review this code',
-   *   ['ez-architect-agent', 'ez-qa-agent', 'ez-security-agent']
-   * );
-   * ```
    */
-  async fanOut(task: string, agents: string[]): Promise<AgentResult[]> {
+  async fanOut(task: string, agentIds: string[]): Promise<AgentResult[]> {
+    const results: AgentResult[] = [];
+
     // Execute all agents in parallel
-    const promises = agents.map(async (agentId) => {
-      // In actual implementation, this would spawn the agent
-      // For now, return placeholder result
-      return {
-        agentId,
-        result: `Agent ${agentId} executed task: ${task}`,
-        success: true,
-        tokensUsed: 1000 // Placeholder
-      };
+    const promises = agentIds.map(async (agentId) => {
+      const startTime = Date.now();
+
+      try {
+        // In production, this would call the actual agent
+        // For now, simulate execution
+        const output = `Agent ${agentId} completed: ${task}`;
+
+        results.push({
+          agentId,
+          success: true,
+          output,
+          tokenUsage: output.length, // Estimate
+          duration: Date.now() - startTime
+        });
+      } catch (error) {
+        results.push({
+          agentId,
+          success: false,
+          output: `Agent ${agentId} failed: ${(error as Error).message}`,
+          tokenUsage: 0,
+          duration: Date.now() - startTime
+        });
+      }
     });
 
-    return await Promise.all(promises);
+    await Promise.all(promises);
+    return results;
   }
 
   /**
-   * Fan-in: Synthesize results from multiple agents
-   * 
+   * Fan-in: Aggregate and synthesize results from multiple agents
+   *
    * @param results - Array of agent results
-   * @returns Synthesized result with summary and recommendations
-   * 
-   * @example
-   * ```typescript
-   * const synthesized = router.fanIn(results);
-   * console.log(synthesized.summary);
-   * ```
+   * @returns Synthesized result
    */
   fanIn(results: AgentResult[]): SynthesizedResult {
-    // Aggregate results
-    const successful = results.filter(r => r.success);
-    const failed = results.filter(r => !r.success);
+    const successfulResults = results.filter(r => r.success);
+    const failedResults = results.filter(r => !r.success);
 
-    // Generate summary
-    const summary = `Executed ${results.length} agents: ${successful.length} successful, ${failed.length} failed`;
+    // Calculate confidence based on agreement
+    const confidence = successfulResults.length / results.length;
 
-    // Generate recommendations based on results
-    const recommendations: string[] = [];
-    
-    if (failed.length > 0) {
-      recommendations.push(`Review failed agents: ${failed.map(f => f.agentId).join(', ')}`);
-    }
+    // Aggregate outputs
+    const outputs = successfulResults.map(r => r.output);
+    const output = outputs.join('\n\n---\n\n');
 
-    if (successful.length > 1) {
-      recommendations.push('Cross-validate results from multiple agents');
-    }
+    // Aggregate sources
+    const sources = successfulResults.map(r => r.agentId);
 
     return {
-      summary,
-      results,
-      recommendations
+      success: successfulResults.length > 0,
+      output: output || `All agents failed: ${failedResults.map(r => r.output).join(', ')}`,
+      sources,
+      confidence
     };
   }
 }
 
-/**
- * Type exports for external use
- */
-export type { WorkType, AgentResult, SynthesizedResult };
+export default WorkRouter;

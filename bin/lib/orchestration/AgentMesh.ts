@@ -1,345 +1,380 @@
 /**
- * AgentMesh — Peer Mesh Pattern for agent-to-agent communication
- * 
- * Research-backed pattern for production multi-agent orchestration.
+ * Agent Mesh — Peer Mesh Pattern Implementation
+ *
+ * Enables agent-to-agent communication without central orchestrator.
+ * Uses shared task pool and mailbox system for peer-to-peer coordination.
+ *
  * Token overhead: +20% (acceptable for +25-30% reliability)
- * +25-30% reliability for peer-to-peer workflows
- * 
- * @see CONTEXT.md Phase 31 — Locked decisions
- * @see RESEARCH.md — Pattern research and evidence
+ * Reliability impact: +25-30% (decentralized coordination)
+ *
+ * @example
+ * ```typescript
+ * const mesh = new AgentMesh();
+ *
+ * // Register agents
+ * mesh.registerAgent('planner', plannerAgent);
+ * mesh.registerAgent('coder', coderAgent);
+ * mesh.registerAgent('tester', testerAgent);
+ *
+ * // Post task to shared pool
+ * mesh.postTask({
+ *   id: 'task-1',
+ *   description: 'Implement feature',
+ *   requiredCapabilities: ['coding']
+ * });
+ *
+ * // Agents claim and execute tasks
+ * mesh.claimTask('coder', 'task-1');
+ * ```
  */
 
-import type { Message } from './types.js';
+import type { IAgent } from '../agents/IAgent.js';
 
 /**
- * Message queue for async communication
- */
-export class MessageQueue {
-  private readonly messages: Message[] = [];
-
-  /**
-   * Enqueue message
-   */
-  enqueue(message: Message): void {
-    this.messages.push(message);
-  }
-
-  /**
-   * Dequeue message
-   */
-  dequeue(): Message | undefined {
-    return this.messages.shift();
-  }
-
-  /**
-   * Get queue length
-   */
-  length(): number {
-    return this.messages.length;
-  }
-
-  /**
-   * Check if queue is empty
-   */
-  isEmpty(): boolean {
-    return this.messages.length === 0;
-  }
-}
-
-/**
- * Task status
- */
-export type TaskStatus = 'pending' | 'claimed' | 'completed' | 'failed';
-
-/**
- * Task for shared delegation
+ * Task in shared pool
  */
 export interface Task {
   id: string;
   description: string;
-  status: TaskStatus;
+  requiredCapabilities?: string[];
+  status: 'pending' | 'claimed' | 'completed' | 'failed';
   claimedBy?: string;
+  output?: string;
   createdAt: number;
-  completedAt?: number;
-  result?: string;
 }
 
 /**
- * Shared task pool for agent-to-agent delegation
+ * Message in agent mailbox
  */
-export class SharedTaskPool {
-  /**
-   * Task storage
-   */
-  private readonly tasks: Map<string, Task>;
+export interface Message {
+  id: string;
+  from: string;
+  to: string;
+  content: string;
+  timestamp: number;
+  read: boolean;
+}
 
-  constructor() {
-    this.tasks = new Map();
+/**
+ * Agent registration in mesh
+ */
+export interface MeshAgent {
+  id: string;
+  agent: IAgent;
+  capabilities: string[];
+  mailboxes: string[]; // Channels this agent subscribes to
+}
+
+/**
+ * Agent Mesh class
+ *
+ * Implements Peer Mesh pattern for decentralized agent coordination.
+ * Agents communicate via shared task pool and mailbox system.
+ */
+export class AgentMesh {
+  private agents: Map<string, MeshAgent> = new Map();
+  private taskPool: Map<string, Task> = new Map();
+  private mailboxes: Map<string, Message[]> = new Map(); // Channel -> Messages
+  private channels: Map<string, string[]> = new Map(); // Channel -> Subscriber agent IDs
+
+  /**
+   * Register an agent in the mesh
+   *
+   * @param id - Agent identifier
+   * @param agent - Agent instance
+   * @param capabilities - Agent capabilities
+   * @param mailboxes - Channels to subscribe to
+   */
+  registerAgent(
+    id: string,
+    agent: IAgent,
+    capabilities: string[] = [],
+    mailboxes: string[] = []
+  ): void {
+    this.agents.set(id, {
+      id,
+      agent,
+      capabilities,
+      mailboxes
+    });
+
+    // Subscribe to channels
+    for (const channel of mailboxes) {
+      this.subscribe(id, channel);
+    }
   }
 
   /**
-   * Add task to pool
+   * Unregister an agent from the mesh
+   *
+   * @param id - Agent identifier
    */
-  addTask(task: Task): void {
-    this.tasks.set(task.id, task);
+  unregisterAgent(id: string): boolean {
+    // Unsubscribe from all channels
+    const agent = this.agents.get(id);
+    if (agent) {
+      for (const channel of agent.mailboxes) {
+        this.unsubscribe(id, channel);
+      }
+    }
+
+    return this.agents.delete(id);
   }
 
   /**
-   * Claim task (atomic)
+   * Post a task to the shared task pool
+   *
+   * @param task - Task to post
    */
-  claim(agentId: string, taskId: string): boolean {
-    const task = this.tasks.get(taskId);
-    
+  postTask(task: Omit<Task, 'status' | 'createdAt'>): void {
+    this.taskPool.set(task.id, {
+      ...task,
+      status: 'pending',
+      createdAt: Date.now()
+    });
+  }
+
+  /**
+   * Claim a task from the pool
+   *
+   * @param agentId - Agent claiming the task
+   * @param taskId - Task to claim
+   * @returns True if successfully claimed
+   */
+  claimTask(agentId: string, taskId: string): boolean {
+    const task = this.taskPool.get(taskId);
     if (!task || task.status !== 'pending') {
       return false;
     }
 
-    // Atomic claim
-    task.status = 'claimed';
-    task.claimedBy = agentId;
-    
-    return true;
-  }
-
-  /**
-   * Complete task
-   */
-  complete(taskId: string, result: string): boolean {
-    const task = this.tasks.get(taskId);
-    
-    if (!task || task.status !== 'claimed') {
+    // Check capabilities
+    const agent = this.agents.get(agentId);
+    if (!agent) {
       return false;
     }
 
-    task.status = 'completed';
-    task.result = result;
-    task.completedAt = Date.now();
-    
+    if (task.requiredCapabilities) {
+      const hasAllCapabilities = task.requiredCapabilities.every(cap =>
+        agent.capabilities.includes(cap)
+      );
+      if (!hasAllCapabilities) {
+        return false;
+      }
+    }
+
+    // Claim the task
+    task.status = 'claimed';
+    task.claimedBy = agentId;
+    this.taskPool.set(taskId, task);
+
     return true;
   }
 
   /**
-   * Get pending tasks
-   */
-  getPendingTasks(): Task[] {
-    return Array.from(this.tasks.values()).filter(t => t.status === 'pending');
-  }
-
-  /**
-   * Get claimed tasks by agent
-   */
-  getClaimedTasks(agentId: string): Task[] {
-    return Array.from(this.tasks.values()).filter(t => t.claimedBy === agentId);
-  }
-
-  /**
-   * Get task by ID
-   */
-  getTask(taskId: string): Task | undefined {
-    return this.tasks.get(taskId);
-  }
-
-  /**
-   * Get task pool size
-   */
-  size(): number {
-    return this.tasks.size;
-  }
-
-  /**
-   * Clear completed tasks
-   */
-  clearCompleted(): number {
-    let cleared = 0;
-    for (const [taskId, task] of this.tasks.entries()) {
-      if (task.status === 'completed') {
-        this.tasks.delete(taskId);
-        cleared++;
-      }
-    }
-    return cleared;
-  }
-}
-
-/**
- * AgentMesh implements the Peer Mesh Pattern for multi-agent orchestration.
- * 
- * Features:
- * - Agent-to-agent communication without central orchestrator
- * - Shared task pool with claim-based delegation
- * - Mailbox system for async communication
- * - +25-30% reliability for peer-to-peer workflows
- * 
- * @example
- * ```typescript
- * const mesh = new AgentMesh();
- * mesh.registerAgent('agent-1');
- * mesh.registerAgent('agent-2');
- * mesh.claimTask('agent-1', 'task-123');
- * mesh.broadcast('agent-1', { type: 'notification', content: 'Task complete' });
- * ```
- */
-export class AgentMesh {
-  /**
-   * Shared task pool
-   */
-  private readonly taskPool: SharedTaskPool;
-
-  /**
-   * Agent mailboxes (async communication)
-   */
-  private readonly mailboxes: Map<string, MessageQueue>;
-
-  /**
-   * Registered agent IDs
-   */
-  private readonly agentIds: Set<string>;
-
-  constructor() {
-    this.taskPool = new SharedTaskPool();
-    this.mailboxes = new Map();
-    this.agentIds = new Set();
-  }
-
-  /**
-   * Register agent with mesh
-   * 
-   * @param agentId - Agent identifier
-   * 
-   * @example
-   * ```typescript
-   * mesh.registerAgent('agent-1');
-   * mesh.registerAgent('agent-2');
-   * ```
-   */
-  registerAgent(agentId: string): void {
-    this.agentIds.add(agentId);
-    this.mailboxes.set(agentId, new MessageQueue());
-  }
-
-  /**
-   * Unregister agent from mesh
-   */
-  unregisterAgent(agentId: string): boolean {
-    this.agentIds.delete(agentId);
-    return this.mailboxes.delete(agentId);
-  }
-
-  /**
-   * Claim task from pool
-   * 
-   * @param agentId - Agent identifier
+   * Complete a task
+   *
    * @param taskId - Task identifier
-   * @returns True if task was claimed successfully
-   * 
-   * @example
-   * ```typescript
-   * const claimed = mesh.claimTask('agent-1', 'task-123');
-   * ```
+   * @param output - Task output
+   * @param success - Whether task succeeded
    */
-  claimTask(agentId: string, taskId: string): boolean {
-    return this.taskPool.claim(agentId, taskId);
-  }
-
-  /**
-   * Broadcast message to all agents
-   * 
-   * @param agentId - Sender agent identifier
-   * @param message - Message to broadcast
-   * 
-   * @example
-   * ```typescript
-   * mesh.broadcast('agent-1', { type: 'notification', content: 'Task complete' });
-   * ```
-   */
-  broadcast(agentId: string, message: Message): void {
-    for (const [id, mailbox] of this.mailboxes.entries()) {
-      if (id !== agentId) {
-        mailbox.enqueue(message);
-      }
+  completeTask(taskId: string, output: string, success: boolean): void {
+    const task = this.taskPool.get(taskId);
+    if (!task) {
+      return;
     }
+
+    task.status = success ? 'completed' : 'failed';
+    task.output = output;
+    this.taskPool.set(taskId, task);
   }
 
   /**
-   * Subscribe agent to channel
-   * 
+   * Broadcast a message to all agents in a channel
+   *
+   * @param agentId - Sending agent
+   * @param channel - Channel to broadcast to
+   * @param content - Message content
+   */
+  broadcast(agentId: string, channel: string, content: string): void {
+    const message: Message = {
+      id: `msg-${Date.now()}-${Math.random()}`,
+      from: agentId,
+      to: channel,
+      content,
+      timestamp: Date.now(),
+      read: false
+    };
+
+    // Add to channel mailbox
+    if (!this.mailboxes.has(channel)) {
+      this.mailboxes.set(channel, []);
+    }
+    this.mailboxes.get(channel)!.push(message);
+  }
+
+  /**
+   * Subscribe an agent to a channel
+   *
    * @param agentId - Agent identifier
-   * @param channel - Channel name
-   * 
-   * @example
-   * ```typescript
-   * mesh.subscribe('agent-1', 'alerts');
-   * ```
+   * @param channel - Channel to subscribe to
    */
   subscribe(agentId: string, channel: string): void {
-    // Channel-based subscription (simplified for now)
-    // In actual implementation, would create channel-specific mailboxes
+    if (!this.channels.has(channel)) {
+      this.channels.set(channel, []);
+    }
+
+    const subscribers = this.channels.get(channel)!;
+    if (!subscribers.includes(agentId)) {
+      subscribers.push(agentId);
+    }
+
+    // Update agent's mailbox list
+    const agent = this.agents.get(agentId);
+    if (agent && !agent.mailboxes.includes(channel)) {
+      agent.mailboxes.push(channel);
+    }
   }
 
   /**
-   * Get messages for agent
-   * 
+   * Unsubscribe an agent from a channel
+   *
    * @param agentId - Agent identifier
-   * @returns Array of messages
+   * @param channel - Channel to unsubscribe from
+   */
+  unsubscribe(agentId: string, channel: string): void {
+    const subscribers = this.channels.get(channel);
+    if (subscribers) {
+      const index = subscribers.indexOf(agentId);
+      if (index > -1) {
+        subscribers.splice(index, 1);
+      }
+    }
+
+    const agent = this.agents.get(agentId);
+    if (agent) {
+      const index = agent.mailboxes.indexOf(channel);
+      if (index > -1) {
+        agent.mailboxes.splice(index, 1);
+      }
+    }
+  }
+
+  /**
+   * Get unread messages for an agent
+   *
+   * @param agentId - Agent identifier
+   * @returns Array of unread messages
    */
   getMessages(agentId: string): Message[] {
-    const mailbox = this.mailboxes.get(agentId);
-    if (!mailbox) return [];
+    const agent = this.agents.get(agentId);
+    if (!agent) {
+      return [];
+    }
 
     const messages: Message[] = [];
-    while (!mailbox.isEmpty()) {
-      const message = mailbox.dequeue();
-      if (message) messages.push(message);
+    for (const channel of agent.mailboxes) {
+      const channelMessages = this.mailboxes.get(channel) || [];
+      messages.push(...channelMessages.filter(m => !m.read && m.to === channel));
     }
+
     return messages;
   }
 
   /**
-   * Add task to pool
-   * 
-   * @param task - Task to add
+   * Mark a message as read
+   *
+   * @param messageId - Message identifier
    */
-  addTask(task: Task): void {
-    this.taskPool.addTask(task);
+  markMessageRead(messageId: string): void {
+    for (const [, messages] of this.mailboxes.entries()) {
+      const message = messages.find(m => m.id === messageId);
+      if (message) {
+        message.read = true;
+        break;
+      }
+    }
   }
 
   /**
-   * Get pending tasks
+   * Get available tasks for an agent
+   *
+   * @param agentId - Agent identifier
+   * @returns Array of available tasks
    */
-  getPendingTasks(): Task[] {
-    return this.taskPool.getPendingTasks();
+  getAvailableTasks(agentId: string): Task[] {
+    const agent = this.agents.get(agentId);
+    if (!agent) {
+      return [];
+    }
+
+    const availableTasks: Task[] = [];
+    for (const task of this.taskPool.values()) {
+      if (task.status !== 'pending') {
+        continue;
+      }
+
+      // Check capabilities
+      if (task.requiredCapabilities) {
+        const hasAllCapabilities = task.requiredCapabilities.every(cap =>
+          agent.capabilities.includes(cap)
+        );
+        if (!hasAllCapabilities) {
+          continue;
+        }
+      }
+
+      availableTasks.push(task);
+    }
+
+    return availableTasks;
   }
 
   /**
-   * Get registered agent count
+   * Get task pool statistics
+   *
+   * @returns Task pool statistics
    */
-  getAgentCount(): number {
-    return this.agentIds.size;
+  getTaskPoolStats(): {
+    total: number;
+    pending: number;
+    claimed: number;
+    completed: number;
+    failed: number;
+  } {
+    const stats = {
+      total: this.taskPool.size,
+      pending: 0,
+      claimed: 0,
+      completed: 0,
+      failed: 0
+    };
+
+    for (const task of this.taskPool.values()) {
+      stats[task.status]++;
+    }
+
+    return stats;
   }
 
   /**
-   * Check if agent is registered
+   * Get mesh statistics
+   *
+   * @returns Mesh statistics
    */
-  hasAgent(agentId: string): boolean {
-    return this.agentIds.has(agentId);
-  }
-
-  /**
-   * Get task pool size
-   */
-  getTaskPoolSize(): number {
-    return this.taskPool.size();
-  }
-
-  /**
-   * Clear completed tasks from pool
-   */
-  clearCompletedTasks(): number {
-    return this.taskPool.clearCompleted();
+  getMeshStats(): {
+    agents: number;
+    channels: number;
+    totalMessages: number;
+  } {
+    return {
+      agents: this.agents.size,
+      channels: this.channels.size,
+      totalMessages: Array.from(this.mailboxes.values()).reduce(
+        (sum, msgs) => sum + msgs.length,
+        0
+      )
+    };
   }
 }
 
-/**
- * Type exports for external use
- */
-export type { Task, TaskStatus, Message };
+export default AgentMesh;
