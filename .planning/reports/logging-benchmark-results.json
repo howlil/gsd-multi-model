@@ -1,0 +1,23 @@
+{
+  "timestamp": "2026-03-27T00:53:33.623Z",
+  "config": {
+    "iterations": 50,
+    "warmup": 10,
+    "exportFile": ".planning/reports/logging-benchmark-results.json"
+  },
+  "environment": {
+    "nodeVersion": "v24.13.0",
+    "platform": "win32",
+    "logEnabled": true,
+    "logProfiling": true,
+    "logLevel": "info"
+  },
+  "overheadComparison": {
+    "withLogging": 2965.9993999999997,
+    "withoutLogging": 2917.9303,
+    "overhead": 48.06909999999971,
+    "overheadPercent": 1.6473697127035458
+  },
+  "hotPaths": [],
+  "recommendations": []
+}
