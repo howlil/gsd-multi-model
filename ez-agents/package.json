@@ -1,0 +1,7 @@
+{
+  "name": "@howlil/ez-agents-runtime",
+  "version": "5.0.4",
+  "type": "module",
+  "private": true,
+  "description": "EZ Agents runtime support files"
+}
