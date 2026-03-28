@@ -6,6 +6,34 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [5.0.5] - 2026-03-29
+
+### 🐛 Bug Fixes
+
+- **runtime**: Fixed `MODULE_TYPELESS_PACKAGE_JSON` warnings for all providers
+  - Added `package.json` with `"type": "module"` to `ez-agents/ez-agents/` source folder
+  - Installer now properly distributes `package.json` to all runtime directories:
+    - `~/.claude/ez-agents/package.json`
+    - `~/.qwen/ez-agents/package.json`
+    - `~/.codex/ez-agents/package.json`
+    - `~/.gemini/ez-agents/package.json`
+  - Fixes Node.js ES module recognition for `ez-tools.js`
+  - Eliminates module warnings when running `ez-tools init`, `ez-tools health`, etc.
+  - Affects all runtime installations (Claude, Qwen, Codex, Gemini)
+
+### 🔍 Technical Details
+
+**Files Modified:**
+- `ez-agents/package.json` (new) - Minimal package.json for ES module support
+
+**Files Installed:**
+- `~/.claude/ez-agents/package.json`
+- `~/.qwen/ez-agents/package.json`
+- `~/.codex/ez-agents/package.json`
+- `~/.gemini/ez-agents/package.json`
+
+---
+
 ## [5.0.4] - 2026-03-29
 
 ### 🐛 Bug Fixes
