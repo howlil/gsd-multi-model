@@ -1,53 +1,110 @@
 /**
- * State Conflict Resolver
+ * State Conflict Resolver — Multi-strategy conflict resolution
  *
- * Provides advanced state conflict resolution with multi-strategy approach:
- * - Last-write-wins (default)
- * - Merge (non-conflicting field updates)
- * - Priority-based (critical state)
- * - Operational transformation (concurrent edits)
+ * Provides advanced state conflict resolution with operational transformation,
+ * field-level merge, priority-based resolution, and agent negotiation.
  *
- * Features:
- * - Agent negotiation protocol (5s timeout, majority agreement)
- * - 4-tier escalation (Negotiation → Orchestrator → User → Manual)
- * - Full audit logging via StateConflictLog
- * - Resolution statistics and monitoring
- *
- * @example
- * ```typescript
- * const resolver = new StateConflictResolver(
- *   stateManager,
- *   mesh,
- *   5000,  // 5s negotiation timeout
- *   0.95   // 95% auto-resolution target
- * );
- *
- * // Conflicts are handled automatically via event subscription
- * ```
+ * Auto-resolution target: 95%
+ * Negotiation timeout: 5s
+ * Escalation: 4-tier (Negotiation → Orchestrator → User → Manual)
  */
 
-import { EventEmitter } from 'events';
 import { StateManager } from './state-manager.js';
 import { AgentMesh } from '../orchestration/AgentMesh.js';
 import { StateConflictLog } from './state-conflict-log.js';
-import {
-  ResolutionStrategy,
-  ConflictPriority,
-  ConflictStatus,
-  type StateConflict,
-  type NegotiationProposal,
-  type NegotiationResult,
-  type ResolutionStats,
-  type Operation
-} from './state-types.js';
-
-// ─── StateConflictResolver Class ─────────────────────────────────────────────
+import { defaultLogger as logger } from '../logger/index.js';
+import { EventEmitter } from 'events';
 
 /**
- * State Conflict Resolver
- *
- * Handles state conflicts with multi-strategy resolution and agent negotiation
+ * Resolution strategy enum
  */
+export enum ResolutionStrategy {
+  LAST_WRITE_WINS = 'last-write-wins',
+  MERGE = 'merge',
+  PRIORITY_BASED = 'priority-based',
+  OPERATIONAL_TRANSFORM = 'operational-transform'
+}
+
+/**
+ * Conflict priority enum
+ */
+export enum ConflictPriority {
+  CRITICAL = 'critical',
+  HIGH = 'high',
+  NORMAL = 'normal'
+}
+
+/**
+ * Conflict status enum
+ */
+export enum ConflictStatus {
+  PENDING = 'pending',
+  NEGOTIATING = 'negotiating',
+  RESOLVED = 'resolved',
+  ESCALATED = 'escalated',
+  FAILED = 'failed'
+}
+
+/**
+ * State conflict interface
+ */
+export interface StateConflict {
+  id: string;
+  taskId: string | undefined;
+  phase: number | undefined;
+  agents: string[];
+  detectedAt: number;
+  resolvedAt: number | undefined;
+  strategy: ResolutionStrategy;
+  priority: ConflictPriority;
+  status: ConflictStatus;
+  stateBefore: Record<string, unknown>;
+  stateAfter: Record<string, unknown> | undefined;
+  resolutionNotes: string | undefined;
+  escalationLevel: number | undefined;
+}
+
+/**
+ * Negotiation proposal interface
+ */
+export interface NegotiationProposal {
+  agentId: string;
+  proposedResolution: ResolutionStrategy;
+  rationale: string;
+  timestamp: number;
+}
+
+/**
+ * Negotiation result interface
+ */
+export interface NegotiationResult {
+  agreed: boolean;
+  strategy: ResolutionStrategy | undefined;
+  proposals: NegotiationProposal[];
+}
+
+/**
+ * Resolution statistics interface
+ */
+export interface ResolutionStats {
+  totalConflicts: number;
+  autoResolutionRate: number;
+  strategyDistribution: Record<string, number>;
+  averageResolutionTimeMs: number;
+  escalationRate: number;
+  topProblematicStates: Array<{ state: string; conflicts: number }>;
+}
+
+/**
+ * Operation for operational transformation
+ */
+export interface Operation {
+  type: 'append' | 'increment' | 'decrement' | 'set';
+  path: string;
+  value?: unknown;
+  delta?: number;
+}
+
 export class StateConflictResolver extends EventEmitter {
   private readonly stateManager: StateManager;
   private readonly mesh: AgentMesh;
@@ -55,14 +112,6 @@ export class StateConflictResolver extends EventEmitter {
   private readonly negotiationTimeout: number;
   private readonly autoResolutionTarget: number;
 
-  /**
-   * Create a new StateConflictResolver
-   *
-   * @param stateManager - StateManager instance for state operations
-   * @param mesh - AgentMesh for agent communication
-   * @param negotiationTimeoutMs - Timeout for agent negotiation (default: 5000ms)
-   * @param autoResolutionTarget - Target auto-resolution rate (default: 0.95)
-   */
   constructor(
     stateManager: StateManager,
     mesh: AgentMesh,
@@ -72,193 +121,165 @@ export class StateConflictResolver extends EventEmitter {
     super();
     this.stateManager = stateManager;
     this.mesh = mesh;
-    this.conflictLog = new StateConflictLog(90); // 90-day retention
+    this.conflictLog = new StateConflictLog();
     this.negotiationTimeout = negotiationTimeoutMs;
     this.autoResolutionTarget = autoResolutionTarget;
 
-    // Subscribe to state conflicts from StateManager
-    this.stateManager.on('state-conflict', (conflict: StateConflict) => {
-      this.handleConflict(conflict);
+    logger.info('StateConflictResolver initialized', {
+      negotiationTimeout: `${negotiationTimeoutMs}ms`,
+      autoResolutionTarget: `${autoResolutionTarget * 100}%`
     });
   }
 
   /**
-   * Handle state conflict detected by StateManager
-   *
-   * @param conflict - The detected conflict
+   * Main entry point: resolve conflict
    */
-  private async handleConflict(conflict: StateConflict): Promise<void> {
+  async resolveConflict(conflict: StateConflict): Promise<void> {
     try {
-      // Tier 1: Agent Negotiation
+      logger.info('Resolving state conflict', {
+        conflictId: conflict.id,
+        agents: conflict.agents.length,
+        priority: conflict.priority
+      });
+
+      // Select resolution strategy
+      const strategy = this.selectStrategy(conflict);
+      conflict.strategy = strategy;
+      conflict.status = ConflictStatus.NEGOTIATING;
+
+      // Try agent negotiation first (Tier 1)
       const negotiationResult = await this.negotiateResolution(conflict);
 
       if (negotiationResult.agreed && negotiationResult.strategy) {
-        // Agents agreed on resolution
+        // Agents agreed on strategy
+        conflict.strategy = negotiationResult.strategy;
         await this.applyResolution(conflict, negotiationResult.strategy);
-        return;
+      } else {
+        // Escalate if negotiation fails
+        await this.escalate(conflict, 2);
       }
 
-      // Tier 2: Orchestrator decides
-      const orchestratorDecision = await this.orchestratorResolve(conflict);
+      // Log resolution
+      await this.conflictLog.logResolution(conflict);
 
-      if (orchestratorDecision) {
-        await this.applyResolution(conflict, orchestratorDecision.strategy);
-        return;
-      }
+      logger.info('Conflict resolved', {
+        conflictId: conflict.id,
+        strategy: conflict.strategy,
+        duration: (conflict.resolvedAt || Date.now()) - conflict.detectedAt
+      });
 
-      // Tier 3: Escalate to user
-      const userDecision = await this.escalateToUser(conflict);
-
-      if (userDecision) {
-        await this.applyResolution(conflict, userDecision.strategy);
-        return;
-      }
-
-      // Tier 4: Manual intervention required
-      await this.markForManualIntervention(conflict);
+      this.emit('conflict-resolved', conflict);
     } catch (error) {
-      this.emit('conflict-error', { conflict, error });
+      logger.error('Failed to resolve conflict', {
+        conflictId: conflict.id,
+        error: (error as Error).message
+      });
+
+      conflict.status = ConflictStatus.FAILED;
+      await this.conflictLog.logResolution(conflict);
+      this.emit('conflict-failed', conflict);
     }
   }
 
   /**
-   * Main entry point for conflict resolution
-   *
-   * @param conflict - The conflict to resolve
-   */
-  async resolveConflict(conflict: StateConflict): Promise<void> {
-    await this.handleConflict(conflict);
-  }
-
-  /**
-   * Tier 1: Agent negotiation protocol
-   *
-   * Requests proposals from all involved agents and checks for majority agreement.
-   * Uses 5s timeout per agent.
-   *
-   * @param conflict - The conflict to negotiate
-   * @returns Negotiation result with agreement status
+   * Tier 1: Agent negotiation
    */
   async negotiateResolution(conflict: StateConflict): Promise<NegotiationResult> {
     const proposals: NegotiationProposal[] = [];
+    const timeout = this.negotiationTimeout;
 
-    // Request proposals from all involved agents
-    for (const agentId of conflict.agents) {
-      const proposal = await this.requestAgentProposal(agentId, conflict);
-      if (proposal) {
-        proposals.push(proposal);
+    logger.debug('Starting agent negotiation', {
+      conflictId: conflict.id,
+      agents: conflict.agents,
+      timeout: `${timeout}ms`
+    });
+
+    // Request proposals from each agent
+    const proposalPromises = conflict.agents.map(async (agentId) => {
+      try {
+        const message = {
+          type: 'conflict-negotiation',
+          conflict: {
+            id: conflict.id,
+            priority: conflict.priority,
+            stateBefore: conflict.stateBefore
+          },
+          timeout
+        };
+
+        // Send negotiation request with timeout
+        const response = await this.mesh.sendMessageWithTimeout(agentId, message, timeout);
+        
+        if (response && response.proposal) {
+          proposals.push({
+            agentId,
+            proposedResolution: response.proposal.strategy,
+            rationale: response.proposal.rationale,
+            timestamp: Date.now()
+          });
+        }
+      } catch (error) {
+        logger.warn('Agent negotiation timeout', {
+          conflictId: conflict.id,
+          agentId,
+          timeout: `${timeout}ms`
+        });
       }
-    }
+    });
 
-    // Check if agents agree on strategy
+    await Promise.all(proposalPromises);
+
+    // Check for agreement (majority ≥50%)
     if (proposals.length > 0) {
-      const strategyCounts = this.countStrategies(proposals);
-      const majorityStrategy = this.findMajority(strategyCounts);
+      const strategyCounts = new Map<ResolutionStrategy, number>();
+      
+      for (const proposal of proposals) {
+        const count = strategyCounts.get(proposal.proposedResolution) || 0;
+        strategyCounts.set(proposal.proposedResolution, count + 1);
+      }
 
-      if (majorityStrategy && majorityStrategy.percentage >= 0.5) {
-        // Majority agreement (≥50%)
+      // Find majority strategy
+      let majorityStrategy: ResolutionStrategy | undefined;
+      let maxCount = 0;
+
+      for (const [strategy, count] of strategyCounts.entries()) {
+        if (count > maxCount) {
+          maxCount = count;
+          majorityStrategy = strategy;
+        }
+      }
+
+      // Check if majority (≥50%)
+      if (majorityStrategy && maxCount >= Math.ceil(conflict.agents.length / 2)) {
+        logger.info('Negotiation succeeded', {
+          conflictId: conflict.id,
+          strategy: majorityStrategy,
+          agreement: `${maxCount}/${conflict.agents.length}`
+        });
+
         return {
           agreed: true,
-          strategy: majorityStrategy.strategy,
+          strategy: majorityStrategy,
           proposals
         };
       }
     }
 
-    // No agreement
-    return { agreed: false, proposals };
+    logger.warn('Negotiation failed', {
+      conflictId: conflict.id,
+      proposals: proposals.length,
+      agents: conflict.agents.length
+    });
+
+    return {
+      agreed: false,
+      strategy: undefined,
+      proposals
+    };
   }
 
   /**
-   * Request resolution proposal from a single agent
-   *
-   * @param agentId - Agent to request proposal from
-   * @param conflict - The conflict to resolve
-   * @returns Proposal or null on timeout/error
-   */
-  private async requestAgentProposal(
-    agentId: string,
-    conflict: StateConflict
-  ): Promise<NegotiationProposal | null> {
-    try {
-      // Send negotiation request via AgentMesh
-      const message = {
-        type: 'conflict-negotiation',
-        conflict,
-        timeout: this.negotiationTimeout
-      };
-
-      const response = await this.mesh.sendMessageWithTimeout(
-        'state-conflict-resolver',
-        agentId,
-        message,
-        this.negotiationTimeout
-      ) as { proposal?: NegotiationProposal } | null;
-
-      return response?.proposal || null;
-    } catch (error) {
-      // Agent timeout or error, skip this agent
-      return null;
-    }
-  }
-
-  /**
-   * Count strategy occurrences in proposals
-   *
-   * @param proposals - Array of negotiation proposals
-   * @returns Map of strategy to count
-   */
-  private countStrategies(proposals: NegotiationProposal[]): Map<ResolutionStrategy, number> {
-    const counts = new Map<ResolutionStrategy, number>();
-
-    for (const proposal of proposals) {
-      const current = counts.get(proposal.proposedResolution) || 0;
-      counts.set(proposal.proposedResolution, current + 1);
-    }
-
-    return counts;
-  }
-
-  /**
-   * Find majority strategy from counts
-   *
-   * @param counts - Map of strategy to count
-   * @returns Majority strategy with percentage, or null if no majority
-   */
-  private findMajority(
-    counts: Map<ResolutionStrategy, number>
-  ): { strategy: ResolutionStrategy; percentage: number } | null {
-    let maxCount = 0;
-    let maxStrategy: ResolutionStrategy | null = null;
-    let totalCount = 0;
-
-    for (const [strategy, count] of counts.entries()) {
-      totalCount += count;
-      if (count > maxCount) {
-        maxCount = count;
-        maxStrategy = strategy;
-      }
-    }
-
-    if (maxStrategy && totalCount > 0) {
-      const percentage = maxCount / totalCount;
-      return { strategy: maxStrategy, percentage };
-    }
-
-    return null;
-  }
-
-  /**
-   * Apply operational transform for concurrent edits
-   *
-   * Transforms concurrent operations to preserve intent:
-   * - append: Both appends preserved
-   * - increment: Increments summed
-   * - decrement: Decrements summed
-   *
-   * @param state - Current state
-   * @param operations - Operations to apply
-   * @returns Transformed state
+   * Apply operational transformation for concurrent edits
    */
   applyOperationalTransform(
     state: Record<string, unknown>,
@@ -266,33 +287,27 @@ export class StateConflictResolver extends EventEmitter {
   ): Record<string, unknown> {
     const result = { ...state };
 
-    // Group operations by field
-    const opsByField = new Map<string, Operation[]>();
     for (const op of operations) {
-      const fieldOps = opsByField.get(op.field) || [];
-      fieldOps.push(op);
-      opsByField.set(op.field, fieldOps);
-    }
+      const field = op.field as string;
+      switch (op.type) {
+        case 'append':
+          const arrayValue = result[field] as unknown[] || [];
+          result[field] = [...arrayValue, op.value];
+          break;
 
-    // Apply operations per field
-    for (const [field, fieldOps] of opsByField.entries()) {
-      const currentValue = result[field];
+        case 'increment':
+          const incValue = result[field] as number || 0;
+          result[field] = incValue + (op.value as number || 0);
+          break;
 
-      if (fieldOps[0]?.type === 'append' && Array.isArray(currentValue)) {
-        // Append all values to array
-        const values = fieldOps.map((op) => op.value).filter((v): v is NonNullable<typeof v> => v !== undefined);
-        result[field] = [...(currentValue as unknown[]), ...values];
-      } else if (typeof currentValue === 'number') {
-        // Sum increments and decrements
-        let delta = 0;
-        for (const op of fieldOps) {
-          if (op.type === 'increment' && typeof op.value === 'number') {
-            delta += op.value;
-          } else if (op.type === 'decrement' && typeof op.value === 'number') {
-            delta -= op.value;
-          }
-        }
-        result[field] = currentValue + delta;
+        case 'decrement':
+          const decValue = result[field] as number || 0;
+          result[field] = decValue - (op.value as number || 0);
+          break;
+
+        case 'set':
+          result[field] = op.value;
+          break;
       }
     }
 
@@ -300,59 +315,79 @@ export class StateConflictResolver extends EventEmitter {
   }
 
   /**
-   * Merge fields from two states
-   *
-   * Combines non-conflicting field updates. For conflicting fields,
-   * stateB wins (last-write-wins for conflicts).
-   *
-   * @param stateA - First state
-   * @param stateB - Second state
-   * @returns Merged state
+   * Field-level merge for non-conflicting changes
    */
   mergeFields(
     stateA: Record<string, unknown>,
     stateB: Record<string, unknown>
   ): Record<string, unknown> {
-    return { ...stateA, ...stateB };
+    const result = { ...stateA };
+    const keysA = Object.keys(stateA);
+    const keysB = Object.keys(stateB);
+
+    // Merge non-conflicting fields
+    for (const key of keysB) {
+      if (!keysA.includes(key)) {
+        // New field from B
+        result[key] = stateB[key];
+      } else if (JSON.stringify(stateA[key]) === JSON.stringify(stateB[key])) {
+        // Same value, no conflict
+        result[key] = stateA[key];
+      } else {
+        // Conflict detected - use last-write-wins (stateB)
+        result[key] = stateB[key];
+        logger.debug('Field conflict during merge', {
+          field: key,
+          valueA: stateA[key],
+          valueB: stateB[key]
+        });
+      }
+    }
+
+    return result;
   }
 
   /**
-   * Escalate conflict to higher tier
-   *
-   * @param conflict - The conflict to escalate
-   * @param level - Escalation level (0-3)
-   * @returns Resolution strategy or null
+   * 4-tier escalation
    */
-  async escalate(conflict: StateConflict, level: number = 0): Promise<ResolutionStrategy | null> {
+  async escalate(conflict: StateConflict, level: number): Promise<ResolutionStrategy | null> {
     conflict.escalationLevel = level;
+    conflict.status = ConflictStatus.ESCALATED;
+
+    logger.warn('Escalating conflict', {
+      conflictId: conflict.id,
+      level,
+      priority: conflict.priority
+    });
 
     switch (level) {
-      case 0: // Negotiation
-        const negotiationResult = await this.negotiateResolution(conflict);
-        if (negotiationResult.agreed && negotiationResult.strategy) {
-          await this.applyResolution(conflict, negotiationResult.strategy);
-          return negotiationResult.strategy;
-        }
-        return this.escalate(conflict, 1);
+      case 1:
+        // Already tried: Agent Negotiation
+        return null;
 
-      case 1: // Orchestrator
-        const orchestratorDecision = await this.orchestratorResolve(conflict);
-        if (orchestratorDecision) {
-          await this.applyResolution(conflict, orchestratorDecision.strategy);
-          return orchestratorDecision.strategy;
-        }
-        return this.escalate(conflict, 2);
+      case 2:
+        // Orchestrator decides
+        logger.info('Tier 2: Orchestrator decision', {
+          conflictId: conflict.id
+        });
+        conflict.strategy = ResolutionStrategy.LAST_WRITE_WINS;
+        await this.applyResolution(conflict, conflict.strategy);
+        return conflict.strategy;
 
-      case 2: // User
-        const userDecision = await this.escalateToUser(conflict);
-        if (userDecision) {
-          await this.applyResolution(conflict, userDecision.strategy);
-          return userDecision.strategy;
-        }
-        return this.escalate(conflict, 3);
+      case 3:
+        // Escalate to user
+        logger.error('Tier 3: User escalation', {
+          conflictId: conflict.id,
+          agents: conflict.agents
+        });
+        // In production, this would notify the user
+        return null;
 
-      case 3: // Manual intervention
-        await this.markForManualIntervention(conflict);
+      case 4:
+        // Manual intervention required
+        logger.error('Tier 4: Manual intervention required', {
+          conflictId: conflict.id
+        });
         return null;
 
       default:
@@ -361,29 +396,20 @@ export class StateConflictResolver extends EventEmitter {
   }
 
   /**
-   * Select resolution strategy based on conflict type
-   *
-   * Strategy selection flow:
-   * 1. CRITICAL priority → PRIORITY_BASED
-   * 2. Non-conflicting fields → MERGE
-   * 3. Concurrent edits → OPERATIONAL_TRANSFORM
-   * 4. Default → LAST_WRITE_WINS
-   *
-   * @param conflict - The conflict
-   * @returns Selected strategy
+   * Select resolution strategy based on conflict characteristics
    */
   selectStrategy(conflict: StateConflict): ResolutionStrategy {
-    // Priority-based for critical state
+    // Critical priority → priority-based resolution
     if (conflict.priority === ConflictPriority.CRITICAL) {
       return ResolutionStrategy.PRIORITY_BASED;
     }
 
-    // Merge for non-conflicting field updates
+    // Check if mergeable
     if (this.isMergeable(conflict)) {
       return ResolutionStrategy.MERGE;
     }
 
-    // Operational transform for concurrent edits
+    // Check if concurrent edit (compatible operations)
     if (this.isConcurrentEdit(conflict)) {
       return ResolutionStrategy.OPERATIONAL_TRANSFORM;
     }
@@ -393,252 +419,97 @@ export class StateConflictResolver extends EventEmitter {
   }
 
   /**
-   * Check if conflict is mergeable (non-conflicting field updates)
-   *
-   * @param conflict - The conflict to check
-   * @returns True if fields are non-conflicting
+   * Check if conflict is mergeable (non-conflicting field changes)
    */
   isMergeable(conflict: StateConflict): boolean {
-    // For now, use simple heuristic: if stateBefore has fewer keys than
-    // what agents want to update, there might be non-overlapping fields
-    // In a full implementation, we'd track which fields each agent modified
-    return false; // Conservative default
+    // Conservative: return false by default
+    // In production, would check if agents modified different fields
+    return false;
   }
 
   /**
    * Check if conflict is concurrent edit (compatible operations)
-   *
-   * @param conflict - The conflict to check
-   * @returns True if operations are compatible
    */
   isConcurrentEdit(conflict: StateConflict): boolean {
-    // Check if both agents are performing compatible operations
-    // (e.g., both appending to array, both incrementing counter)
-    return false; // Implementation-specific, conservative default
+    // Conservative: return false by default
+    // In production, would check if operations are compatible
+    return false;
   }
 
   /**
-   * Get fields modified by an agent
-   *
-   * @param stateBefore - State before modification
-   * @param agentId - Agent ID
-   * @returns Array of modified field names
+   * Get fields modified by agent
    */
-  getModifiedFields(stateBefore: Record<string, unknown>, agentId: string): string[] {
-    // In a full implementation, we'd track field-level changes per agent
-    // For now, return all keys as a conservative estimate
-    return Object.keys(stateBefore);
+  getModifiedFields(
+    before: Record<string, unknown>,
+    agentId: string
+  ): string[] {
+    // In production, this would track actual modifications
+    // For now, return all fields (conservative approach)
+    return Object.keys(before);
   }
 
   /**
-   * Apply resolution strategy to conflict
-   *
-   * @param conflict - The conflict to resolve
-   * @param strategy - Resolution strategy to apply
+   * Apply resolution strategy
    */
-  private async applyResolution(
+  async applyResolution(
     conflict: StateConflict,
     strategy: ResolutionStrategy
   ): Promise<void> {
-    const resolvedState = this.resolveWithStrategy(conflict.stateBefore, strategy);
+    let resolvedState: Record<string, unknown>;
 
-    // Validate resolved state
-    const isValid = this.validateState(resolvedState);
+    switch (strategy) {
+      case ResolutionStrategy.LAST_WRITE_WINS:
+        resolvedState = conflict.stateAfter || conflict.stateBefore;
+        break;
 
-    if (!isValid) {
-      // Resolution failed validation, escalate
-      conflict.status = ConflictStatus.FAILED;
-      await this.logConflict(conflict);
-      throw new Error('State resolution failed validation');
+      case ResolutionStrategy.MERGE:
+        // In production, would merge actual conflicting states
+        resolvedState = conflict.stateAfter || conflict.stateBefore;
+        break;
+
+      case ResolutionStrategy.PRIORITY_BASED:
+        // Critical priority wins
+        resolvedState = conflict.stateAfter || conflict.stateBefore;
+        break;
+
+      case ResolutionStrategy.OPERATIONAL_TRANSFORM:
+        // Apply OT operations
+        resolvedState = this.applyOperationalTransform(conflict.stateBefore, []);
+        break;
+
+      default:
+        resolvedState = conflict.stateBefore;
     }
 
-    // Apply resolved state
     conflict.stateAfter = resolvedState;
     conflict.resolvedAt = Date.now();
     conflict.status = ConflictStatus.RESOLVED;
-    conflict.strategy = strategy;
 
-    if (conflict.taskId) {
-      await this.stateManager.applyResolvedState(conflict.taskId, resolvedState);
-    }
-
-    await this.logConflict(conflict);
-
-    // Notify agents of resolution
-    await this.notifyResolution(conflict);
-
-    this.emit('conflict-resolved', { conflict, strategy });
-  }
-
-  /**
-   * Resolve conflict using selected strategy
-   *
-   * @param state - State to resolve
-   * @param strategy - Resolution strategy
-   * @returns Resolved state
-   */
-  private resolveWithStrategy(
-    state: Record<string, unknown>,
-    strategy: ResolutionStrategy
-  ): Record<string, unknown> {
-    switch (strategy) {
-      case ResolutionStrategy.LAST_WRITE_WINS:
-        return this.resolveLastWriteWins(state);
-      case ResolutionStrategy.MERGE:
-        return this.resolveMerge(state);
-      case ResolutionStrategy.PRIORITY_BASED:
-        return this.resolvePriorityBased(state);
-      case ResolutionStrategy.OPERATIONAL_TRANSFORM:
-        return this.resolveOperationalTransform(state);
-      default:
-        return state;
-    }
-  }
-
-  /**
-   * Last-write-wins resolution (identity function)
-   *
-   * @param state - State to resolve
-   * @returns State unchanged
-   */
-  private resolveLastWriteWins(state: Record<string, unknown>): Record<string, unknown> {
-    return state;
-  }
-
-  /**
-   * Merge resolution
-   *
-   * @param state - State to merge
-   * @returns Merged state
-   */
-  private resolveMerge(state: Record<string, unknown>): Record<string, unknown> {
-    return { ...state };
-  }
-
-  /**
-   * Priority-based resolution
-   *
-   * @param state - State to resolve
-   * @returns State with priority metadata
-   */
-  private resolvePriorityBased(state: Record<string, unknown>): Record<string, unknown> {
-    return state;
-  }
-
-  /**
-   * Operational transform resolution
-   *
-   * @param state - State to transform
-   * @returns Transformed state
-   */
-  private resolveOperationalTransform(state: Record<string, unknown>): Record<string, unknown> {
-    return state;
+    // Apply to state manager
+    await this.stateManager.applyResolvedState(conflict.id, resolvedState);
   }
 
   /**
    * Validate state after resolution
-   *
-   * @param state - State to validate
-   * @returns True if valid
    */
-  private validateState(state: Record<string, unknown>): boolean {
-    // Basic validation: state must be an object
-    return typeof state === 'object' && state !== null;
-  }
-
-  /**
-   * Orchestrator resolution (Tier 2)
-   *
-   * @param conflict - The conflict
-   * @returns Decision or null
-   */
-  private async orchestratorResolve(
-    conflict: StateConflict
-  ): Promise<{ strategy: ResolutionStrategy } | null> {
-    // Select strategy using default logic
-    const strategy = this.selectStrategy(conflict);
-    return { strategy };
-  }
-
-  /**
-   * Escalate to user (Tier 3)
-   *
-   * @param conflict - The conflict
-   * @returns User decision or null
-   */
-  private async escalateToUser(
-    conflict: StateConflict
-  ): Promise<{ strategy: ResolutionStrategy } | null> {
-    // Emit event for user notification
-    this.emit('user-escalation', { conflict });
-    // User interaction not implemented in this phase
-    return null;
-  }
-
-  /**
-   * Mark for manual intervention (Tier 4)
-   *
-   * @param conflict - The conflict
-   */
-  private async markForManualIntervention(conflict: StateConflict): Promise<void> {
-    conflict.status = ConflictStatus.ESCALATED;
-    conflict.escalationLevel = 3;
-    await this.logConflict(conflict);
-    this.emit('manual-intervention-required', { conflict });
-  }
-
-  /**
-   * Log conflict to audit trail
-   *
-   * @param conflict - The conflict to log
-   */
-  async logConflict(conflict: StateConflict): Promise<void> {
-    try {
-      await this.conflictLog.log(conflict);
-      this.emit('conflict-logged', { conflict });
-    } catch (error) {
-      this.emit('conflict-log-error', { conflict, error });
-    }
+  validateState(state: Record<string, unknown>): boolean {
+    // Basic validation: state must be non-null object
+    return state !== null && typeof state === 'object';
   }
 
   /**
    * Get resolution statistics
-   *
-   * @returns Resolution statistics
    */
-  getResolutionStats(): ResolutionStats {
-    return this.conflictLog.getStats();
-  }
+  async getResolutionStats(): Promise<ResolutionStats> {
+    const stats = await this.conflictLog.getStatistics();
 
-  /**
-   * Notify agents of resolution
-   *
-   * @param conflict - The resolved conflict
-   */
-  private async notifyResolution(conflict: StateConflict): Promise<void> {
-    const message = {
-      type: 'conflict-resolved',
-      conflict: {
-        id: conflict.id,
-        strategy: conflict.strategy,
-        resolvedAt: conflict.resolvedAt
-      }
+    return {
+      totalConflicts: stats.totalConflicts,
+      autoResolutionRate: stats.autoResolutionRate,
+      strategyDistribution: stats.strategyDistribution,
+      averageResolutionTimeMs: stats.averageResolutionTimeMs,
+      escalationRate: stats.escalationRate,
+      topProblematicStates: stats.topProblematicStates
     };
-
-    // Broadcast resolution to all involved agents
-    for (const agentId of conflict.agents) {
-      try {
-        await this.mesh.sendMessageWithTimeout(
-          'state-conflict-resolver',
-          agentId,
-          message,
-          2000 // 2s timeout for notification
-        );
-      } catch (error) {
-        // Notification failure is non-critical
-      }
-    }
   }
 }
-
-export default StateConflictResolver;
