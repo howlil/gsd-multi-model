@@ -6,6 +6,70 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [5.0.4] - 2026-03-29
+
+### 🐛 Bug Fixes
+
+- **installer**: Fixed missing `dist/` and `hooks/` folders in Qwen Code installation
+  - Added `copyDirectoryRecursive()` helper function to copy compiled binaries
+  - Installer now copies `dist/` folder to `~/.qwen/ez-agents/dist/` for ez-tools.js
+  - Installer now copies `hooks/` folder to `~/.qwen/ez-agents/hooks/` for hook scripts
+  - Fixes "Cannot find module ez-tools.js" error in Qwen Code
+  - Affects all Qwen Code installations (`--qwen --global` flag)
+
+- **build**: Fixed `CostAlerts is not defined` ReferenceError in compiled bundle
+  - Changed `bin/lib/cost/cost-alerts.ts` to use proper ES module exports
+  - Removed problematic runtime export assignment `(CostAlerts as ...).THRESHOLDS = THRESHOLDS`
+  - Changed default exports to named exports for better tsup compatibility
+  - Updated `bin/lib/cost/cost-tracker.ts` to use named import `import { CostAlerts }`
+  - Updated `bin/ez-tools.ts` to use named import `import { CostTracker }`
+  - Fixes crash when running `ez-tools.js health` and other cost-related commands
+
+- **commands**: Added missing `ez-product-discovery.md` command for Qwen Code
+  - Command file now properly installed to `~/.qwen/commands/ez/ez-product-discovery.md`
+  - Includes workflow file `~/.qwen/ez-agents/workflows/product-discovery.md`
+  - Enables product discovery workflow for Qwen Code users via `/ez:product-discovery`
+
+### 🔧 Improvements
+
+- **installer**: Enhanced post-installation verification
+  - Added explicit copy of compiled assets after ez-agents folder installation
+  - Console output now shows "✓ Copied dist/ to ez-agents/dist/"
+  - Console output now shows "✓ Copied hooks/ to ez-agents/hooks/"
+  - Better visibility of installation progress for users
+
+### 📝 Documentation
+
+- **changelog**: Documented Qwen Code installation fixes
+- **readme**: Updated installation instructions for multi-runtime setup
+
+### 🔍 Technical Details
+
+**Files Modified:**
+- `bin/install.ts` - Added `copyDirectoryRecursive()` and dist/hooks copy logic
+- `bin/lib/cost/cost-alerts.ts` - Fixed ES module exports
+- `bin/lib/cost/index.ts` - Removed problematic default export
+- `bin/lib/cost/cost-tracker.ts` - Changed to named imports
+- `bin/ez-tools.ts` - Changed to named imports
+
+**Build System:**
+- tsup configuration verified for ES module compatibility
+- Removed `'use strict';` directives that conflicted with ES modules
+- Standardized on named exports over default exports for better tree-shaking
+
+**Fix Verification:**
+```bash
+# Test ez-tools.js health check
+node ~/.qwen/ez-agents/dist/bin/ez-tools.js health
+
+# Test init command
+node ~/.qwen/ez-agents/dist/bin/ez-tools.js init quick
+
+# Expected: JSON output without ReferenceError
+```
+
+---
+
 ## [5.0.3] - 2026-03-29
 
 ### 🐛 Bug Fixes

@@ -1816,6 +1816,27 @@ function copyWithPathReplacement(srcDir, destDir, pathPrefix, runtime, isCommand
 }
 
 /**
+ * Copy directory recursively (simple copy without path replacement)
+ */
+function copyDirectoryRecursive(srcDir: string, destDir: string) {
+  if (!fs.existsSync(srcDir)) return;
+  
+  const entries = fs.readdirSync(srcDir, { withFileTypes: true });
+  
+  for (const entry of entries) {
+    const srcPath = path.join(srcDir, entry.name);
+    const destPath = path.join(destDir, entry.name);
+    
+    if (entry.isDirectory()) {
+      fs.mkdirSync(destPath, { recursive: true });
+      copyDirectoryRecursive(srcPath, destPath);
+    } else {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
+}
+
+/**
  * Clean up orphaned files from previous versions
  */
 function cleanupOrphanedFiles(configDir) {
@@ -2711,6 +2732,24 @@ function install(isGlobal: boolean, runtime = 'claude'): { settingsPath: string 
     console.log(`  ${green}✓${reset} Installed ez-agents`);
   } else {
     failures.push('ez-agents');
+  }
+
+  // Copy dist folder (compiled binaries) - required for ez-tools.js to work
+  const distSrc = path.join(src, 'dist');
+  const distDest = path.join(targetDir, 'ez-agents', 'dist');
+  if (fs.existsSync(distSrc)) {
+    fs.mkdirSync(distDest, { recursive: true });
+    copyDirectoryRecursive(distSrc, distDest);
+    console.log(`  ${green}✓${reset} Copied dist/ to ez-agents/dist/`);
+  }
+
+  // Copy hooks folder (compiled hook scripts)
+  const hooksSrc = path.join(src, 'hooks');
+  const hooksDest = path.join(targetDir, 'ez-agents', 'hooks');
+  if (fs.existsSync(hooksSrc)) {
+    fs.mkdirSync(hooksDest, { recursive: true });
+    copyDirectoryRecursive(hooksSrc, hooksDest);
+    console.log(`  ${green}✓${reset} Copied hooks/ to ez-agents/hooks/`);
   }
 
   // Copy EZ Agents skills to global directory ($HOME/.skills/ez-agents/)

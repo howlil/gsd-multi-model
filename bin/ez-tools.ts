@@ -16,7 +16,7 @@ import { roadmapAnalyze, roadmapGetPhase, roadmapUpdatePhaseStatus, roadmapUpdat
 import { stateLoad, stateUpdate } from './lib/state/index.js';
 import { cmdInitNewProject, cmdInitNewMilestone, cmdInitPhaseOp, cmdInitProgress, cmdInitQuick, cmdInitVerifyWork, cmdInitMapCodebase, cmdInitResume, cmdInitPlanPhase, cmdInitExecutePhase } from './lib/init/index.js';
 import { configGet, configSet } from './lib/config.js';
-import CostTracker from './lib/cost/index.js';
+import { CostTracker } from './lib/cost/index.js';
 import {
   cmdGenerateSlug,
   cmdCurrentTimestamp,

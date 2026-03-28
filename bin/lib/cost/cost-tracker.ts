@@ -8,7 +8,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { withSimpleLock } from '../file/index.js';
 import Logger, { defaultLogger as logger } from '../logger/index.js';
-import CostAlerts from './cost-alerts.js';
+import { CostAlerts } from './cost-alerts.js';
 
 interface CostConfig {
   enabled: boolean;

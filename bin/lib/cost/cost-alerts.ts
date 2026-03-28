@@ -1,4 +1,3 @@
-'use strict';
 /**
  * EZ Cost Alerts — Multi-threshold budget alert system
  * Triggers alerts at 50%, 75%, and 90% budget usage
@@ -11,7 +10,7 @@ import * as path from 'path';
 /**
  * Alert threshold percentages
  */
-const THRESHOLDS = {
+export const THRESHOLDS = {
   INFO: 50,
   WARNING: 75,
   CRITICAL: 90
@@ -43,7 +42,7 @@ interface AlertsData {
   lastUpdated?: string;
 }
 
-class CostAlerts {
+export class CostAlerts {
   private readonly cwd: string;
   private readonly planningDir: string;
   private readonly alertsFile: string;
@@ -188,11 +187,6 @@ class CostAlerts {
   }
 }
 
-// Export thresholds as static property
-(CostAlerts as typeof CostAlerts & { THRESHOLDS: typeof THRESHOLDS }).THRESHOLDS = THRESHOLDS;
-
 export default CostAlerts;
-
-export { THRESHOLDS, CostAlerts };
 
 export type { Alert, CheckThresholdsOptions, AlertsData };
