@@ -28,6 +28,11 @@ RAILROAD_ARCHITECTURE.md
 .planning/
 analysis/
 gaps.md
+
+# Documentation (except API docs for GitHub Pages)
+docs/*
+!docs/api/
+!docs/DEPLOY.md
 improve.md
 philosophy.md
 .tests/

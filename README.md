@@ -18,6 +18,14 @@
 [![npm](https://img.shields.io/npm/dm/@howlil/ez-agents.svg)](https://npmjs.com/package/@howlil/ez-agents)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/howlil/ez-agents?style=for-the-badge&logo=github)](https://github.com/howlil/ez-agents/stargazers)
+[![API Docs](https://img.shields.io/badge/API-Reference-blue?style=for-the-badge&logo=typescript)](https://howlil.github.io/ez-agents/api/)
+
+**Documentation:** 
+[API Reference](https://howlil.github.io/ez-agents/api/) · 
+[Architecture](docs/ARCHITECTURE.md) · 
+[Contributing](CONTRIBUTING.md) · 
+[Changelog](CHANGELOG.md) · 
+[Deploy Guide](docs/DEPLOY.md)
 
 ```bash
 npm i -g @howlil/ez-agents@latest
@@ -33,9 +41,9 @@ npm i -g @howlil/ez-agents@latest
 
 ## What is EZ Agents?
 
-EZ Agents is a **multi-agent orchestration system** for building software with AI agents. It coordinates a team of 21 specialist agents through a structured 10-phase SDLC workflow — from project brief to production-ready code.
+EZ Agents is a **multi-agent orchestration system** for building software with AI agents. It coordinates a team of 8 core agents through a structured 10-phase SDLC workflow — from project brief to production-ready code.
 
-**Core Value:** An Orchestrator (Chief Strategist) takes your project requirements, decomposes them into a dependency-aware task graph, delegates work to Specialist Agents in parallel, enforces quality gates, and delivers implementation-ready output: code, tests, documentation, and release artifacts.
+**Core Value:** Workflow-based orchestration takes your project requirements, decomposes them into a dependency-aware task graph, delegates work to specialist agents in parallel, enforces quality gates, and delivers implementation-ready output: code, tests, documentation, and release artifacts.
 
 **Works for:** Greenfield projects · Existing codebases · Rapid MVPs · Enterprise-scale products
 
@@ -127,36 +135,37 @@ flowchart TB
     subgraph System["EZ AGENTS ORCHESTRATION SYSTEM"]
         direction TB
         User["👤 USER"]
-        
-        subgraph Orchestrator["Orchestrator Layer"]
-            Chief["ez-chief-strategist<br/>(Chief Strategist)"]
+
+        subgraph Workflows["Workflow Layer (40 workflows)"]
+            W1["plan-phase.md"]
+            W2["execute-phase.md"]
+            W3["verify-work.md"]
+            W4["new-project.md"]
         end
-        
-        subgraph Planning["Planning Agents"]
-            P1["ez-planner"]
-            P2["ez-researcher"]
-            P3["ez-mapper"]
-            P4["ez-architect"]
+
+        subgraph CoreAgents["8 Core Agents"]
+            A1["ez-planner"]
+            A2["ez-executor"]
+            A3["ez-verifier"]
+            A4["ez-debugger"]
         end
-        
-        subgraph Execution["Execution Agents"]
-            E1["ez-executor"]
-            E2["ez-debugger"]
-            E3["ez-qa-agent"]
-            E4["ez-devops"]
+
+        subgraph Research["Research Agents"]
+            R1["ez-phase-researcher"]
+            R2["ez-project-researcher"]
+            R3["ez-codebase-mapper"]
         end
-        
-        subgraph Quality["Quality Agents"]
-            Q1["ez-verifier"]
-            Q2["ez-auditor"]
-            Q3["ez-roadmapper"]
+
+        subgraph Release["Release Agents"]
+            L1["ez-roadmapper"]
+            L2["ez-release-agent"]
         end
     end
-    
-    User --> Chief
-    Chief --> Planning
-    Chief --> Execution
-    Chief --> Quality
+
+    User --> Workflows
+    Workflows --> CoreAgents
+    Workflows --> Research
+    Workflows --> Release
 ```
 
 ### Complete Workflow Diagram
@@ -365,129 +374,21 @@ flowchart TB
 ```
 
 
-### Chief Strategist State Machine (Expanded)
-
-```mermaid
-flowchart TD
-    Start["📥 TASK RECEIVED"] --> S1
-
-    subgraph S1_Box["STATE 1: TRIAGE"]
-        S1["Classify task:<br/>• feature<br/>• bugfix<br/>• refactor<br/>• incident"]
-    end
-
-    S1 --> S2
-
-    subgraph S2_Box["STATE 2: RETRIEVE_CTX"]
-        S2["Load from STATE.md:<br/>• Current phase<br/>• Active blockers<br/>• Recent decisions<br/>• Metrics"]
-    end
-
-    S2 --> S3
-
-    subgraph S3_Box["STATE 3: PROPOSE_ACTION"]
-        S3["Select specialist agent:<br/>• ez-planner<br/>• ez-executor<br/>• ez-verifier<br/>• ez-debugger<br/>• ... (21 agents)<br/><br/>Select skills:<br/>• Stack-specific<br/>• Domain-specific"]
-    end
-
-    S3 --> S4
-
-    subgraph S4_Box["STATE 4: POLICY_CHECK"]
-        S4["Validate constraints:<br/>• Context budget<br/>• Autonomy level<br/>• Guard rails"]
-    end
-
-    S4 --> S5
-
-    subgraph S5_Box["STATE 5: EXECUTE"]
-        S5["Route to specialist agent<br/>with context + skills<br/><br/>Monitor execution:<br/>• Progress tracking<br/>• Cost tracking<br/>• Error handling"]
-    end
-
-    S5 --> S6
-
-    subgraph S6_Box["STATE 6: VERIFY"]
-        S6_Decision{"✅ Pass?"}
-        S6_Continue["Continue"]
-        S6_Debug["Route to<br/>ez-debugger"]
-        
-        S6 --> S6_Decision
-        S6_Decision -->|YES| S6_Continue
-        S6_Decision -->|NO| S6_Debug
-    end
-
-    S6_Continue --> S7
-    S6_Debug -.-> S5
-
-    subgraph S7_Box["STATE 7: COMPLETE"]
-        S7["• Log audit trail<br/>• Update STATE.md<br/>• Commit changes<br/>• Report to user"]
-    end
-
-    style S1_Box fill:#e3f2fd
-    style S2_Box fill:#e3f2fd
-    style S3_Box fill:#e3f2fd
-    style S4_Box fill:#fff3e0
-    style S5_Box fill:#e8f5e9
-    style S6_Box fill:#fce4ec
-    style S7_Box fill:#f3e5f5
-```
-
-
-### 21 Specialist Agents
+### 8 Core Agents
 
 | Agent | Purpose | Tools |
 |-------|---------|-------|
-| **ez-chief-strategist** | Master orchestrator, work classification, routing | All |
-| **ez-planner** | Creates executable phase plans with task breakdown | Read, Write, Bash, Glob, Grep, WebFetch |
-| **ez-executor** | Executes plans with atomic commits, deviation handling | Read, Write, Edit, Bash, Grep, Glob |
-| **ez-phase-researcher** | Phase-level research and discovery | Read, Write, WebSearch, WebFetch |
-| **ez-project-researcher** | Project-level research | Read, Write, WebSearch |
-| **ez-codebase-mapper** | Maps codebase structure and architecture | Read, Glob, Grep, Bash |
-| **ez-verifier** | Verifies phase work against criteria | Read, Bash, Glob, Grep |
-| **ez-debugger** | Debugging and issue resolution | Read, Write, Bash, Grep |
-| **ez-architect** | Architecture decisions and patterns | Read, Write |
-| **ez-roadmapper** | Roadmap creation and maintenance | Read, Write |
-| **ez-requirements-agent** | Requirements analysis and tracking | Read, Write |
-| **ez-qa-agent** | Quality assurance and testing | Read, Bash |
-| **ez-devops-agent** | DevOps and deployment automation | Read, Write, Bash |
-| **ez-frontend-agent** | Frontend development expertise | Read, Write, Edit |
-| **ez-backend-agent** | Backend development expertise | Read, Write, Edit, Bash |
-| **ez-design-expert** | UI/UX design patterns | Read, Write |
-| **ez-ux-expert** | User experience expertise | Read, Write |
-| **ez-product-engineer** | Product-focused engineering | Read, Write, Edit, Bash |
-| **ez-technical-writer** | Documentation generation | Read, Write |
-| **ez-release-agent** | Release management and versioning | Read, Write, Bash |
-| **ez-context-manager** | Context assembly and optimization | Read, Write |
+| **ez-planner** | Creates executable phase plans with task breakdown, dependency analysis | Read, Write, Bash, Glob, Grep, WebFetch |
+| **ez-executor** | Executes plans with atomic commits, deviation handling, checkpoint management | Read, Write, Edit, Bash, Grep, Glob |
+| **ez-verifier** | Goal-backward verification, checks codebase delivers phase promises | Read, Write, Bash, Glob, Grep |
+| **ez-phase-researcher** | Phase-level technical research, stack discovery, best practices | Read, Write, WebSearch, WebFetch, Context7 |
+| **ez-project-researcher** | Project-level research, requirements analysis, user discovery | Read, Write, WebSearch, WebFetch |
+| **ez-codebase-mapper** | Explores codebase structure, writes analysis documents | Read, Glob, Grep, Bash |
+| **ez-debugger** | Scientific bug investigation, hypothesis-driven debugging | Read, Write, Bash, Grep |
+| **ez-roadmapper** | Roadmap creation, requirement-to-phase mapping, success criteria | Read, Write |
+| **ez-release-agent** | Release management, versioning, changelog generation | Read, Write, Bash |
 
-### Chief Strategist State Machine
-
-```mermaid
-flowchart LR
-    Start["TASK RECEIVED"] --> S1["1. TRIAGE"]
-    S1 -->|"►"| C1["Classify: feature/bug/refactor/incident"]
-    
-    S1 --> S2["2. RETRIEVE_CTX"]
-    S2 -->|"►"| C2["Load project context from STATE.md"]
-    
-    S2 --> S3["3. PROPOSE_ACTION"]
-    S3 -->|"►"| C3["Select agent + skills"]
-    
-    S3 --> S4["4. POLICY_CHECK"]
-    S4 -->|"►"| C4["Validate constraints"]
-    
-    S4 --> S5["5. EXECUTE"]
-    S5 -->|"►"| C5["Route to specialist agent"]
-    
-    S5 --> S6["6. VERIFY"]
-    S6 -->|"►"| C6["Validate results against criteria"]
-    
-    S6 --> S7["7. COMPLETE"]
-    S7 -->|"►"| C7["Log audit trail, update state"]
-    
-    style Start fill:#e3f2fd
-    style S1 fill:#e3f2fd
-    style S2 fill:#e3f2fd
-    style S3 fill:#e3f2fd
-    style S4 fill:#fff3e0
-    style S5 fill:#e8f5e9
-    style S6 fill:#fce4ec
-    style S7 fill:#f3e5f5
-```
+**Note:** EZ Agents uses **workflow-centric orchestration** — intelligence is in `ez-agents/workflows/*.md` (40 workflow files), not in agent routing logic. Workflows directly spawn agents based on execution context.
 
 ### Wave-Based Parallel Execution
 
