@@ -670,22 +670,45 @@ function extractFrontmatterAndBody(content) {
     return { frontmatter: null, body: content };
   }
 
-  const endIndex = content.indexOf('---', 3);
+  // Find the closing --- (can be on same line or next line)
+  // Handle both "---\n...\n---" and "---...\n---" formats
+  let endIndex = content.indexOf('\n---', 3);
+  if (endIndex === -1) {
+    // Try finding --- without newline (malformed frontmatter)
+    endIndex = content.indexOf('---', 3);
+  }
+  
   if (endIndex === -1) {
     return { frontmatter: null, body: content };
   }
 
+  // Extract frontmatter (skip initial ---) and body (after closing ---)
+  const frontmatterEnd = content.indexOf('\n', 3);
+  const actualEnd = content.startsWith('---\n') ? endIndex : endIndex + 3;
+  
   return {
     frontmatter: content.substring(3, endIndex).trim(),
-    body: content.substring(endIndex + 3),
+    body: content.substring(actualEnd),
   };
 }
 
 function extractFrontmatterField(frontmatter, fieldName) {
+  // Try standard multiline format first (field: value followed by newline)
   const regex = new RegExp(`^${fieldName}:\\s*(.+)$`, 'm');
-  const match = frontmatter.match(regex);
-  if (!match) return null;
-  return match[1].trim().replace(/^['"]|['"]$/g, '');
+  let match = frontmatter.match(regex);
+  if (match) {
+    return match[1].trim().replace(/^['"]|['"]$/g, '');
+  }
+  
+  // Handle single-line malformed frontmatter (field: value followed by next field or end)
+  // Pattern: "fieldName: value" where value ends at next field or end of string
+  const singleLineRegex = new RegExp(`${fieldName}:\\s*([^:]+?)(?:\\s+[a-zA-Z_]+:|$)`, 'i');
+  match = frontmatter.match(singleLineRegex);
+  if (match) {
+    return match[1].trim().replace(/^['"]|['"]$/g, '');
+  }
+  
+  return null;
 }
 
 function convertSlashCommandsToCodexSkillMentions(content) {

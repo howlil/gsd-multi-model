@@ -6,6 +6,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [5.0.3] - 2026-03-29
+
+### 🐛 Bug Fixes
+
+- **installer**: Fixed agent frontmatter parsing for malformed single-line format
+  - Updated `extractFrontmatterAndBody()` to handle `---name: value...---` format
+  - Updated `extractFrontmatterField()` with fallback regex for single-line frontmatter
+  - Fixes Codex agent installation crash where filename was corrupted with description content
+
+- **installer**: Added `skills` folder to npm package files list
+  - Fixes "Skills directory not found" warning during global installation
+
+---
+
 ## [5.0.2] - 2026-03-29
 
 ### 🐛 Bug Fixes
