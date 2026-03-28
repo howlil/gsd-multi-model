@@ -1,5 +1,5 @@
 <purpose>
-Verify milestone achieved its definition of done by aggregating phase verifications, checking cross-phase integration, and assessing requirements coverage. Reads existing VERIFICATION.md files (phases already verified during execute-phase), aggregates tech debt and deferred gaps, then spawns integration checker for cross-phase wiring.
+Verify milestone achieved its definition of done by aggregating phase verifications, checking cross-phase integration, and assessing requirements coverage. Reads existing VERIFICATION.md files (phases already verified during execute-phase), aggregates tech debt and deferred gaps, then spawns verifier for cross-phase wiring check.
 </purpose>
 
 <required_reading>
@@ -11,22 +11,17 @@ Read all files referenced by the invoking prompt's execution_context before star
 ## 0. Initialize Milestone Context
 
 ```bash
-INIT=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" init milestone-op)
+INIT=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" init milestone-op)
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 ```
 
 Extract from init JSON: `milestone_version`, `milestone_name`, `phase_count`, `completed_phases`, `commit_docs`.
 
-Resolve integration checker model:
-```bash
-integration_checker_model=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" resolve-model ez-integration-checker --raw)
-```
-
 ## 1. Determine Milestone Scope
 
 ```bash
 # Get phases in milestone (sorted numerically, handles decimals)
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" phases list
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" phases list
 ```
 
 - Parse version from arguments or detect current from ROADMAP.md
@@ -40,7 +35,7 @@ For each phase directory, read the VERIFICATION.md:
 
 ```bash
 # For each phase, use find-phase to resolve the directory (handles archived phases)
-PHASE_INFO=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" find-phase 01 --raw)
+PHASE_INFO=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" find-phase 01 --raw)
 # Extract directory from JSON, then read VERIFICATION.md from that directory
 # Repeat for each phase number from ROADMAP.md
 ```
@@ -54,11 +49,13 @@ From each VERIFICATION.md, extract:
 
 If a phase is missing VERIFICATION.md, flag it as "unverified phase" — this is a blocker.
 
-## 3. Spawn Integration Checker
+## 3. Cross-Phase Integration Check
 
 With phase context collected:
 
 Extract `MILESTONE_REQ_IDS` from REQUIREMENTS.md traceability table — all REQ-IDs assigned to phases in this milestone.
+
+Spawn verifier for integration check:
 
 ```
 Task(
@@ -75,7 +72,7 @@ MUST map each integration finding to affected requirement IDs where applicable.
 
 Verify cross-phase wiring and E2E user flows.",
   subagent_type="ez-verifier",
-  model="{integration_checker_model}"
+  model="sonnet"
 )
 ```
 
@@ -105,7 +102,7 @@ For each phase's VERIFICATION.md, extract the expanded requirements table:
 For each phase's SUMMARY.md, extract `requirements-completed` from YAML frontmatter:
 ```bash
 for summary in .planning/phases/*-*/*-SUMMARY.md; do
-  node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" summary-extract "$summary" --fields requirements_completed | jq -r '.requirements_completed'
+  node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" summary-extract "$summary" --fields requirements_completed | jq -r '.requirements_completed'
 done
 ```
 
@@ -133,7 +130,7 @@ For each REQ-ID, determine status using all three sources:
 Skip if `workflow.nyquist_validation` is explicitly `false` (absent = enabled).
 
 ```bash
-NYQUIST_CONFIG=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" config get workflow.nyquist_validation --raw 2>/dev/null)
+NYQUIST_CONFIG=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" config get workflow.nyquist_validation --raw 2>/dev/null)
 ```
 
 If `false`: skip entirely.

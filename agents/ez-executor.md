@@ -70,7 +70,29 @@ Parse: frontmatter (phase, plan, type, autonomous, wave, depends_on), objective,
 ```bash
 PLAN_START_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 PLAN_START_EPOCH=$(date +%s)
+
+# 10x Engineer Metric: Record cycle time start
+FIRST_COMMIT_TIME=""
+DEPLOY_TIME=""
 ```
+</step>
+
+<step name="track_first_commit">
+**After first task commit:**
+
+```bash
+# Record first commit timestamp for lead time tracking
+if [ -z "$FIRST_COMMIT_TIME" ]; then
+  FIRST_COMMIT_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+  FIRST_COMMIT_EPOCH=$(date +%s)
+  
+  # Store in phase directory for later use
+  echo "$FIRST_COMMIT_TIME" > "$PHASE_DIR/.first_commit_time"
+  echo "$FIRST_COMMIT_EPOCH" > "$PHASE_DIR/.first_commit_epoch"
+fi
+```
+
+**Why:** Lead Time = First commit → Production (DORA metric #1)
 </step>
 
 <step name="determine_execution_pattern">
@@ -407,6 +429,20 @@ node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" state record-metric \
   --phase "${PHASE}" --plan "${PLAN}" --duration "${DURATION}" \
   --tasks "${TASK_COUNT}" --files "${FILE_COUNT}"
 
+# 10x Engineer Metric: Record cycle time
+CYCLE_TIME_HOURS=$(( ($(date +%s) - PLAN_START_EPOCH) / 3600 ))
+node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" state record-metric \
+  --phase "${PHASE}" --metric "cycle_time_hours" --value "${CYCLE_TIME_HOURS}"
+
+# 10x Engineer Metric: Record lead time (if deployed)
+if [ -n "$DEPLOY_TIME" ] && [ -f "$PHASE_DIR/.first_commit_epoch" ]; then
+  FIRST_COMMIT_EPOCH=$(cat "$PHASE_DIR/.first_commit_epoch")
+  LEAD_TIME_MIN=$(( ($(date +%s) - FIRST_COMMIT_EPOCH) / 60 ))
+  node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" state record-metric \
+    --phase "${PHASE}" --metric "lead_time_minutes" --value "${LEAD_TIME_MIN}"
+fi
+```
+
 # Add decisions (extract from SUMMARY.md key-decisions)
 for decision in "${DECISIONS[@]}"; do
   node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" state add-decision \
@@ -445,6 +481,175 @@ node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" requirements mark-complete ${REQ
 node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" state add-blocker "Blocker description"
 ```
 </state_updates>
+
+<deployment_protocol>
+## Deployment Tasks (Production Phases)
+
+**When to deploy:** If PLAN.md contains `type: deployment` or phase is production/release phase.
+
+### Pre-Deployment Checklist
+
+Before deploying, verify:
+
+```bash
+# 1. No uncommitted changes
+git status --short
+
+# 2. All tests passing
+npm test
+
+# 3. Build succeeds
+npm run build
+
+# 4. Environment variables configured
+[ -f .env.production ] || echo "WARNING: No .env.production"
+
+# 5. Detect deployment platform
+node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" deploy detect
+```
+
+**If any check fails:** Create checkpoint for user decision before proceeding.
+
+### Platform Detection
+
+Auto-detect deployment platform from project files:
+
+| Platform | Detection | CLI Command |
+|----------|-----------|-------------|
+| **Vercel** | `vercel.json` or `next.config.js` | `vercel --prod` |
+| **Railway** | `railway.toml` or Railway in git remote | `railway up --prod` |
+| **Fly.io** | `fly.toml` | `fly deploy` |
+| **Heroku** | `heroku` in git remote | `git push heroku main` |
+| **Netlify** | `netlify.toml` | `netlify deploy --prod` |
+| **Docker** | `Dockerfile` + `docker-compose.yml` | `docker-compose up -d` |
+
+### Deployment Execution
+
+**For Vercel:**
+```bash
+# Install CLI if needed
+npm i -g vercel 2>/dev/null || true
+
+# Deploy
+vercel --prod --yes
+
+# Capture output
+DEPLOY_URL=$(vercel --prod --name | grep -o 'https://[^"]*')
+```
+
+**For Railway:**
+```bash
+# Install CLI if needed
+npm i -g @railway/cli 2>/dev/null || true
+
+# Deploy
+railway up --prod
+
+# Capture output
+DEPLOY_URL=$(railway domain --json | jq -r '.[0].domain')
+```
+
+**For Fly.io:**
+```bash
+# Deploy
+fly deploy --remote-only
+
+# Capture output
+DEPLOY_URL=$(fly apps info -q | head -1)
+```
+
+**For Heroku:**
+```bash
+# Deploy
+git push heroku main
+
+# Capture output
+DEPLOY_URL=$(heroku apps:info --shell | grep web_url | cut -d= -f2)
+```
+
+### Post-Deployment Verification
+
+After deployment, run smoke tests:
+
+```bash
+# 1. Health check
+curl -f "${DEPLOY_URL}/api/health" || echo "FAIL: Health endpoint"
+
+# 2. Homepage loads
+curl -f "${DEPLOY_URL}/" -o /dev/null -s -w "HTTP %{http_code}\n"
+
+# 3. No deployment errors in logs
+# Platform-specific log check
+vercel logs --prod 2>/dev/null | grep -i error | head -5
+```
+
+### Deployment State Updates
+
+After successful deployment:
+
+```bash
+# Record deployment in STATE.md
+node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" state record-deployment \
+  --platform "${PLATFORM}" \
+  --url "${DEPLOY_URL}" \
+  --timestamp "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+
+# Create deployment audit log
+node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" deploy audit \
+  --platform "${PLATFORM}" \
+  --environment "production" \
+  --url "${DEPLOY_URL}"
+```
+
+### Rollback Protocol
+
+If deployment fails or post-deployment checks fail:
+
+```bash
+# Rollback to previous deployment
+node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" deploy rollback --platform "${PLATFORM}"
+
+# Document in STATE.md
+node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" state add-blocker \
+  "Deployment failed: [reason]. Rolled back to previous version."
+```
+
+### Deployment Checkpoint
+
+**If deployment requires user action** (e.g., login, env setup):
+
+```xml
+<checkpoint type="human-action" gate="blocking">
+  <what-built>Deployment to {platform} ready</what-built>
+  <action-required>
+    {Specific action needed, e.g., "Run `vercel login` first"}
+  </action-required>
+  <how-to-verify>
+    1. {Step 1}
+    2. {Step 2}
+  </how-to-verify>
+  <resume-signal>Type "done" after completing action</resume-signal>
+</checkpoint>
+```
+
+**After deployment complete:**
+
+```markdown
+## DEPLOYMENT COMPLETE
+
+**Platform:** {vercel|railway|fly|heroku}
+**URL:** {deploy_url}
+**Status:** ✅ Live
+**Timestamp:** {deployment_time}
+
+**Post-Deployment Checks:**
+- [ ] Health endpoint responds
+- [ ] Homepage loads (HTTP 200)
+- [ ] No errors in deployment logs
+
+**Rollback Plan:** `.planning/deployments/rollback-{timestamp}.md`
+```
+</deployment_protocol>
 
 <final_commit>
 ```bash

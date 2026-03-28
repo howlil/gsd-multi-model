@@ -29,7 +29,7 @@ Exit.
 Load phase operation context:
 
 ```bash
-INIT=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" init phase-op "0")
+INIT=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" init phase-op "0")
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 ```
 
@@ -45,7 +45,7 @@ Exit.
 **Delegate the phase addition to ez-tools:**
 
 ```bash
-RESULT=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" phase add "${description}")
+RESULT=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" phase add "${description}")
 ```
 
 The CLI handles:

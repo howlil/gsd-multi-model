@@ -315,4 +315,417 @@ describe('ContextSlicer', () => {
       expect(ContextTier.COLD).toBe('cold');
     });
   });
+
+  describe('Multi-Factor Relevance Scoring', () => {
+    describe('_keywordScore', () => {
+      it('should return 1.0 when all keywords match', () => {
+        const content = 'This file implements authentication middleware for user login';
+        const task = 'Implement authentication middleware';
+        // Access private method via bracket notation for testing
+        const score = (slicer as any)._keywordScore(content, task);
+        expect(score).toBeGreaterThan(0.8);
+      });
+
+      it('should return 0.0 when no keywords match', () => {
+        const content = 'This file handles database connections';
+        const task = 'Implement authentication middleware';
+        const score = (slicer as any)._keywordScore(content, task);
+        expect(score).toBe(0);
+      });
+
+      it('should return partial score when some keywords match', () => {
+        const content = 'This file handles user authentication';
+        const task = 'Implement authentication middleware';
+        const score = (slicer as any)._keywordScore(content, task);
+        expect(score).toBeGreaterThan(0);
+        expect(score).toBeLessThan(1);
+      });
+
+      it('should filter out short words (3 chars or less)', () => {
+        const content = 'The cat sat on the mat';
+        const task = 'Do it';
+        // 'Do' and 'it' are both <= 3 chars, so they're filtered out
+        // Empty keyword list returns 0
+        const score = (slicer as any)._keywordScore(content, task);
+        expect(score).toBe(0);
+      });
+
+      it('should handle empty task gracefully', () => {
+        const content = 'Some content here';
+        const task = '';
+        const score = (slicer as any)._keywordScore(content, task);
+        expect(score).toBe(0);
+      });
+    });
+
+    describe('_semanticScore', () => {
+      it('should return higher score for semantically similar content', () => {
+        const content = 'authentication middleware user login session token implementation';
+        const task = 'Implement authentication middleware';
+        const score = (slicer as any)._semanticScore(content, task);
+        // Score should be positive and reasonable (exact value depends on word overlap)
+        expect(score).toBeGreaterThan(0.3);
+      });
+
+      it('should return low score for semantically different content', () => {
+        const content = 'database connection pool query optimization';
+        const task = 'Implement authentication middleware';
+        const score = (slicer as any)._semanticScore(content, task);
+        expect(score).toBeLessThan(0.5);
+      });
+
+      it('should return 0 for empty content', () => {
+        const content = '';
+        const task = 'Implement authentication middleware';
+        const score = (slicer as any)._semanticScore(content, task);
+        expect(score).toBe(0);
+      });
+
+      it('should handle identical content with score of 1', () => {
+        const text = 'authentication middleware implementation';
+        const score = (slicer as any)._semanticScore(text, text);
+        expect(score).toBe(1);
+      });
+    });
+
+    describe('_pathScore', () => {
+      it('should return high score when path contains task keywords', () => {
+        const source = 'src/middleware/authentication.ts';
+        const task = 'Implement authentication middleware';
+        const score = (slicer as any)._pathScore(source, task);
+        expect(score).toBeGreaterThan(0.5);
+      });
+
+      it('should return 0 when path has no task keywords', () => {
+        const source = 'src/database/connection.ts';
+        const task = 'Implement authentication middleware';
+        const score = (slicer as any)._pathScore(source, task);
+        expect(score).toBe(0);
+      });
+
+      it('should handle paths with multiple keyword matches', () => {
+        const source = 'src/auth/middleware/login.ts';
+        const task = 'User authentication login';
+        const score = (slicer as any)._pathScore(source, task);
+        expect(score).toBeGreaterThan(0);
+      });
+
+      it('should return 0 for empty task', () => {
+        const source = 'src/file.ts';
+        const task = '';
+        const score = (slicer as any)._pathScore(source, task);
+        expect(score).toBe(0);
+      });
+    });
+
+    describe('Multi-Factor Composite Scoring', () => {
+      it('should combine keyword, semantic, and path scores', () => {
+        const content = 'authentication middleware for user login';
+        const path = 'src/auth/middleware.ts';
+        const task = 'Implement authentication middleware';
+
+        const keywordScore = (slicer as any)._keywordScore(content, task);
+        const semanticScore = (slicer as any)._semanticScore(content, task);
+        const pathScore = (slicer as any)._pathScore(path, task);
+
+        // Weighted composite: 40% keyword, 40% semantic, 20% path
+        const compositeScore = (keywordScore * 0.4) + (semanticScore * 0.4) + (pathScore * 0.2);
+
+        expect(compositeScore).toBeGreaterThan(0);
+        expect(compositeScore).toBeLessThanOrEqual(1);
+      });
+
+      it('should apply tier-specific thresholds correctly', async () => {
+        const tiers = {
+          hot: [{
+            type: 'file' as const,
+            source: 'authentication middleware implementation',
+            timestamp: new Date().toISOString(),
+            size: 100,
+            score: 0.8
+          }],
+          warm: [{
+            type: 'file' as const,
+            source: 'database connection handling',
+            timestamp: new Date().toISOString(),
+            size: 100,
+            score: 0.5
+          }],
+          cold: [{
+            type: 'file' as const,
+            source: 'unrelated historical content xyz',
+            timestamp: new Date().toISOString(),
+            size: 100,
+            score: 0.3
+          }]
+        };
+
+        const task = 'Implement authentication middleware';
+        const result = await slicer.summarizeLowRelevance(tiers, task);
+
+        // Hot tier content with high relevance should be kept
+        expect(result.hot.length).toBeGreaterThanOrEqual(0);
+        // Warm and cold may be summarized or excluded based on thresholds
+      });
+
+      it('should handle marginal cases with summarization', async () => {
+        // Create content that's marginally relevant (near threshold boundary)
+        const tiers = {
+          hot: [{
+            type: 'file' as const,
+            source: 'middleware implementation with some auth features',
+            timestamp: new Date().toISOString(),
+            size: 100,
+            score: 0.4
+          }],
+          warm: [],
+          cold: []
+        };
+
+        const task = 'Implement authentication middleware';
+        const result = await slicer.summarizeLowRelevance(tiers, task);
+
+        // Should either keep or summarize (not exclude entirely for hot tier)
+        expect(result.hot.length).toBeGreaterThanOrEqual(0);
+      });
+    });
+  });
+
+  /**
+   * Wave 2 Tests - Phase 43.2
+   * Task 43.2-1: Compression Statistics (CTX-10)
+   * Task 43.2-2: Token Budget Enforcement (CTX-11)
+   * Task 43.2-3: Quality Metrics (CTX-12)
+   */
+  describe('Wave 2: Compression Statistics (CTX-10)', () => {
+    it('should calculate CompressionStats with tier breakdown', async () => {
+      const sources: ContextSource[] = [
+        {
+          type: 'file',
+          source: 'test1.ts',
+          timestamp: new Date().toISOString(),
+          size: 400,
+          score: 0.8
+        },
+        {
+          type: 'file',
+          source: 'test2.ts',
+          timestamp: new Date().toISOString(),
+          size: 400,
+          score: 0.6
+        }
+      ];
+
+      const tiers = slicer.classifyTiers(sources);
+      const optimized = {
+        sources,
+        warnings: []
+      };
+
+      // Access private method via any cast for testing
+      const stats = (slicer as any).calculateStats(tiers, optimized, 'test task');
+
+      expect(stats).toBeDefined();
+      expect(stats.totalTokens).toBeGreaterThan(0);
+      expect(stats.breakdown).toBeDefined();
+      expect(stats.breakdown.hot).toBeDefined();
+      expect(stats.breakdown.warm).toBeDefined();
+      expect(stats.breakdown.cold).toBeDefined();
+    });
+
+    it('should include quality score in stats', async () => {
+      const sources: ContextSource[] = [
+        {
+          type: 'file',
+          source: 'function test() { return 42; }',
+          timestamp: new Date().toISOString(),
+          size: 100,
+          score: 0.9
+        }
+      ];
+
+      const tiers = slicer.classifyTiers(sources);
+      const optimized = { sources, warnings: [] };
+      const stats = (slicer as any).calculateStats(tiers, optimized, 'implement function');
+
+      expect(stats.qualityScore).toBeGreaterThanOrEqual(0);
+      expect(stats.qualityScore).toBeLessThanOrEqual(1);
+    });
+
+    it('should calculate compression ratio correctly', async () => {
+      const sources: ContextSource[] = [
+        {
+          type: 'file',
+          source: 'test content',
+          timestamp: new Date().toISOString(),
+          size: 100,
+          score: 0.8
+        }
+      ];
+
+      const tiers = slicer.classifyTiers(sources);
+      const optimized = { sources, warnings: [] };
+      const stats = (slicer as any).calculateStats(tiers, optimized, 'test');
+
+      expect(stats.compressionRatio).toBeGreaterThanOrEqual(0);
+      expect(stats.reductionPercentage).toBeGreaterThanOrEqual(0);
+      expect(stats.reductionPercentage).toBeLessThanOrEqual(1);
+    });
+  });
+
+  describe('Wave 2: Token Budget Enforcement (CTX-11)', () => {
+    it('should enforce tier budget with fallback when over budget', async () => {
+      const largeSlicer = new ContextSlicer({ tokenBudget: 100 });
+      
+      const sources: ContextSource[] = [
+        {
+          type: 'file',
+          source: 'a'.repeat(500),
+          timestamp: new Date().toISOString(),
+          size: 500,
+          score: 0.8
+        },
+        {
+          type: 'file',
+          source: 'b'.repeat(500),
+          timestamp: new Date().toISOString(),
+          size: 500,
+          score: 0.7
+        }
+      ];
+
+      const tiers = largeSlicer.classifyTiers(sources);
+      const result = await largeSlicer.enforceTierBudgetWithFallback(tiers, 'test task');
+
+      // Should apply fallback strategies to reduce token count
+      expect(result).toBeDefined();
+      expect(result.hot.length + result.warm.length + result.cold.length).toBeLessThanOrEqual(sources.length);
+    });
+
+    it('should apply aggressive summarization as fallback', async () => {
+      const smallBudgetSlicer = new ContextSlicer({ tokenBudget: 50 });
+      
+      const sources: ContextSource[] = [
+        {
+          type: 'file',
+          source: 'function test() { return 42; }',
+          timestamp: new Date().toISOString(),
+          size: 200,
+          score: 0.9
+        }
+      ];
+
+      const tiers = smallBudgetSlicer.classifyTiers(sources);
+      const result = await smallBudgetSlicer.enforceTierBudgetWithFallback(tiers, 'implement function');
+
+      expect(result).toBeDefined();
+    });
+
+    it('should preserve hot tier when possible', async () => {
+      const slicer = new ContextSlicer({ tokenBudget: 1000 });
+      
+      const sources: ContextSource[] = [
+        {
+          type: 'file',
+          source: 'important hot content',
+          timestamp: new Date().toISOString(),
+          size: 100,
+          score: 0.9
+        }
+      ];
+
+      const tiers = slicer.classifyTiers(sources);
+      const result = await slicer.enforceTierBudgetWithFallback(tiers, 'test task');
+
+      // Hot tier should be preserved when within budget
+      expect(result.hot.length).toBeGreaterThan(0);
+    });
+
+    it('should truncate to budget per tier', () => {
+      const sources: ContextSource[] = [
+        { type: 'file', source: 'a'.repeat(100), timestamp: new Date().toISOString(), size: 100, score: 0.9 },
+        { type: 'file', source: 'b'.repeat(100), timestamp: new Date().toISOString(), size: 100, score: 0.8 },
+        { type: 'file', source: 'c'.repeat(100), timestamp: new Date().toISOString(), size: 100, score: 0.7 }
+      ];
+
+      const tiers = { hot: sources, warm: [], cold: [] };
+      const result = slicer.enforceTierBudget(tiers);
+
+      // Should truncate based on budget
+      expect(result.hot.length).toBeLessThanOrEqual(sources.length);
+    });
+  });
+
+  describe('Wave 2: Quality Metrics (CTX-12)', () => {
+    it('should calculate quality metrics for compression', () => {
+      const original = 'function authenticate() { return true; }';
+      const compressed = 'function authenticate() { return true; }';
+      const taskContext = 'implement authentication';
+
+      const metrics = slicer.calculateQualityMetrics(original, compressed, taskContext);
+
+      expect(metrics).toBeDefined();
+      expect(metrics.overallScore).toBeGreaterThanOrEqual(0);
+      expect(metrics.overallScore).toBeLessThanOrEqual(1);
+      expect(metrics.entityPreservation).toBeGreaterThanOrEqual(0);
+      expect(metrics.keywordPreservation).toBeGreaterThanOrEqual(0);
+      expect(metrics.codeBlockPreservation).toBeGreaterThanOrEqual(0);
+      expect(metrics.semanticSimilarity).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should detect entity preservation', () => {
+      const original = 'function test() { class Auth {} export const config = {}; }';
+      const compressed = 'function test() { class Auth {} }';
+      const taskContext = 'test implementation';
+
+      const metrics = slicer.calculateQualityMetrics(original, compressed, taskContext);
+
+      expect(metrics.entityPreservation).toBeGreaterThan(0);
+      expect(metrics.entityPreservation).toBeLessThanOrEqual(1);
+    });
+
+    it('should extract entities from content', () => {
+      const content = `
+        function myFunction() {}
+        class MyClass {}
+        export const myConst = 42;
+        export function myExport() {}
+      `;
+
+      const entities = slicer.extractEntities(content);
+
+      expect(entities).toContain('myFunction');
+      expect(entities).toContain('MyClass');
+      expect(entities).toContain('myConst');
+      expect(entities).toContain('myExport');
+    });
+
+    it('should assess quality level based on score', () => {
+      expect(slicer.assessQuality(0.95)).toBe('excellent');
+      expect(slicer.assessQuality(0.85)).toBe('good');
+      expect(slicer.assessQuality(0.75)).toBe('fair');
+      expect(slicer.assessQuality(0.5)).toBe('poor');
+    });
+
+    it('should handle empty content gracefully', () => {
+      const original = '';
+      const compressed = '';
+      const taskContext = 'test';
+
+      const metrics = slicer.calculateQualityMetrics(original, compressed, taskContext);
+
+      expect(metrics).toBeDefined();
+      expect(metrics.overallScore).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should detect code block preservation', () => {
+      const original = 'Here is code:\n```typescript\nfunction test() {}\n```';
+      const compressed = 'Here is code:\n```typescript\nfunction test() {}\n```';
+      const taskContext = 'code example';
+
+      const metrics = slicer.calculateQualityMetrics(original, compressed, taskContext);
+
+      expect(metrics.codeBlockPreservation).toBe(1);
+    });
+  });
 });

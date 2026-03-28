@@ -345,7 +345,9 @@ Example config:
 **Starting a new project:**
 
 ```
-/ez:new-project        # Unified flow: questioning → research → requirements → roadmap
+/ez:new-project        # Unified flow: questioning → product discovery → requirements → roadmap
+/ez:product-discovery  # Product discovery: personas, problem validation, metrics, prioritization
+/ez:new-milestone      # Start next milestone (uses product requirements)
 /clear
 /ez:plan-phase 1       # Create plans for first phase
 /clear

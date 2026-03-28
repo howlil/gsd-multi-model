@@ -12,7 +12,7 @@ Read all files referenced by the invoking prompt's execution_context before star
 Load todo context:
 
 ```bash
-INIT=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" init todos)
+INIT=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" init todos)
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 ```
 
@@ -20,7 +20,7 @@ Extract from init JSON: `commit_docs`, `date`, `timestamp`, `todo_count`, `todos
 
 Ensure directories exist:
 ```bash
-mkdir -p .planning/todos/pending .planning/todos/done
+mkdir .planning/todos/pending .planning/todos/done
 ```
 
 Note existing areas from the todos array for consistency in infer_area step.
@@ -84,7 +84,7 @@ Use values from init context: `timestamp` and `date` are already available.
 
 Generate slug for the title:
 ```bash
-slug=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" generate-slug "$title" --raw)
+slug=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" generate-slug "$title" --raw)
 ```
 
 Write to `.planning/todos/pending/${date}-${slug}.md`:
@@ -119,7 +119,7 @@ If `.planning/STATE.md` exists:
 Commit the todo and any updated state:
 
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" commit "docs: capture todo - [title]" --files .planning/todos/pending/[filename] .planning/STATE.md
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" commit "docs: capture todo - [title]" --files .planning/todos/pending/[filename] .planning/STATE.md
 ```
 
 Tool respects `commit_docs` config and gitignore automatically.

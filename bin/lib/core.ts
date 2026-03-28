@@ -14,6 +14,58 @@ function toPosixPath(p: string): string {
   return p.split(path.sep).join('/');
 }
 
+// ─── EZ Agents Root Configuration ────────────────────────────────────────────
+
+/**
+ * Get EZ Agents root directory with multi-runtime support.
+ * Uses environment variable if set, otherwise defaults to ~/.claude/ez-agents
+ * 
+ * @returns EZ Agents root directory path
+ */
+export function getEzAgentsRoot(): string {
+  return process.env.EZ_AGENTS_ROOT || path.join(os.homedir(), '.claude', 'ez-agents');
+}
+
+/**
+ * Get path to EZ Agents workflow file
+ * 
+ * @param name - Workflow name (without .md extension)
+ * @returns Full path to workflow file
+ */
+export function getWorkflowPath(name: string): string {
+  return path.join(getEzAgentsRoot(), 'workflows', `${name}.md`);
+}
+
+/**
+ * Get path to EZ Agents template file
+ * 
+ * @param name - Template name (without .md extension)
+ * @returns Full path to template file
+ */
+export function getTemplatePath(name: string): string {
+  return path.join(getEzAgentsRoot(), 'templates', `${name}.md`);
+}
+
+/**
+ * Get path to EZ Agents reference file
+ * 
+ * @param name - Reference name (without .md extension)
+ * @returns Full path to reference file
+ */
+export function getReferencePath(name: string): string {
+  return path.join(getEzAgentsRoot(), 'references', `${name}.md`);
+}
+
+/**
+ * Get path to EZ Agents agent definition file
+ * 
+ * @param name - Agent name (without .md extension)
+ * @returns Full path to agent file
+ */
+export function getAgentPath(name: string): string {
+  return path.join(getEzAgentsRoot(), 'agents', `${name}.md`);
+}
+
 // ─── Model Profile Table ─────────────────────────────────────────────────────
 
 interface ModelProfile {

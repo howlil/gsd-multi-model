@@ -34,9 +34,7 @@ import {
 } from './lib/init/index.js';
 import { milestoneComplete, requirementsMarkComplete } from './lib/phase/index.js';
 import { phaseComplete } from './lib/phase/index.js';
-import { deploy } from '../commands/deploy.js';
-import { healthCheck } from '../commands/health-check.js';
-import { rollback } from '../commands/rollback.js';
+import { phaseNextDecimal, findPhaseCmd } from './lib/phase/phase.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -357,23 +355,13 @@ async function main(): Promise<void> {
             await phaseComplete(cwd, phaseNum, raw);
             break;
           }
+          case 'next-decimal': {
+            const basePhase = args[0] || '';
+            phaseNextDecimal(cwd, basePhase, raw);
+            break;
+          }
           default: error(`Unknown phase subcommand: ${subcommand || ''}`);
         }
-        break;
-      }
-
-      case 'deploy': {
-        await deploy(args[0] || 'staging');
-        break;
-      }
-
-      case 'health-check': {
-        await healthCheck(args[0] || 'production');
-        break;
-      }
-
-      case 'rollback': {
-        await rollback(args[0] || 'previous');
         break;
       }
 

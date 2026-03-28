@@ -154,7 +154,7 @@ export class StateConfigLoader extends EventEmitter {
    * ```
    */
   static getDefaultConfig(): StateConfig {
-    return { ...DEFAULT_CONFIG };
+    return JSON.parse(JSON.stringify(DEFAULT_CONFIG));
   }
 
   /**

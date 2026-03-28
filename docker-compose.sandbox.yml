@@ -1,0 +1,268 @@
+version: '3.8'
+
+# ============================================================================
+# EZ Agents - Sandboxed Execution Test Environment
+# ============================================================================
+# Docker Compose configuration for testing sandboxed agent execution
+# with resource limits, network isolation, and health monitoring.
+#
+# Usage:
+#   # Build and run sandbox test
+#   docker-compose -f docker-compose.sandbox.yml up --build
+#
+#   # Run specific agent type
+#   docker-compose -f docker-compose.sandbox.yml up ez-agent-executor
+#
+#   # Run with resource monitoring
+#   docker-compose -f docker-compose.sandbox.yml up ez-agent-researcher
+#
+#   # Clean up
+#   docker-compose -f docker-compose.sandbox.yml down
+# ============================================================================
+
+services:
+  # ============================================================================
+  # SANDBOX BASE CONFIGURATION
+  # ============================================================================
+  # Shared configuration for all agent services
+  # ============================================================================
+  .ez-agent-base: &ez-agent-base
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+    restart: 'no'
+    volumes:
+      # Workspace isolation
+      - ./sandbox-workspaces:/app/.planning/workspaces
+      # Secrets isolation (read-only)
+      - ./secrets:/app/.planning/secrets:ro
+      # Logs
+      - ./sandbox-logs:/app/.planning/logs
+    environment:
+      - NODE_ENV=production
+      - EZ_SANDBOX=true
+    # Health check configuration
+    healthcheck:
+      test: ["CMD", "node", "-e", "console.log('healthy')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ============================================================================
+  # PLANNER AGENT - No network access, minimal resources
+  # ============================================================================
+  # Resource limits: 0.5 CPU, 1GB memory, 50 processes
+  # Network: none (complete isolation)
+  # Use case: Planning and orchestration tasks
+  # ============================================================================
+  ez-agent-planner:
+    <<: *ez-agent-base
+    container_name: ez-agent-planner
+    environment:
+      - NODE_ENV=production
+      - EZ_SANDBOX=true
+      - EZ_AGENT_TYPE=planner
+      - EZ_TASK_ID=planner-test-001
+      - NODE_OPTIONS=--max-old-space-size=1024
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1G
+          pids: 50
+        reservations:
+          cpus: '0.25'
+          memory: 512M
+    # No network access for planner
+    network_mode: none
+    command: ["node", "dist/index.js", "--agent-type=planner", "--task=plan"]
+
+  # ============================================================================
+  # EXECUTOR AGENT - No network access, moderate resources
+  # ============================================================================
+  # Resource limits: 1 CPU, 1.5GB memory, 100 processes
+  # Network: none (complete isolation)
+  # Use case: Code execution and file operations
+  # ============================================================================
+  ez-agent-executor:
+    <<: *ez-agent-base
+    container_name: ez-agent-executor
+    environment:
+      - NODE_ENV=production
+      - EZ_SANDBOX=true
+      - EZ_AGENT_TYPE=executor
+      - EZ_TASK_ID=executor-test-001
+      - NODE_OPTIONS=--max-old-space-size=1536
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1.5G
+          pids: 100
+        reservations:
+          cpus: '0.5'
+          memory: 768M
+    # No network access for executor
+    network_mode: none
+    command: ["node", "dist/index.js", "--agent-type=executor", "--task=execute"]
+
+  # ============================================================================
+  # VERIFIER AGENT - No network access, minimal resources
+  # ============================================================================
+  # Resource limits: 0.25 CPU, 512MB memory, 25 processes
+  # Network: none (complete isolation)
+  # Use case: Code verification and testing
+  # ============================================================================
+  ez-agent-verifier:
+    <<: *ez-agent-base
+    container_name: ez-agent-verifier
+    environment:
+      - NODE_ENV=production
+      - EZ_SANDBOX=true
+      - EZ_AGENT_TYPE=verifier
+      - EZ_TASK_ID=verifier-test-001
+      - NODE_OPTIONS=--max-old-space-size=512
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 512M
+          pids: 25
+        reservations:
+          cpus: '0.1'
+          memory: 256M
+    # No network access for verifier
+    network_mode: none
+    command: ["node", "dist/index.js", "--agent-type=verifier", "--task=verify"]
+
+  # ============================================================================
+  # RESEARCHER AGENT - Bridge network with allowlist, moderate resources
+  # ============================================================================
+  # Resource limits: 0.5 CPU, 1GB memory, 50 processes
+  # Network: bridge (limited external access)
+  # Use case: Web research, API calls, package registry access
+  # ============================================================================
+  ez-agent-researcher:
+    <<: *ez-agent-base
+    container_name: ez-agent-researcher
+    networks:
+      - ez-sandbox-network
+      - ez-external-network
+    environment:
+      - NODE_ENV=production
+      - EZ_SANDBOX=true
+      - EZ_AGENT_TYPE=researcher
+      - EZ_TASK_ID=researcher-test-001
+      - NODE_OPTIONS=--max-old-space-size=1024
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1G
+          pids: 50
+        reservations:
+          cpus: '0.25'
+          memory: 512M
+    # Extended health check for network-dependent agent
+    healthcheck:
+      test: ["CMD", "node", "-e", "console.log('healthy'); require('dns').resolve('registry.npmjs.org', (err) => process.exit(err ? 1 : 0))"]
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 15s
+    command: ["node", "dist/index.js", "--agent-type=researcher", "--task=research"]
+
+  # ============================================================================
+  # SANDBOX MONITOR - Resource monitoring and statistics
+  # ============================================================================
+  # Monitors all agent containers for resource usage and health
+  # ============================================================================
+  ez-sandbox-monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+    container_name: ez-sandbox-monitor
+    restart: 'no'
+    networks:
+      - ez-sandbox-network
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./sandbox-stats:/app/.planning/sandbox-stats
+    environment:
+      - NODE_ENV=production
+      - EZ_MONITOR=true
+    depends_on:
+      - ez-agent-planner
+      - ez-agent-executor
+      - ez-agent-verifier
+      - ez-agent-researcher
+    command:
+      - sh
+      - -c
+      - |
+        echo 'Monitoring sandbox containers...' &&
+        sleep 5 &&
+        docker stats --no-stream &&
+        docker ps --filter 'name=ez-agent-' --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
+
+  # ============================================================================
+  # SANDBOX TEST RUNNER - Integration test for sandbox execution
+  # ============================================================================
+  # Runs integration tests for the sandbox execution system
+  # ============================================================================
+  ez-sandbox-test:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+      target: staging
+    container_name: ez-sandbox-test
+    restart: 'no'
+    networks:
+      - ez-sandbox-network
+    volumes:
+      - ./sandbox-workspaces:/app/.planning/workspaces
+      - ./sandbox-stats:/app/.planning/sandbox-stats
+      - ./sandbox-logs:/app/.planning/logs
+    environment:
+      - NODE_ENV=test
+      - EZ_SANDBOX=true
+      - CI=true
+    command: ["npm", "run", "test:sandbox"]
+
+# ============================================================================
+# NETWORK CONFIGURATION
+# ============================================================================
+networks:
+  # Internal sandbox network - isolated from external network
+  ez-sandbox-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+          gateway: 172.28.0.1
+
+  # External network for researcher agent (limited access)
+  ez-external-network:
+    driver: bridge
+    # In production, configure firewall rules to limit external access
+
+# ============================================================================
+# VOLUME CONFIGURATION
+# ============================================================================
+volumes:
+  # Persistent workspace storage
+  sandbox-workspaces:
+    driver: local
+  # Statistics and metrics storage
+  sandbox-stats:
+    driver: local
+  # Log storage
+  sandbox-logs:
+    driver: local

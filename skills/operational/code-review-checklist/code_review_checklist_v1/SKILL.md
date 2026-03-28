@@ -16,6 +16,16 @@ eight_pillars:
   Performance: "Critical paths profiled, queries optimized, algorithmic complexity analyzed"
   Code Duplication (DRY): "Duplication detection, proper abstractions, no redundant config"
   Dependency Management: "Security scanning, license compliance, dependency health"
+solid_principles:
+  Single Responsibility: "Each function/class does ONE thing, ONE reason to change"
+  Open/Closed: "Open for extension, closed for modification"
+  Liskov Substitution: "Subtypes substitutable for base types"
+  Interface Segregation: "Many small interfaces > one large interface"
+  Dependency Inversion: "Depend on abstractions, not concretions"
+clean_code_principles:
+  YAGNI: "You Ain't Gonna Need It — no speculative features"
+  KISS: "Keep It Simple, Stupid — simplest solution that works"
+  Boy Scout Rule: "Leave code cleaner than you found it"
 quality_gates:
   test_coverage: "70-90%"
   security_vulnerabilities: "0 high-severity"
@@ -134,6 +144,229 @@ Dependencies are borrowed technical debt:
 - **Version pinning:** Dependencies pinned to specific versions (not `latest` or `*`)
 - **Bundle size impact:** Frontend dependencies analyzed for bundle size impact
 
+## SOLID Principles
+
+### S — Single Responsibility Principle (SRP)
+
+**Each class/function should have ONE reason to change.**
+
+**Check:**
+- [ ] Each function does ONE thing and does it well
+- [ ] Each class has ONE responsibility
+- [ ] No "god classes" or "god functions" (>500 lines)
+- [ ] Function name accurately describes what it does
+- [ ] If you use "and" in description, likely violates SRP
+
+**Red flags:**
+```typescript
+// ❌ VIOLATION: Function does multiple things
+function processUserAndSendEmailAndLog(user: User) {
+  // validate user
+  // save to database
+  // send email
+  // log activity
+}
+
+// ✅ COMPLIANT: Each function does one thing
+function processUser(user: User) { /* ... */ }
+function sendUserEmail(user: User) { /* ... */ }
+function logUserActivity(user: User) { /* ... */ }
+```
+
+### O — Open/Closed Principle (OCP)
+
+**Open for extension, closed for modification.**
+
+**Check:**
+- [ ] New functionality added via extension (inheritance/composition), not modification
+- [ ] Existing, tested code not modified for new features
+- [ ] Strategy/Factory patterns used for extensibility
+- [ ] Configuration over hardcoding
+
+**Red flags:**
+```typescript
+// ❌ VIOLATION: Switch statement needs modification for new types
+function calculateArea(shape: Shape) {
+  if (shape.type === 'circle') { /* ... */ }
+  else if (shape.type === 'square') { /* ... */ }
+  // Need to modify for each new shape
+}
+
+// ✅ COMPLIANT: Extension via new class
+interface Shape {
+  calculateArea(): number;
+}
+class Circle implements Shape { /* ... */ }
+class Square implements Shape { /* ... */ }
+// New shapes: just add new class
+```
+
+### L — Liskov Substitution Principle (LSP)
+
+**Subtypes must be substitutable for their base types.**
+
+**Check:**
+- [ ] Child classes can replace parent classes without breaking behavior
+- [ ] No surprising overrides (throwing exceptions, changing behavior)
+- [ ] Pre-conditions not strengthened in subclasses
+- [ ] Post-conditions not weakened in subclasses
+
+**Red flags:**
+```typescript
+// ❌ VIOLATION: Square is not substitutable for Rectangle
+class Rectangle {
+  setWidth(w: number) { this.width = w; }
+  setHeight(h: number) { this.height = h; }
+}
+class Square extends Rectangle {
+  setWidth(w: number) { this.width = w; this.height = w; }
+  setHeight(h: number) { this.height = h; this.width = h; }
+  // Breaks Rectangle behavior!
+}
+
+// ✅ COMPLIANT: Use separate hierarchies or composition
+```
+
+### I — Interface Segregation Principle (ISP)
+
+**Many small, specific interfaces > one large, general interface.**
+
+**Check:**
+- [ ] Interfaces are cohesive (all methods related)
+- [ ] No "fat interfaces" with unused methods
+- [ ] Clients not forced to implement methods they don't use
+- [ ] Prefer multiple small interfaces over one large one
+
+**Red flags:**
+```typescript
+// ❌ VIOLATION: Fat interface
+interface Worker {
+  work(): void;
+  eat(): void;
+  sleep(): void;
+}
+// Robot must implement eat() and sleep() even though it doesn't need them
+
+// ✅ COMPLIANT: Segregated interfaces
+interface Workable {
+  work(): void;
+}
+interface Feedable {
+  eat(): void;
+}
+interface Restable {
+  sleep(): void;
+}
+```
+
+### D — Dependency Inversion Principle (DIP)
+
+**Depend on abstractions, not concretions.**
+
+**Check:**
+- [ ] High-level modules don't depend on low-level modules (both depend on abstractions)
+- [ ] Abstractions don't depend on details (details depend on abstractions)
+- [ ] Dependency injection used
+- [ ] Interfaces/abstract classes for dependencies
+
+**Red flags:**
+```typescript
+// ❌ VIOLATION: High-level depends on low-level
+class UserService {
+  private db: MySQLDatabase; // Concrete dependency
+  constructor() {
+    this.db = new MySQLDatabase();
+  }
+}
+
+// ✅ COMPLIANT: Depend on abstraction
+interface Database {
+  query(sql: string): Promise<any>;
+}
+class UserService {
+  private db: Database; // Abstraction
+  constructor(db: Database) { // Dependency injection
+    this.db = db;
+  }
+}
+```
+
+## Clean Code Principles
+
+### YAGNI — You Ain't Gonna Need It
+
+**Don't add functionality until it's necessary.**
+
+**Check:**
+- [ ] No speculative features "just in case"
+- [ ] No unused parameters "for future use"
+- [ ] No over-engineering for hypothetical requirements
+- [ ] Current requirements drive design, not future possibilities
+
+**Red flags:**
+```typescript
+// ❌ VIOLATION: Speculative generality
+interface UserConfig {
+  name: string;
+  email: string;
+  // Future fields "just in case"
+  phoneNumber?: string;
+  address?: string;
+  preferences?: any;
+}
+
+// ✅ COMPLIANT: Add when needed
+interface UserConfig {
+  name: string;
+  email: string;
+}
+// Add phoneNumber when actually required
+```
+
+**Questions to ask:**
+- "Is this feature needed NOW?"
+- "What's the simplest thing that could possibly work?"
+- "Am I building this because requirements say so, or because I think we might need it?"
+
+### KISS — Keep It Simple, Stupid
+
+**Simplicity should be a key goal.**
+
+**Check:**
+- [ ] Simplest solution that works
+- [ ] No unnecessary complexity
+- [ ] Clear, readable code over clever code
+- [ ] Obvious > Magic
+
+**Red flags:**
+```typescript
+// ❌ VIOLATION: Overly clever
+const result = data?.filter(x => x)?.map(x => x * 2)?.reduce((a, b) => a + b, 0) ?? 0;
+
+// ✅ COMPLIANT: Clear and simple
+const filtered = data.filter(x => x != null);
+const doubled = filtered.map(x => x * 2);
+const result = doubled.reduce((a, b) => a + b, 0);
+```
+
+### Boy Scout Rule
+
+**Leave the code cleaner than you found it.**
+
+**Check:**
+- [ ] Small improvements made during every change
+- [ ] Tech debt addressed incrementally
+- [ ] Don't walk past broken windows
+- [ ] Continuous improvement culture
+
+**How to apply:**
+1. Fix one naming issue while touching a file
+2. Extract one function that was too long
+3. Add one missing test
+4. Update one outdated comment
+
+**Remember:** You don't have to fix everything at once. Small, consistent improvements compound.
+
 ## Quality Gates
 
 | Gate | Threshold | Action if Failed |
@@ -213,4 +446,16 @@ Pillar 8 — Dependencies:
 [ ] New dependencies security-scanned
 [ ] License compatible
 [ ] Versions pinned
+
+SOLID Principles:
+[ ] S - Single Responsibility: Each function/class does ONE thing
+[ ] O - Open/Closed: Open for extension, closed for modification
+[ ] L - Liskov: Subtypes substitutable for base types
+[ ] I - Interface Segregation: Many small interfaces > one large
+[ ] D - Dependency Inversion: Depend on abstractions, not concretions
+
+Clean Code Principles:
+[ ] YAGNI: No speculative features "just in case"
+[ ] KISS: Simplest solution that works
+[ ] Boy Scout Rule: Code left cleaner than found
 ```

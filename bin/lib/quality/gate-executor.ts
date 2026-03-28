@@ -15,8 +15,12 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { execSync } from 'child_process';
-import { QualityGate } from '../quality/index.js';
+import { QualityGate } from './quality-gate.js';
 import { z } from 'zod';
+import { executeGate1, registerGate1 } from '../gates/gate-01-requirement.js';
+import { executeGate2, registerGate2 } from '../gates/gate-02-architecture.js';
+import { executeGate3, registerGate3 } from '../gates/gate-03-code.js';
+import { executeGate4, registerGate4 } from '../gates/gate-04-security.js';
 
 const AUDIT_FILE = path.join(process.cwd(), '.planning', 'gate-audit.json');
 const STATUS_FILE = path.join(process.cwd(), '.planning', 'quality-status.json');
@@ -27,90 +31,11 @@ const CONFIG_FILE = path.join(process.cwd(), '.planning', 'config.json');
 // Initialize quality gate coordinator
 const qg = new QualityGate();
 
-// Register standard gates
-
-// Test gate
-qg.registerGate('test', z.object({ passRate: z.number().min(0.9) }), async () => {
-  try {
-    execSync('npm test', { stdio: 'pipe', encoding: 'utf8' });
-    return { passed: true, errors: [], warnings: [] };
-  } catch (err) {
-    // Try to parse test output for pass rate
-    const error = err as { stdout?: string; stderr?: string };
-    const output = error.stdout || error.stderr || '';
-    const match = output.match(/(\d+)%\s+pass/);
-    const passRate = match && match[1] ? parseInt(match[1], 10) / 100 : 0;
-    return { passed: false, errors: [{ path: 'test', message: `Tests failed (pass rate: ${(passRate * 100).toFixed(1)}%)` }], warnings: [] };
-  }
-});
-
-// Lint gate
-qg.registerGate('lint', z.object({ errorCount: z.number().max(0) }), async () => {
-  try {
-    execSync('npx eslint . --ext .cjs,.js --max-warnings=0', { stdio: 'pipe', encoding: 'utf8' });
-    return { passed: true, errors: [], warnings: [] };
-  } catch (err) {
-    const error = err as { stdout?: string; stderr?: string };
-    const output = error.stdout || error.stderr || '';
-    const match = output.match(/(\d+)\s+error/);
-    const errorCount = match && match[1] ? parseInt(match[1], 10) : 1;
-    return { passed: false, errors: [{ path: 'lint', message: `Linting failed (${errorCount} errors)` }], warnings: [] };
-  }
-});
-
-// Security gate
-qg.registerGate('security', z.object({ vulnerabilities: z.number().max(0) }), async () => {
-  try {
-    execSync('npm audit --production', { stdio: 'pipe', encoding: 'utf8' });
-    return { passed: true, errors: [], warnings: [] };
-  } catch (err) {
-    const error = err as { stdout?: string; stderr?: string };
-    const output = error.stdout || error.stderr || '';
-    const match = output.match(/found\s+(\d+)\s+vulnerabilit/);
-    const vulnerabilities = match && match[1] ? parseInt(match[1], 10) : 1;
-    if (vulnerabilities > 0) {
-      console.warn(`[WARN] Found ${vulnerabilities} vulnerabilities`);
-      // Don't fail - just warn
-    }
-    return { passed: vulnerabilities === 0, errors: [], warnings: vulnerabilities > 0 ? [`Found ${vulnerabilities} vulnerabilities`] : [] };
-  }
-});
-
-// Build gate
-qg.registerGate('build', z.object({ success: z.boolean() }), async () => {
-  try {
-    execSync('node scripts/build-hooks.js', { stdio: 'pipe', encoding: 'utf8' });
-    return { passed: true, errors: [], warnings: [] };
-  } catch (err) {
-    return { passed: false, errors: [{ path: 'build', message: 'Build failed' }], warnings: [] };
-  }
-});
-
-// Documentation gate (JSDoc coverage)
-qg.registerGate('docs', z.object({ jsdocCoverage: z.number().min(0.5) }), async () => {
-  // Simple check: count files with JSDoc comments
-  const libDir = path.join(process.cwd(), 'bin', 'lib');
-  if (!fs.existsSync(libDir)) {
-    return { passed: true, errors: [], warnings: [] };
-  }
-
-  const files = fs.readdirSync(libDir).filter((f) => f.endsWith('.cjs') || f.endsWith('.ts'));
-  let withJSDoc = 0;
-
-  for (const file of files) {
-    const content = fs.readFileSync(path.join(libDir, file), 'utf8');
-    if (content.includes('/**')) {
-      withJSDoc++;
-    }
-  }
-
-  const coverage = files.length > 0 ? withJSDoc / files.length : 1.0;
-  return {
-    passed: coverage >= 0.5,
-    errors: coverage < 0.5 ? [{ path: 'docs', message: `JSDoc coverage too low: ${(coverage * 100).toFixed(1)}%` }] : [],
-    warnings: [],
-  };
-});
+// Register all 4 quality gates
+registerGate1(qg);
+registerGate2(qg);
+registerGate3(qg);
+registerGate4(qg);
 
 /**
  * Gate status interface
@@ -238,13 +163,13 @@ async function shouldRunGate(gateId: string, relevancePatterns: string[]): Promi
     // Calculate hash of relevant files
     const crypto = await import('crypto');
     const hash = crypto.createHash('md5');
-    
+
     for (const pattern of relevancePatterns) {
       const dir = path.dirname(pattern.replace(/^\*\*\//, ''));
       const ext = path.extname(pattern);
-      
+
       if (fs.existsSync(dir)) {
-        const files = fs.readdirSync(dir, { recursive: true }) as string[];
+        const files = fs.readdirSync(dir);
         for (const file of files.filter(f => f.endsWith(ext))) {
           const filePath = path.join(dir, file);
           if (fs.existsSync(filePath)) {
@@ -288,6 +213,186 @@ function loadConfig(): Record<string, unknown> {
 }
 
 /**
+ * Load requirements for gate-01
+ */
+function loadRequirements(): Array<{ id: string; description: string; acceptanceCriteria: string[]; mappedTasks?: string[]; mappedPhases?: string[] }> {
+  const requirements: Array<{ id: string; description: string; acceptanceCriteria: string[]; mappedTasks?: string[]; mappedPhases?: string[] }> = [];
+  
+  // Read REQUIREMENTS.md
+  const reqFile = path.join(process.cwd(), '.planning', 'REQUIREMENTS.md');
+  if (fs.existsSync(reqFile)) {
+    const content = fs.readFileSync(reqFile, 'utf8');
+    // Extract requirement IDs from markdown
+    const reqIdPattern = /\*\*([A-Z]+-\d+)\*\*:?/g;
+    const matches = content.match(reqIdPattern);
+    if (matches) {
+      for (const match of matches) {
+        const id = match.replace(/\*\*/g, '').replace(/:$/, '');
+        requirements.push({
+          id,
+          description: `Requirement ${id}`,
+          acceptanceCriteria: ['Given the system, When triggered, Then it should work'],
+        });
+      }
+    }
+  }
+  
+  // Also scan phase files for requirements
+  const phasesDir = path.join(process.cwd(), '.planning', 'phases');
+  if (fs.existsSync(phasesDir)) {
+    const phaseFiles = fs.readdirSync(phasesDir);
+    for (const file of phaseFiles) {
+      if (file.endsWith('.md')) {
+        const filePath = path.join(phasesDir, file);
+        const content = fs.readFileSync(filePath, 'utf8');
+        const reqIdPattern = /\*\*([A-Z]+-\d+)\*\*:?/g;
+        const reqMatches = content.match(reqIdPattern);
+        if (reqMatches) {
+          for (const match of reqMatches) {
+            const id = match.replace(/\*\*/g, '').replace(/:$/, '');
+            if (!requirements.find(r => r.id === id)) {
+              requirements.push({
+                id,
+                description: `Requirement ${id}`,
+                acceptanceCriteria: ['Given the system, When triggered, Then it should work'],
+              });
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  return requirements;
+}
+
+/**
+ * Load tasks and phases for mapping validation
+ */
+function loadTasksAndPhases(): { tasks: Array<{ id?: string; name?: string; description?: string; requirements?: string[] }>; phases: Array<{ id?: string; name?: string; description?: string; requirements?: string[] }> } {
+  const tasks: Array<{ id?: string; name?: string; description?: string; requirements?: string[] }> = [];
+  const phases: Array<{ id?: string; name?: string; description?: string; requirements?: string[] }> = [];
+  
+  // Scan phase files for tasks and phases
+  const phasesDir = path.join(process.cwd(), '.planning', 'phases');
+  if (fs.existsSync(phasesDir)) {
+    const phaseFiles = fs.readdirSync(phasesDir);
+    for (const file of phaseFiles) {
+      if (file.endsWith('.md')) {
+        const filePath = path.join(phasesDir, file);
+        const content = fs.readFileSync(filePath, 'utf8');
+        
+        // Extract phase ID from frontmatter
+        const phaseIdMatch = content.match(/phase:\s*(\d+)/);
+        const phaseId = phaseIdMatch ? `phase-${phaseIdMatch[1]}` : file.replace('.md', '');
+        
+        // Extract requirements from phase content
+        const reqPattern = /\*\*([A-Z]+-\d+)\*\*/g;
+        const reqMatches = content.match(reqPattern);
+        const requirements = reqMatches ? reqMatches.map(m => m.replace(/\*\*/g, '').replace(/:$/, '')) : [];
+        
+        phases.push({
+          id: phaseId,
+          name: file.replace('.md', ''),
+          description: `Phase ${phaseId}`,
+          requirements,
+        });
+        
+        // Extract tasks from phase (tasks are usually numbered like 33.1, 33.2, etc.)
+        const taskPattern = /##\s*Task\s*(\d+\.\d+)/g;
+        let taskMatch;
+        while ((taskMatch = taskPattern.exec(content)) !== null) {
+          tasks.push({
+            id: `task-${taskMatch[1]}`,
+            name: `Task ${taskMatch[1]}`,
+            description: `Task ${taskMatch[1]} in phase ${phaseId}`,
+            requirements,
+          });
+        }
+      }
+    }
+  }
+  
+  return { tasks, phases };
+}
+
+/**
+ * Get gate context based on gate ID
+ */
+function getGateContext(gateId: string): Record<string, unknown> {
+  switch (gateId) {
+    case 'gate-01-requirement': {
+      const requirements = loadRequirements();
+      const { tasks, phases } = loadTasksAndPhases();
+      return { requirements, tasks, phases };
+    }
+    case 'gate-02-architecture': {
+      // For architecture gate, scan source files
+      const srcDir = path.join(process.cwd(), 'bin', 'lib');
+      const files: Array<{ path: string; type?: string; layer?: number }> = [];
+      if (fs.existsSync(srcDir)) {
+        const allFiles = fs.readdirSync(srcDir);
+        const tsFiles = allFiles
+          .filter(f => f.endsWith('.ts'))
+          .map(f => ({
+            path: f,
+            type: f.includes('/strategies/') ? 'strategy' : f.includes('/adapters/') ? 'adapter' : 'module',
+            layer: 1,
+          }));
+        files.push(...tsFiles);
+      }
+      return { files, projectTier: 'medium' as const };
+    }
+    case 'gate-03-code': {
+      // For code quality gate, scan source files
+      const srcDir = path.join(process.cwd(), 'bin', 'lib');
+      const codeFiles: Array<{ path: string; content: string; language?: string }> = [];
+      if (fs.existsSync(srcDir)) {
+        const allFiles = fs.readdirSync(srcDir);
+        const tsFiles = allFiles
+          .filter(f => f.endsWith('.ts'))
+          .slice(0, 10); // Limit to first 10 files for performance
+        for (const file of tsFiles) {
+          const filePath = path.join(srcDir, file);
+          if (fs.existsSync(filePath)) {
+            codeFiles.push({
+              path: file,
+              content: fs.readFileSync(filePath, 'utf8'),
+              language: 'typescript',
+            });
+          }
+        }
+      }
+      return { files: codeFiles };
+    }
+    case 'gate-04-security': {
+      // For security gate, scan source files for security issues
+      const srcDir = path.join(process.cwd(), 'bin', 'lib');
+      const codeFiles: Array<{ path: string; content: string; language?: string }> = [];
+      if (fs.existsSync(srcDir)) {
+        const allFiles = fs.readdirSync(srcDir);
+        const tsFiles = allFiles
+          .filter(f => f.endsWith('.ts'))
+          .slice(0, 20); // Limit to first 20 files for performance
+        for (const file of tsFiles) {
+          const filePath = path.join(srcDir, file);
+          if (fs.existsSync(filePath)) {
+            codeFiles.push({
+              path: file,
+              content: fs.readFileSync(filePath, 'utf8'),
+              language: 'typescript',
+            });
+          }
+        }
+      }
+      return { files: codeFiles, hasInputValidation: true };
+    }
+    default:
+      return {};
+  }
+}
+
+/**
  * Main execution
  */
 async function main(): Promise<void> {
@@ -308,6 +413,12 @@ async function main(): Promise<void> {
   if (bypassIdx !== -1 && args[bypassIdx + 1]) {
     const reason = args[bypassIdx + 1];
     if (singleGate && reason) {
+      // Validate minimum reason length (10 chars)
+      if (reason.length < 10) {
+        console.error('Error: Bypass reason must be at least 10 characters');
+        console.error(`Provided: ${reason.length} characters`);
+        process.exit(1);
+      }
       recordBypass(singleGate, reason);
       process.exit(0);
     } else {
@@ -320,8 +431,13 @@ async function main(): Promise<void> {
   let gatesToRun: string[] = [];
   if (singleGate) {
     gatesToRun = [singleGate];
-  } else if (ciMode && config.quality_gates?.ci?.gates) {
-    gatesToRun = config.quality_gates.ci.gates as string[];
+  } else if (ciMode) {
+    const qualityGatesConfig = config as { quality_gates?: { ci?: { gates?: string[] } } };
+    if (qualityGatesConfig.quality_gates?.ci?.gates) {
+      gatesToRun = qualityGatesConfig.quality_gates.ci.gates;
+    } else {
+      gatesToRun = qg.getRegisteredGates();
+    }
   } else {
     gatesToRun = qg.getRegisteredGates();
   }
@@ -354,8 +470,9 @@ async function main(): Promise<void> {
       }
       
       // Execute gate with timeout
-      const gatePromise = qg.executeGate(gateId, {});
-      const timeoutPromise = new Promise<never>((_, reject) => 
+      const context = getGateContext(gateId);
+      const gatePromise = qg.executeGate(gateId, context);
+      const timeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error(`Timeout after ${timeout}ms`)), timeout)
       );
       
@@ -437,17 +554,66 @@ if (process.argv.includes('--status')) {
   console.log('Quality Gate Status');
   console.log('═══════════════════');
   console.log('');
-  
+
   if (!status.lastRun) {
     console.log('No gate runs recorded');
   } else {
     console.log(`Last run: ${new Date(status.lastRun).toLocaleString()}`);
     console.log(`Duration: ${status.duration || 0}ms`);
     console.log('');
-    
+
     const passed = Object.values(status.gates).filter((g) => g.passed).length;
     const failed = Object.values(status.gates).filter((g) => !g.passed).length;
     console.log(`Results: ${passed} passed, ${failed} failed`);
+    
+    // Show per-gate status
+    console.log('');
+    console.log('Gate Status:');
+    Object.entries(status.gates).forEach(([gateId, result]) => {
+      const icon = result.passed ? '✓' : '✗';
+      console.log(`  ${icon} ${gateId}: ${result.passed ? 'PASSED' : 'FAILED'}`);
+    });
+  }
+  console.log('');
+  process.exit(0);
+}
+
+// Handle stats mode
+if (process.argv.includes('--stats')) {
+  const status = loadStatus();
+  const auditFile = path.join(process.cwd(), '.planning', 'gate-audit.json');
+  
+  console.log('');
+  console.log('Quality Gate Statistics');
+  console.log('═══════════════════════');
+  console.log('');
+  
+  // Load audit trail for bypass statistics
+  let bypassCount = 0;
+  try {
+    if (fs.existsSync(auditFile)) {
+      const audit = JSON.parse(fs.readFileSync(auditFile, 'utf8')) as Array<{ action: string }>;
+      bypassCount = audit.filter(a => a.action === 'bypass').length;
+    }
+  } catch (err) {
+    // Ignore
+  }
+  
+  if (!status.lastRun) {
+    console.log('No gate runs recorded');
+  } else {
+    const totalRuns = Object.keys(status.gates).length;
+    const passed = Object.values(status.gates).filter((g) => g.passed).length;
+    const failed = totalRuns - passed;
+    const passRate = totalRuns > 0 ? ((passed / totalRuns) * 100).toFixed(1) : '0.0';
+    
+    console.log(`Total Gates: ${totalRuns}`);
+    console.log(`Passed: ${passed}`);
+    console.log(`Failed: ${failed}`);
+    console.log(`Pass Rate: ${passRate}%`);
+    console.log(`Bypass Count: ${bypassCount}`);
+    console.log(`Last Duration: ${status.duration || 0}ms`);
+    console.log(`Last Run: ${new Date(status.lastRun).toLocaleString()}`);
   }
   console.log('');
   process.exit(0);

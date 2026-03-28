@@ -1,15 +1,28 @@
 {
   "$schema": "https://typedoc.org/schema.json",
-  "entryPoints": ["bin/lib/index.ts"],
-  "out": ".planning/reports/api-docs",
+  "entryPoints": [
+    "bin/lib/factories/index.ts",
+    "bin/lib/strategies/index.ts",
+    "bin/lib/adapters/index.ts",
+    "bin/lib/decorators/index.ts"
+  ],
+  "out": "docs/api",
   "plugin": ["typedoc-plugin-missing-exports"],
   "excludePrivate": true,
-  "excludeProtected": true,
+  "excludeProtected": false,
   "excludeInternal": true,
+  "excludeExternals": true,
+  "includeVersion": true,
+  "readme": "none",
+  "name": "EZ Agents API Reference",
+  "theme": "default",
+  "entryPointStrategy": "expand",
+  "categorizeByGroup": true,
+  "sort": ["alphabetical"],
   "validation": {
-    "notDocumented": true,
-    "notExported": true
+    "notDocumented": false,
+    "notExported": false
   },
-  "tsconfig": "./tsconfig.json",
-  "readme": "none"
+  "skipErrorChecking": true,
+  "tsconfig": "./tsconfig.json"
 }

@@ -6,9 +6,9 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { withLock } from '../file/index.js';
+import { withSimpleLock } from '../file/index.js';
 import Logger, { defaultLogger as logger } from '../logger/index.js';
-import CostAlerts from '../cost/index.js';
+import CostAlerts from './cost-alerts.js';
 
 interface CostConfig {
   enabled: boolean;
@@ -131,7 +131,7 @@ class CostTracker {
       fs.mkdirSync(planningDir, { recursive: true });
     }
 
-    await withLock(this.metricsPath, async () => {
+    await withSimpleLock(this.metricsPath, async () => {
       let data: MetricsData = { version: '1.0', entries: [] };
       if (fs.existsSync(this.metricsPath)) {
         try {

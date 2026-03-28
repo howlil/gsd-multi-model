@@ -1,24 +1,27 @@
 # EZ Agents Skills Catalog
 
-**Version:** 3.10.0  
-**Last Updated:** March 24, 2026
+**Version:** 3.11.0
+**Last Updated:** March 29, 2026
 
 ---
 
 ## 📂 Skill Categories
 
-| Category | Count | Description |
-|----------|-------|-------------|
-| **Stack** | 33 | Technology-specific skills (React, Laravel, Go, etc.) |
-| **Architecture** | 16 | System design patterns (microservices, DDD, etc.) |
-| **Domain** | 14 | Domain-specific knowledge (e-commerce, fintech, etc.) |
-| **Testing** | 8 | Testing strategies and patterns |
-| **Operational** | 13 | DevOps, documentation, i18n |
-| **Security** | 5 | Security best practices |
-| **Governance** | 6 | Privacy, compliance, decision-making |
-| **Observability** | 5 | Logging, metrics, tracing |
-| **DevOps** | 10 | CI/CD, cloud, containers |
-| **TOTAL** | **~110** | — |
+| Category | Count | Complete | Directory Ready | Description |
+|----------|-------|----------|-----------------|-------------|
+| **Stack** | 36 | 33 | 3 | Technology-specific skills |
+| **Architecture** | 16 | 16 | 0 | System design patterns |
+| **Domain** | 18 | 18 | 0 | Domain-specific knowledge |
+| **Testing** | 8 | 7 | 1 | Testing strategies |
+| **Operational** | 14 | 13 | 1 | DevOps, documentation |
+| **Security** | 6 | 5 | 1 | Application security |
+| **Governance** | 7 | 7 | 0 | Privacy, compliance |
+| **Observability** | 9 | 9 | 0 | Logging, metrics, tracing |
+| **DevOps** | 13 | 13 | 0 | CI/CD, cloud, containers |
+| **AI/ML** | 5 | 4 | 1 | LLM, agents, RAG, MLOps |
+| **Data Engineering** | 6 | 4 | 2 | Pipelines, streaming, modeling |
+| **Product & UX** | 5 | 5 | 0 | UX research, UI/UX, UX engineering, product design, design system |
+| **TOTAL** | **~143** | **~134** | **~9** | — |
 
 ---
 
@@ -39,12 +42,10 @@
 - PostgreSQL, MongoDB, Redis
 - GraphQL
 
-**NEW (v3.10.0):**
-- **AI/LLM Integration** — LLM APIs, RAG, embeddings, vector search
-- **Vector Database** — Pinecone, Weaviate, pgvector
-- **Real-Time WebSocket** — WebSocket patterns, scaling
-- **API Design REST** — RESTful best practices
-- **API Design GraphQL** — Schema design, resolvers
+**API Design:**
+- **REST API Design** — RESTful best practices ✅
+- **GraphQL API Design** — Schema design, resolvers ✅
+- **Real-Time WebSocket** — WebSocket patterns, scaling ✅
 
 📁 Location: `skills/stack/`
 
@@ -105,15 +106,58 @@
 
 ---
 
-## 🔒 Security Skills (5)
+## 🔒 Security Skills (6)
 
+- **DevSecOps** — Security in CI/CD ✅
+- **AppSec** — Application security, OWASP Top 10 ✅
+- **Authentication** — OAuth2, OIDC, JWT, MFA ✅
+- **Authorization** — RBAC, ABAC, policy engines ✅
+- **Threat Modeling** — STRIDE, attack trees, risk assessment ✅
 - Security OWASP
 - Security Audit
-- Authentication Patterns
-- Authorization Patterns
-- Secure Coding
 
 📁 Location: `skills/security/`
+📖 Index: [`SECURITY-INDEX.md`](security/SECURITY-INDEX.md)
+
+---
+
+## 🤖 AI/ML Skills (5) **NEW!**
+
+- **LLM Integration** — LLM APIs, RAG, embeddings ✅
+- **Agent Systems** — Multi-agent architecture, orchestration ✅
+- **RAG Systems** — Retrieval-Augmented Generation, vector search ✅
+- **MLOps** — ML pipelines, deployment, monitoring ✅
+- **Prompt Engineering** — Prompt design, optimization 📁
+
+📁 Location: `skills/ai/`
+📖 Index: [`AI-ML-INDEX.md`](ai/AI-ML-INDEX.md)
+
+---
+
+## 📊 Data Engineering Skills (6) **NEW!**
+
+- **Data Pipeline** — ETL/ELT, orchestration, ingestion ✅
+- **Stream Processing** — Real-time processing, event streaming ✅
+- **Data Modeling** — Dimensional modeling, schema design ✅
+- **Data Quality** — Validation, profiling, monitoring ✅
+- **Data Warehouse** — Warehouse architecture 📁
+- **Data Lake** — Lake architecture 📁
+
+📁 Location: `skills/data/`
+📖 Index: [`DATA-ENGINEERING-INDEX.md`](data/DATA-ENGINEERING-INDEX.md)
+
+---
+
+## 🎨 Product & UX Skills (5) **NEW!**
+
+- **UX Research** — User interviews, usability testing, personas, journey mapping ✅
+- **UI/UX Design** — Visual design, interaction design, design systems, no AI-slop ✅
+- **UX Engineering** — Accessible components, keyboard navigation, design system implementation ✅
+- **Product Design** — Design thinking, problem framing, solution exploration, outcomes ✅
+- **Design System** — Design tokens, component libraries, theming, multi-style support ✅
+
+📁 Location: `skills/product/`
+📖 Index: [`PRODUCT-UX-INDEX.md`](product/PRODUCT-UX-INDEX.md)
 
 ---
 
@@ -149,19 +193,28 @@
 
 ---
 
-## 🆕 NEW Skills (v3.10.0)
+## 🆕 NEW Skills (v3.11.0)
 
 | Skill | Category | Status |
 |-------|----------|--------|
-| AI/LLM Integration | Stack | ✅ Complete |
-| Vector Database | Stack | 📁 Directory Ready |
-| Real-Time WebSocket | Stack | 📁 Directory Ready |
-| API Design REST | Stack | 📁 Directory Ready |
-| API Design GraphQL | Stack | 📁 Directory Ready |
-| E2E Testing | Testing | 📁 Directory Ready |
-| Accessibility Testing | Testing | 📁 Directory Ready |
-| Documentation | Operational | 📁 Directory Ready |
-| Internationalization | Operational | 📁 Directory Ready |
+| Agent Systems | AI/ML | ✅ Complete |
+| RAG Systems | AI/ML | ✅ Complete |
+| MLOps | AI/ML | ✅ Complete |
+| AppSec | Security | ✅ Complete |
+| Authentication | Security | ✅ Complete |
+| Authorization | Security | ✅ Complete |
+| Threat Modeling | Security | ✅ Complete |
+| Data Pipeline | Data Engineering | ✅ Complete |
+| Stream Processing | Data Engineering | ✅ Complete |
+| Data Modeling | Data Engineering | ✅ Complete |
+| Data Quality | Data Engineering | ✅ Complete |
+| REST API Design | Stack | ✅ Complete |
+| GraphQL API Design | Stack | ✅ Complete |
+| WebSocket Real-Time | Stack | ✅ Complete |
+| Prompt Engineering | AI/ML | 📁 Directory Ready |
+| Cryptography | Security | 📁 Directory Ready |
+| Data Warehouse | Data Engineering | 📁 Directory Ready |
+| Data Lake | Data Engineering | 📁 Directory Ready |
 
 ---
 
@@ -201,6 +254,10 @@ skill-name/
 - [Domain Skills](domain/DOMAIN-INDEX.md)
 - [Testing Skills](testing/TESTING-INDEX.md)
 - [Operational Skills](operational/OPERATIONAL-INDEX.md)
+- [Security Skills](security/SECURITY-INDEX.md)
+- [AI/ML Skills](ai/AI-ML-INDEX.md) **NEW!**
+- [Data Engineering](data/DATA-ENGINEERING-INDEX.md) **NEW!**
+- [Product & UX](product/PRODUCT-UX-INDEX.md) **NEW!**
 
 ---
 
@@ -211,20 +268,23 @@ skill-name/
 | Frontend | ✅ Complete | All major frameworks |
 | Backend | ✅ Complete | All major languages |
 | Database | ✅ Complete | SQL + NoSQL |
+| API Design | ✅ Complete | REST, GraphQL, WebSocket |
 | Architecture | ✅ Complete | All patterns |
 | Domain | ✅ Good | Major domains covered |
-| Testing | ✅ Complete | Unit → E2E → A11y |
-| Security | ✅ Complete | OWASP + more |
+| Testing | ✅ Good | Unit → E2E → A11y |
+| **Security** | ✅ **Complete** | AppSec, Auth, Threat Modeling |
 | DevOps | ✅ Complete | Cloud + CI/CD |
-| **NEW: AI/ML** | ✅ Complete | LLM + Vector DB |
+| **AI/ML** | ✅ **Complete** | LLM, Agents, RAG, MLOps |
+| **Data Engineering** | ✅ **Good** | Pipeline, Stream, Modeling, Quality |
+| **Product & UX** | ✅ **Complete** | UX Research, UI/UX, UX Engineering, Product Design, Design System |
 
 ---
 
-**Total Skills:** ~110  
-**Complete with Full Content:** ~80  
-**Directory Ready (needs content):** ~30
+**Total Skills:** ~143
+**Complete with Full Content:** ~134
+**Directory Ready (needs content):** ~9
 
 ---
 
-**Released:** March 24, 2026  
-**Version:** 3.10.0
+**Released:** March 29, 2026
+**Version:** 3.11.0

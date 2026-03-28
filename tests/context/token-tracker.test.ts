@@ -366,4 +366,168 @@ describe('TokenTracker', () => {
       expect(phase7Usage.every(u => u.phase === 7)).toBe(true);
     });
   });
+
+  /**
+   * Wave 2 Tests - Phase 43.2
+   * Task 43.2-1: Compression Statistics (CTX-10)
+   */
+  describe('Wave 2: Compression Statistics Logging (CTX-10)', () => {
+    it('should log compression statistics to metrics.json', async () => {
+      const stats = {
+        totalTokens: 5000,
+        originalTokens: 8000,
+        compressedTokens: 5000,
+        reductionPercentage: 0.375,
+        filesIncluded: 10,
+        filesExcluded: 5,
+        summarizedCount: 3,
+        prunedCount: 5,
+        cacheHits: 2,
+        cacheMisses: 1,
+        compressionRatio: 0.625,
+        qualityScore: 0.85,
+        budgetUsed: 5000,
+        budgetRemaining: 3000,
+        breakdown: {
+          hot: { tokens: 3500, files: 7 },
+          warm: { tokens: 1000, files: 2 },
+          cold: { tokens: 500, files: 1 }
+        }
+      };
+
+      await tracker.logCompressionStats(stats);
+
+      const content = await fs.readFile(testMetricsPath, 'utf-8');
+      const metrics = JSON.parse(content);
+
+      expect(metrics.compressionStats).toBeDefined();
+      expect(Array.isArray(metrics.compressionStats)).toBe(true);
+      expect(metrics.compressionStats.length).toBe(1);
+      expect(metrics.compressionStats[0].totalTokens).toBe(5000);
+      expect(metrics.compressionStats[0].timestamp).toBeDefined();
+    });
+
+    it('should append multiple compression statistics records', async () => {
+      const stats1 = {
+        totalTokens: 5000,
+        originalTokens: 8000,
+        compressedTokens: 5000,
+        reductionPercentage: 0.375,
+        filesIncluded: 10,
+        filesExcluded: 5,
+        summarizedCount: 3,
+        prunedCount: 5,
+        cacheHits: 2,
+        cacheMisses: 1,
+        compressionRatio: 0.625,
+        qualityScore: 0.85,
+        budgetUsed: 5000,
+        budgetRemaining: 3000,
+        breakdown: {
+          hot: { tokens: 3500, files: 7 },
+          warm: { tokens: 1000, files: 2 },
+          cold: { tokens: 500, files: 1 }
+        }
+      };
+
+      const stats2 = {
+        totalTokens: 6000,
+        originalTokens: 9000,
+        compressedTokens: 6000,
+        reductionPercentage: 0.333,
+        filesIncluded: 12,
+        filesExcluded: 3,
+        summarizedCount: 4,
+        prunedCount: 3,
+        cacheHits: 1,
+        cacheMisses: 2,
+        compressionRatio: 0.667,
+        qualityScore: 0.9,
+        budgetUsed: 6000,
+        budgetRemaining: 2000,
+        breakdown: {
+          hot: { tokens: 4200, files: 8 },
+          warm: { tokens: 1200, files: 3 },
+          cold: { tokens: 600, files: 1 }
+        }
+      };
+
+      await tracker.logCompressionStats(stats1);
+      await tracker.logCompressionStats(stats2);
+
+      const content = await fs.readFile(testMetricsPath, 'utf-8');
+      const metrics = JSON.parse(content);
+
+      expect(metrics.compressionStats.length).toBe(2);
+      expect(metrics.compressionStats[0].totalTokens).toBe(5000);
+      expect(metrics.compressionStats[1].totalTokens).toBe(6000);
+    });
+
+    it('should include timestamp in compression stats record', async () => {
+      const beforeTime = Date.now();
+
+      const stats = {
+        totalTokens: 5000,
+        originalTokens: 8000,
+        compressedTokens: 5000,
+        reductionPercentage: 0.375,
+        filesIncluded: 10,
+        filesExcluded: 5,
+        summarizedCount: 3,
+        prunedCount: 5,
+        cacheHits: 2,
+        cacheMisses: 1,
+        compressionRatio: 0.625,
+        qualityScore: 0.85,
+        budgetUsed: 5000,
+        budgetRemaining: 3000,
+        breakdown: {
+          hot: { tokens: 3500, files: 7 },
+          warm: { tokens: 1000, files: 2 },
+          cold: { tokens: 500, files: 1 }
+        }
+      };
+
+      await tracker.logCompressionStats(stats);
+
+      const content = await fs.readFile(testMetricsPath, 'utf-8');
+      const metrics = JSON.parse(content);
+      const timestamp = new Date(metrics.compressionStats[0].timestamp).getTime();
+
+      expect(timestamp).toBeGreaterThanOrEqual(beforeTime);
+      expect(timestamp).toBeLessThanOrEqual(Date.now());
+    });
+
+    it('should get compression stats by phase', async () => {
+      const stats = {
+        totalTokens: 5000,
+        originalTokens: 8000,
+        compressedTokens: 5000,
+        reductionPercentage: 0.375,
+        filesIncluded: 10,
+        filesExcluded: 5,
+        summarizedCount: 3,
+        prunedCount: 5,
+        cacheHits: 2,
+        cacheMisses: 1,
+        compressionRatio: 0.625,
+        qualityScore: 0.85,
+        budgetUsed: 5000,
+        budgetRemaining: 3000,
+        breakdown: {
+          hot: { tokens: 3500, files: 7 },
+          warm: { tokens: 1000, files: 2 },
+          cold: { tokens: 500, files: 1 }
+        }
+      };
+
+      await tracker.logCompressionStats(stats);
+
+      const compressionStats = await tracker.getCompressionStatsByPhase(43);
+
+      expect(compressionStats).toBeDefined();
+      expect(Array.isArray(compressionStats)).toBe(true);
+      expect(compressionStats.length).toBe(1);
+    });
+  });
 });

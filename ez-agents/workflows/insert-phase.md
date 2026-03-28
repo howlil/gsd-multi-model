@@ -34,7 +34,7 @@ Validate first argument is an integer.
 Load phase operation context:
 
 ```bash
-INIT=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" init phase-op "${after_phase}")
+INIT=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" init phase-op "${after_phase}")
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 ```
 
@@ -49,7 +49,7 @@ Exit.
 **Delegate the phase insertion to ez-tools:**
 
 ```bash
-RESULT=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" phase insert "${after_phase}" "${description}")
+RESULT=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" phase insert "${after_phase}" "${description}")
 ```
 
 The CLI handles:

@@ -14,6 +14,7 @@ import { promisify } from 'util';
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { defaultLogger as logger } from '../logger/index.js';
+import type { StateManager } from '../state/state-manager.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -23,6 +24,13 @@ export interface AuditExecOptions {
   context?: string;
   user?: string;
   timeout?: number;
+  // Checkpoint options
+  createCheckpoint?: boolean;
+  checkpointBeforeExec?: boolean;
+  checkpointAfterSuccess?: boolean;
+  stateManager?: StateManager;
+  taskId?: string;
+  agentId?: string;
 }
 
 export interface AuditEntry {
@@ -37,6 +45,7 @@ export interface AuditEntry {
   error?: string;
   code?: string;
   signal?: string;
+  checkpointId?: string;
 }
 
 // ─── Module State ───────────────────────────────────────────────────────────
@@ -107,6 +116,7 @@ export async function auditExec(
   options: AuditExecOptions = {}
 ): Promise<string> {
   const { context = 'unknown', user = 'system', timeout = 30000 } = options;
+  let checkpointId: string | undefined;
 
   const entry: AuditEntry = {
     timestamp: new Date().toISOString(),
@@ -116,6 +126,21 @@ export async function auditExec(
     user,
     status: 'started'
   };
+
+  // Pre-execution checkpoint
+  if (options.createCheckpoint && options.checkpointBeforeExec && 
+      options.stateManager && options.taskId) {
+    try {
+      checkpointId = await options.stateManager.createTaskCheckpoint(
+        options.taskId,
+        options.agentId || 'executor'
+      );
+      logger.debug(`Pre-execution checkpoint created for task ${options.taskId}: ${checkpointId}`);
+    } catch (error) {
+      logger.warn(`Failed to create pre-execution checkpoint: ${error}`);
+      // Don't block execution
+    }
+  }
 
   // Log start
   writeAudit(entry);
@@ -131,12 +156,28 @@ export async function auditExec(
 
     const duration = Date.now() - startTime;
 
+    // Post-execution checkpoint on success
+    if (options.createCheckpoint && options.checkpointAfterSuccess && 
+        options.stateManager && options.taskId) {
+      try {
+        checkpointId = await options.stateManager.createTaskCheckpoint(
+          options.taskId,
+          options.agentId || 'executor'
+        );
+        logger.debug(`Post-execution checkpoint created for task ${options.taskId}: ${checkpointId}`);
+      } catch (error) {
+        logger.warn(`Failed to create post-execution checkpoint: ${error}`);
+        // Don't block result
+      }
+    }
+
     // Log success
     const successEntry: AuditEntry = {
       ...entry,
       status: 'success',
       duration,
-      stdout_length: result.stdout?.length ?? 0
+      stdout_length: result.stdout?.length ?? 0,
+      checkpointId
     };
     writeAudit(successEntry);
 
@@ -153,7 +194,8 @@ export async function auditExec(
       duration,
       error: err instanceof Error ? err.message : 'Unknown',
       ...(err instanceof Error && 'code' in err && (err as NodeJS.ErrnoException).code !== undefined ? { code: (err as NodeJS.ErrnoException).code! } : {}),
-      ...(err instanceof Error && 'signal' in err && (err as NodeJS.ErrnoException & { signal?: string }).signal !== undefined ? { signal: (err as NodeJS.ErrnoException & { signal?: string }).signal! } : {})
+      ...(err instanceof Error && 'signal' in err && (err as NodeJS.ErrnoException & { signal?: string }).signal !== undefined ? { signal: (err as NodeJS.ErrnoException & { signal?: string }).signal! } : {}),
+      checkpointId
     };
     writeAudit(errorEntry);
 

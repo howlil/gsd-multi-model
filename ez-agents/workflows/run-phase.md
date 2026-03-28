@@ -13,7 +13,7 @@ Iterative phase execution with pause points. Runs all phases from a starting poi
 ### 0. Initialize Context
 
 ```bash
-INIT=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" init milestone-op)
+INIT=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" init milestone-op)
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 ```
 
@@ -26,9 +26,9 @@ Parse from INIT:
 
 Resolve models:
 ```bash
-PLANNER_MODEL=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" resolve-model ez-planner --raw)
-EXECUTOR_MODEL=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" resolve-model ez-executor --raw)
-VERIFIER_MODEL=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" resolve-model ez-verifier --raw)
+PLANNER_MODEL=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" resolve-model ez-planner --raw)
+EXECUTOR_MODEL=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" resolve-model ez-executor --raw)
+VERIFIER_MODEL=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" resolve-model ez-verifier --raw)
 ```
 
 ---
@@ -46,7 +46,7 @@ From `$ARGUMENTS`, extract:
 ### 2. Validate & Discover Phases
 
 ```bash
-PHASES_JSON=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" roadmap list-phases)
+PHASES_JSON=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" roadmap list-phases)
 ```
 
 Parse phases from ROADMAP.md:
@@ -390,7 +390,7 @@ Or continue manually:
 
 **If "View progress":**
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" progress --brief
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" progress --brief
 ```
 Then ask again.
 
@@ -400,8 +400,8 @@ Then ask again.
 
 After each phase complete:
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" state update-phase-complete --phase={N}
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" roadmap update-phase-status --phase={N} --status=complete
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" state update-phase-complete --phase={N}
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" roadmap update-phase-status --phase={N} --status=complete
 ```
 
 **If `commit_docs` is true:**
@@ -479,7 +479,7 @@ Retry with fresh context? (y/n)
 
 Start at beginning:
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" stuck-watch start \
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" stuck-watch start \
   --operation="run-phase" \
   --max-retries=1 \
   --timeout=600

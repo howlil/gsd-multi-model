@@ -1,0 +1,87 @@
+name: Dependency Update
+
+on:
+  schedule:
+    # Run daily at 08:00 UTC
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+    # Allow manual trigger
+
+jobs:
+  check-updates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check for outdated dependencies
+        run: |
+          # Get outdated packages
+          npm outdated --json > outdated.json || echo '{}' > outdated.json
+
+          # Count updates
+          UPDATE_COUNT=$(node -e "
+            const outdated = JSON.parse(require('fs').readFileSync('outdated.json', 'utf8'));
+            console.log(Object.keys(outdated).length);
+          ")
+
+          echo "Available updates: $UPDATE_COUNT"
+          echo "UPDATE_COUNT=$UPDATE_COUNT" >> $GITHUB_ENV
+
+      - name: Generate update report
+        run: |
+          node -e "
+            const fs = require('fs');
+            const outdated = JSON.parse(fs.readFileSync('outdated.json', 'utf8'));
+
+            let report = '# Dependency Update Report\n\n';
+            report += '**Generated:** ' + new Date().toISOString() + '\n\n';
+
+            if (Object.keys(outdated).length === 0) {
+              report += 'All dependencies are up to date!\n';
+            } else {
+              report += '| Package | Current | Wanted | Latest | Type |\n';
+              report += '|---------|---------|--------|--------|------|\n';
+
+              for (const [name, info] of Object.entries(outdated)) {
+                const pkg = info;
+                report += '| ' + name + ' | ' + pkg.current + ' | ' + pkg.wanted + ' | ' + pkg.latest + ' | ' + (pkg.latest.includes('-') ? 'prerelease' : 'stable') + ' |\n';
+              }
+            }
+
+            fs.writeFileSync('UPDATE_REPORT.md', report);
+          "
+
+      - name: Create update PR (if updates available)
+        if: env.UPDATE_COUNT > 0
+        uses: peter-evans/create-pull-request@v5
+        with:
+          commit-message: 'chore(deps): update dependencies'
+          title: 'chore(deps): update dependencies'
+          body-path: UPDATE_REPORT.md
+          branch: chore/dependency-updates-${{ github.run_number }}
+          base: main
+          labels: |
+            dependencies
+            automated-pr
+
+      - name: Upload outdated report
+        uses: actions/upload-artifact@v4
+        with:
+          name: outdated-report
+          path: |
+            outdated.json
+            UPDATE_REPORT.md

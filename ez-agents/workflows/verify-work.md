@@ -24,7 +24,7 @@ No Pass/Fail buttons. No severity questions. Just: "Here's what should happen. D
 If $ARGUMENTS contains a phase number, load context:
 
 ```bash
-INIT=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" init verify-work "${PHASE_ARG}")
+INIT=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" init verify-work "${PHASE_ARG}")
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 ```
 
@@ -128,7 +128,7 @@ This catches bugs that only manifest on fresh start — race conditions in start
 **Create UAT file with all tests:**
 
 ```bash
-mkdir -p ${PHASE_DIR}
+mkdir ${PHASE_DIR}
 ```
 
 Build test list from extracted deliverables.
@@ -306,7 +306,7 @@ Clear Current Test section:
 
 Commit the UAT file:
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" commit "test({phase_num}): complete UAT - {passed} passed, {issues} issues" --files ".planning/phases/XX-name/{phase_num}-UAT.md"
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" commit "test({phase_num}): complete UAT - {passed} passed, {issues} issues" --files ".planning/phases/XX-name/{phase_num}-UAT.md"
 ```
 
 Present summary:
@@ -405,54 +405,32 @@ On return:
 </step>
 
 <step name="verify_gap_plans">
-**Verify fix plans with checker:**
+**Review fix plans with user:**
 
-Display:
+After planner returns, present the plans to the user:
+
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- EZ ► VERIFYING FIX PLANS
+ EZ ► FIX PLANS READY
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-◆ Spawning plan checker...
+{N} fix plan(s) created for {M} gap(s)
+
+[Display plan summaries]
+
+───────────────────────────────────────────────────────────────
+
+Review the plans above. Do they address the diagnosed gaps?
+
+Options:
+1. Proceed with execution
+2. Request revisions (describe what's missing)
+3. Abort
 ```
 
-Initialize: `iteration_count = 1`
+**If user requests revisions:**
 
-Spawn ez-plan-checker:
-
-```
-Task(
-  prompt="""
-<verification_context>
-
-**Phase:** {phase_number}
-**Phase Goal:** Close diagnosed gaps from UAT
-
-<files_to_read>
-- {phase_dir}/*-PLAN.md (Plans to verify)
-</files_to_read>
-
-</verification_context>
-
-<expected_output>
-Return one of:
-- ## VERIFICATION PASSED — all checks pass
-- ## ISSUES FOUND — structured issue list
-</expected_output>
-""",
-  subagent_type="ez-plan-checker",
-  model="{checker_model}",
-  description="Verify Phase {phase} fix plans"
-)
-```
-
-On return:
-- **VERIFICATION PASSED:** Proceed to `present_ready`
-- **ISSUES FOUND:** Proceed to `revision_loop`
-</step>
-
-<step name="revision_loop">
-**Iterate planner ↔ checker until plans pass (max 3):**
+Track `iteration_count` (starts at 1).
 
 **If iteration_count < 3:**
 
@@ -472,28 +450,28 @@ Task(
 - {phase_dir}/*-PLAN.md (Existing plans)
 </files_to_read>
 
-**Checker issues:**
-{structured_issues_from_checker}
+**User feedback:**
+{user_feedback}
 
 </revision_context>
 
 <instructions>
-Read existing PLAN.md files. Make targeted updates to address checker issues.
+Read existing PLAN.md files. Make targeted updates to address user feedback.
 Do NOT replan from scratch unless issues are fundamental.
 </instructions>
 """,
   subagent_type="ez-planner",
   model="{planner_model}",
-  description="Revise Phase {phase} plans"
+  description="Revise Phase {phase} fix plans"
 )
 ```
 
-After planner returns → spawn checker again (verify_gap_plans logic)
-Increment iteration_count
+After planner returns → present updated plans for user review.
+Increment iteration_count.
 
 **If iteration_count >= 3:**
 
-Display: `Max iterations reached. {N} issues remain.`
+Display: `Max iterations reached.`
 
 Offer options:
 1. Force proceed (execute despite issues)
@@ -501,6 +479,10 @@ Offer options:
 3. Abandon (exit, user runs /ez:plan-phase manually)
 
 Wait for user response.
+
+On return:
+- **User approves:** Proceed to `present_ready`
+- **User abandons:** Report and exit
 </step>
 
 <step name="present_ready">
@@ -578,7 +560,7 @@ Default to **major** if unclear. User can correct if needed.
 - [ ] Committed on completion
 - [ ] If issues: parallel debug agents diagnose root causes
 - [ ] If issues: ez-planner creates fix plans (gap_closure mode)
-- [ ] If issues: ez-plan-checker verifies fix plans
-- [ ] If issues: revision loop until plans pass (max 3 iterations)
+- [ ] If issues: fix plans reviewed with user
+- [ ] If issues: revision loop until user approves (max 3 iterations)
 - [ ] Ready for `/ez:execute-phase --gaps-only` when complete
 </success_criteria>

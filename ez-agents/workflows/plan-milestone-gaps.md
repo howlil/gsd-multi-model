@@ -65,7 +65,7 @@ Gap: Flow "View dashboard" broken at data fetch
 Find highest existing phase:
 ```bash
 # Get sorted phase list, extract last one
-PHASES=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" phases list)
+PHASES=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" phases list)
 HIGHEST=$(printf '%s\n' "$PHASES" | jq -r '.directories[-1]')
 ```
 
@@ -141,13 +141,13 @@ grep -c "Pending" .planning/REQUIREMENTS.md
 ## 8. Create Phase Directories
 
 ```bash
-mkdir -p .planning/phases/{NN}-{name}
+mkdir .planning/phases/{NN}-{name}
 ```
 
 ## 9. Commit Roadmap and Requirements Update
 
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" commit "docs(roadmap): add gap closure phases {N}-{M}" --files .planning/ROADMAP.md .planning/REQUIREMENTS.md
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" commit "docs(roadmap): add gap closure phases {N}-{M}" --files .planning/ROADMAP.md .planning/REQUIREMENTS.md
 ```
 
 ## 10. Offer Next Steps

@@ -21,12 +21,12 @@ Run BEFORE the initialize step. Check flags from ARGUMENTS:
 
 **Pre-flight health check (always, unless --no-auto):**
 ```bash
-SMART_ORCH=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" config-get smart_orchestration.enabled 2>/dev/null || echo "true")
+SMART_ORCH=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" config-get smart_orchestration.enabled 2>/dev/null || echo "true")
 ```
 If `SMART_ORCH` is `"false"`: skip all auto_invoke, proceed to initialize.
 
 ```bash
-HEALTH=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" health --json 2>/dev/null)
+HEALTH=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" health --json 2>/dev/null)
 ```
 - If output shows status FAIL: display error, STOP execution.
 - If PASS: display `[auto] ✅ health check passed` only when `--verbose` flag is present; otherwise silent.
@@ -44,7 +44,7 @@ If conditions are not met: skip silently.
 Load all context in one call:
 
 ```bash
-INIT=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" init execute-phase "${PHASE_ARG}")
+INIT=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" init execute-phase "${PHASE_ARG}")
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 ```
 
@@ -60,7 +60,7 @@ When `parallelization` is false, plans within a wave execute sequentially.
 ```bash
 # REQUIRED: prevents stale auto-chain from previous --auto runs
 if [[ ! "$ARGUMENTS" =~ --auto ]]; then
-  node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" config-set workflow._auto_chain_active false 2>/dev/null
+  node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" config-set workflow._auto_chain_active false 2>/dev/null
 fi
 ```
 </step>
@@ -88,7 +88,7 @@ Report: "Found {plan_count} plans in {phase_dir} ({incomplete_count} incomplete)
 Load plan inventory with wave grouping in one call:
 
 ```bash
-PLAN_INDEX=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" phase-plan-index "${PHASE_NUMBER}")
+PLAN_INDEX=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" phase-plan-index "${PHASE_NUMBER}")
 ```
 
 Parse JSON for: `phase`, `plans[]` (each with `id`, `wave`, `autonomous`, `objective`, `files_modified`, `task_count`, `has_summary`), `waves` (map of wave number → plan IDs), `incomplete`, `has_checkpoints`.
@@ -140,7 +140,7 @@ Execute each wave in sequence. Within a wave: parallel if `PARALLELIZATION=true`
 
    ```bash
    # Read maxParallel from config
-   MAX_PARALLEL=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" config-get workflow.maxParallel 2>/dev/null || echo "5")
+   MAX_PARALLEL=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" config-get workflow.maxParallel 2>/dev/null || echo "5")
 
    # Calculate batches
    WAVE_PLAN_COUNT={N}
@@ -240,8 +240,8 @@ Plans with `autonomous: false` require user interaction.
 
 Read auto-advance config (chain flag + user preference):
 ```bash
-AUTO_CHAIN=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" config-get workflow._auto_chain_active 2>/dev/null || echo "false")
-AUTO_CFG=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" config-get workflow.auto_advance 2>/dev/null || echo "false")
+AUTO_CHAIN=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" config-get workflow._auto_chain_active 2>/dev/null || echo "false")
+AUTO_CFG=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" config-get workflow.auto_advance 2>/dev/null || echo "false")
 ```
 
 When executor returns a checkpoint AND (`AUTO_CHAIN` is `"true"` OR `AUTO_CFG` is `"true"`):
@@ -323,7 +323,7 @@ fi
 
 **2. Find parent UAT file:**
 ```bash
-PARENT_INFO=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" find-phase "${PARENT_PHASE}" --raw)
+PARENT_INFO=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" find-phase "${PARENT_PHASE}" --raw)
 # Extract directory from PARENT_INFO JSON, then find UAT file in that directory
 ```
 
@@ -348,84 +348,37 @@ For each gap that has a `debug_session:` field:
 - Update frontmatter `updated:` timestamp
 - Move to resolved directory:
 ```bash
-mkdir -p .planning/debug/resolved
+mkdir .planning/debug/resolved
 mv .planning/debug/{slug}.md .planning/debug/resolved/
 ```
 
 **6. Commit updated artifacts:**
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" commit "docs(phase-${PARENT_PHASE}): resolve UAT gaps and debug sessions after ${PHASE_NUMBER} gap closure" --files .planning/phases/*${PARENT_PHASE}*/*-UAT.md .planning/debug/resolved/*.md
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" commit "docs(phase-${PARENT_PHASE}): resolve UAT gaps and debug sessions after ${PHASE_NUMBER} gap closure" --files .planning/phases/*${PARENT_PHASE}*/*-UAT.md .planning/debug/resolved/*.md
 ```
 </step>
 
 <step name="verify_phase_goal">
 Verify phase achieved its GOAL, not just completed tasks.
 
-## Design Review Gate (Frontend Phases Only)
+## UI Quality Check (Frontend Phases Only)
 
-**If phase has frontend/UI work:** Spawn ez-design-expert BEFORE verifier.
+**If phase has frontend/UI work:** Perform automated UI quality checks before verifier.
 
 ```bash
 # Check if phase has frontend indicators
-PHASE_SECTION=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" roadmap get-phase "${PHASE_NUMBER}" 2>/dev/null)
+PHASE_SECTION=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" roadmap get-phase "${PHASE_NUMBER}" 2>/dev/null)
 echo "$PHASE_SECTION" | grep -iE "UI|interface|frontend|component|layout|page|screen|view|form|dashboard|widget" > /dev/null 2>&1
 HAS_UI=$?
 ```
 
-**If `HAS_UI` is 0 (frontend found):**
+**If `HAS_UI` is 0 (frontend found):** Run automated checks:
+- Scan for design token consistency (Tailwind classes, CSS variables)
+- Check for accessibility patterns (aria-labels, semantic HTML)
+- Verify component structure (props interfaces, type safety)
 
-```
-Task(
-  prompt="Review UI design quality for phase {phase_number}.
-Phase directory: {phase_dir}
-Check: design token consistency, AI slop patterns, visual hierarchy.
-Report: PASS/PASS_WITH_WARNINGS/FAIL with specific fixes.
-Output: DESIGN-REVIEW.md",
-  subagent_type="ez-design-expert",
-  model="{planner_model}"
-)
-```
-
-**Read verdict:**
-```bash
-grep "^**Status:**" "$PHASE_DIR"/DESIGN-REVIEW.md | cut -d: -f2 | tr -d ' '
-```
-
-| Verdict | Action |
-|---------|--------|
-| `PASS` | → Continue to verifier |
-| `PASS_WITH_WARNINGS` | → Show warnings, continue to verifier |
-| `FAIL` | → Show critical issues, offer `/ez:plan-phase {N} --design-fixes` |
-
-**If FAIL:**
-```
-## ❌ Design Review Failed — Phase {X}: {Name}
-
-**AI Slop Detected:** {specific patterns found}
-
-### Critical Issues
-{List from DESIGN-REVIEW.md}
-
----
-## ▶ Next Up
-
-`/ez:plan-phase {X} --design-fixes`
-
-<sub>`/clear` first → fresh context window</sub>
-
-Also: `cat {phase_dir}/DESIGN-REVIEW.md` — full report
-```
-
-**If PASS or PASS_WITH_WARNINGS:**
-```
-## ✅ Design Review Complete
-
-**Status:** {PASS | PASS_WITH_WARNINGS}
-
-{Warnings list if any}
-
-Continuing to verification...
-```
+**Automated check pass:** → Continue to verifier
+**Issues found:** → Log warnings, continue to verifier (user can address in verification gaps)
 
 ---
 
@@ -495,7 +448,7 @@ Gap closure cycle: `/ez:plan-phase {X} --gaps` reads VERIFICATION.md → creates
 **Mark phase complete and update all tracking files:**
 
 ```bash
-COMPLETION=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" phase complete "${PHASE_NUMBER}")
+COMPLETION=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" phase complete "${PHASE_NUMBER}")
 ```
 
 The CLI handles:
@@ -508,7 +461,7 @@ The CLI handles:
 Extract from result: `next_phase`, `next_phase_name`, `is_last_phase`.
 
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" commit "docs(phase-{X}): complete phase execution" --files .planning/ROADMAP.md .planning/STATE.md .planning/REQUIREMENTS.md {phase_dir}/*-VERIFICATION.md
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" commit "docs(phase-{X}): complete phase execution" --files .planning/ROADMAP.md .planning/STATE.md .planning/REQUIREMENTS.md {phase_dir}/*-VERIFICATION.md
 ```
 </step>
 
@@ -544,8 +497,8 @@ STOP. Do not proceed to auto-advance or transition.
 1. Parse `--auto` flag from $ARGUMENTS
 2. Read both the chain flag and user preference (chain flag already synced in init step):
    ```bash
-   AUTO_CHAIN=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" config-get workflow._auto_chain_active 2>/dev/null || echo "false")
-   AUTO_CFG=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" config-get workflow.auto_advance 2>/dev/null || echo "false")
+   AUTO_CHAIN=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" config-get workflow._auto_chain_active 2>/dev/null || echo "false")
+   AUTO_CFG=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" config-get workflow.auto_advance 2>/dev/null || echo "false")
    ```
 
 **If `--auto` flag present OR `AUTO_CHAIN` is true OR `AUTO_CFG` is true (AND verification passed with no gaps):**

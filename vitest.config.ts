@@ -11,11 +11,16 @@ export default defineConfig({
       'tests/integration/**/*.test.ts',
       'tests/types/**/*.types.test.ts',
       'tests/context/**/*.test.ts',
+      'tests/core/**/*.test.ts',
       'tests/deploy/**/*.test.ts',
       'tests/perf/**/*.test.ts',
+      'tests/e2e/**/*.test.ts',
       'tests/gates/**/*.test.ts',
       'tests/analytics/**/*.test.ts',
-      'tests/finops/**/*.test.ts'
+      'tests/finops/**/*.test.ts',
+      'tests/state/**/*.test.ts',
+      'tests/critical-paths/**/*.test.ts',
+      'tests/property/**/*.test.ts'
     ],
     exclude: [
       'tests/fixtures/**',

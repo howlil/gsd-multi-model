@@ -100,4 +100,4 @@ Tier is stored in `.planning/config.json`:
 }
 ```
 
-Update with: `node ez-tools.cjs tier-manager save-tier medium`
+Update with: `node ez-tools.js tier-manager save-tier medium`

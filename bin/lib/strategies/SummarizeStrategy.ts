@@ -18,6 +18,7 @@
 import { LogExecution } from '../decorators/LogExecution.js';
 import { defaultLogger as logger } from '../logger/index.js';
 import type { CompressionStrategy, CompressionOptions, CompressionResult } from './CompressionStrategy.js';
+import { ClaudeAdapter } from '../adapters/ClaudeAdapter.js';
 
 /**
  * SummarizeStrategy implementation
@@ -26,16 +27,24 @@ import type { CompressionStrategy, CompressionOptions, CompressionResult } from 
  * - Key information and context
  * - Code blocks (when preserveCodeBlocks is true)
  * - Important structural elements
+ *
+ * Features:
+ * - LLM abstractive summarization with quality validation
+ * - Fallback to extractive summarization if LLM fails or quality < 0.7
+ * - Entity and keyword preservation checking
  */
 export class SummarizeStrategy implements CompressionStrategy {
   private modelName?: string;
+  private apiKey?: string;
 
   /**
    * Create a SummarizeStrategy instance
    * @param modelName - Optional AI model name for summarization
+   * @param apiKey - Optional API key for LLM access (defaults to process.env.ANTHROPIC_API_KEY)
    */
-  constructor(modelName?: string) {
+  constructor(modelName?: string, apiKey?: string) {
     this.modelName = modelName ?? 'claude-sonnet';
+    this.apiKey = apiKey;
   }
 
   /**
@@ -54,7 +63,7 @@ export class SummarizeStrategy implements CompressionStrategy {
    */
   @LogExecution('SummarizeStrategy.compress', { logParams: false, logResult: false, level: 'debug' })
   async compress(content: string, options: CompressionOptions = {}): Promise<CompressionResult> {
-    const originalSize = content.length;
+    const originalSize = content?.length ?? 0;
 
     if (!content || content.length === 0) {
       return {
@@ -74,13 +83,37 @@ export class SummarizeStrategy implements CompressionStrategy {
       processedContent = this._extractCodeBlocks(content, codeBlocks);
     }
 
-    // Apply summarization
-    const summarizedContent = this._summarize(processedContent, options);
+    // LLM summarization with quality validation
+    const taskContext = options.taskContext || '';
+    let finalContent: string;
+    let qualityScore: number;
+
+    try {
+      // Try LLM abstractive summarization
+      const summary = await this._llmSummarize(processedContent, options);
+
+      // Validate quality
+      qualityScore = await this._validateQuality(processedContent, summary, taskContext);
+
+      if (qualityScore < 0.7) {
+        // Fallback to conservative summarization if quality is too low
+        logger.debug('LLM summarization quality below threshold, using fallback', { qualityScore });
+        finalContent = await this._summarizeConservative(processedContent, options);
+        // Re-validate quality for fallback
+        qualityScore = await this._validateQuality(processedContent, finalContent, taskContext);
+      } else {
+        finalContent = summary;
+      }
+    } catch (error) {
+      // Fallback to conservative summarization on LLM error
+      logger.warn('LLM summarization failed, using fallback', { error });
+      finalContent = await this._summarizeConservative(processedContent, options);
+      qualityScore = await this._validateQuality(processedContent, finalContent, taskContext);
+    }
 
     // Restore code blocks
-    let finalContent = summarizedContent;
     if (options.preserveCodeBlocks && codeBlocks.length > 0) {
-      finalContent = this._restoreCodeBlocks(summarizedContent, codeBlocks);
+      finalContent = this._restoreCodeBlocks(finalContent, codeBlocks);
     }
 
     // Calculate compression metrics
@@ -91,7 +124,8 @@ export class SummarizeStrategy implements CompressionStrategy {
       originalSize,
       compressedSize,
       reduction,
-      ratio: originalSize > 0 ? ((reduction / originalSize) * 100).toFixed(2) + '%' : '0%'
+      ratio: originalSize > 0 ? ((reduction / originalSize) * 100).toFixed(2) + '%' : '0%',
+      qualityScore
     });
 
     return {
@@ -102,7 +136,8 @@ export class SummarizeStrategy implements CompressionStrategy {
       method: 'summarize',
       metadata: {
         modelName: this.modelName,
-        codeBlocksPreserved: codeBlocks.length
+        codeBlocksPreserved: codeBlocks.length,
+        qualityScore
       }
     };
   }
@@ -147,13 +182,150 @@ export class SummarizeStrategy implements CompressionStrategy {
   }
 
   /**
-   * Summarize content using section-based approach with task awareness
+   * LLM-powered abstractive summarization
    * @param content - Content to summarize
-   * @param options - Compression options including taskContext
+   * @param options - Compression options
+   * @returns Summarized content from LLM
+   * @private
+   */
+  private async _llmSummarize(content: string, options: CompressionOptions): Promise<string> {
+    const taskContext = options.taskContext || 'General summarization';
+    const maxTokens = options.maxTokens || 1000;
+
+    // Get API key from constructor or environment
+    const apiKey = this.apiKey || process.env.ANTHROPIC_API_KEY;
+
+    if (!apiKey) {
+      // No API key available, fallback to section-based approach
+      logger.debug('No API key available, using section-based summarization');
+      return this._summarizeSectionBased(content, options);
+    }
+
+    // Create Claude adapter
+    const adapter = new ClaudeAdapter(apiKey, this.modelName);
+
+    // Build prompt for summarization
+    const prompt = `Summarize the following content while preserving key information.
+Task context: ${taskContext}
+
+Focus on:
+1. Main concepts and relationships
+2. Important code patterns (will be restored separately)
+3. Critical constraints and requirements
+
+Content to summarize:
+${content}`;
+
+    try {
+      const response = await adapter.chat([
+        {
+          role: 'user',
+          content: prompt
+        }
+      ], {
+        maxTokens,
+        temperature: 0.3 // Lower temperature for more focused summarization
+      });
+
+      return response.content || this._summarizeSectionBased(content, options);
+    } catch (error) {
+      logger.warn('LLM summarization failed', { error });
+      throw error; // Re-throw to trigger fallback in compress method
+    }
+  }
+
+  /**
+   * Validate the quality of a summary
+   * @param original - Original content
+   * @param summary - Summarized content
+   * @param taskContext - Task context for keyword preservation
+   * @returns Quality score (0.0-1.0)
+   * @private
+   */
+  private async _validateQuality(original: string, summary: string, taskContext: string): Promise<number> {
+    // Entity preservation (function names, class names, variable names) - 70% weight
+    const originalEntities = this._extractEntities(original);
+    const summaryEntities = this._extractEntities(summary);
+    const preservedEntities = originalEntities.filter(e => summaryEntities.includes(e)).length;
+    const preservationRatio = originalEntities.length > 0 ? preservedEntities / originalEntities.length : 1.0;
+
+    // Keyword preservation (task keywords) - 30% weight
+    const taskKeywords = taskContext.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+    const keywordMatches = taskKeywords.filter(k => summary.toLowerCase().includes(k)).length;
+    const keywordRatio = taskKeywords.length > 0 ? keywordMatches / taskKeywords.length : 1.0;
+
+    // Weighted quality score
+    const qualityScore = (preservationRatio * 0.7) + (keywordRatio * 0.3);
+
+    logger.debug('Quality validation complete', {
+      originalEntities: originalEntities.length,
+      summaryEntities: summaryEntities.length,
+      preservedEntities,
+      preservationRatio,
+      taskKeywords: taskKeywords.length,
+      keywordMatches,
+      keywordRatio,
+      qualityScore
+    });
+
+    return qualityScore;
+  }
+
+  /**
+   * Extract entities (function names, class names, exports) from content
+   * @param content - Content to extract entities from
+   * @returns Array of extracted entity names
+   * @private
+   */
+  private _extractEntities(content: string): string[] {
+    const entities: string[] = [];
+
+    // Extract function names
+    const functionMatches = content.match(/function\s+(\w+)/g) || [];
+    entities.push(...functionMatches.map(m => m.replace('function ', '')));
+
+    // Extract class names
+    const classMatches = content.match(/class\s+(\w+)/g) || [];
+    entities.push(...classMatches.map(m => m.replace('class ', '')));
+
+    // Extract export statements
+    const exportMatches = content.match(/export\s+(?:const|let|var|function|class)\s+(\w+)/g) || [];
+    entities.push(...exportMatches.map(m => m.split(/\s+/).pop() || ''));
+
+    // Extract method names (inside classes)
+    const methodMatches = content.match(/(?:public|private|protected)?\s*\w+\s*\([^)]*\)\s*{/g) || [];
+    entities.push(...methodMatches.map(m => {
+      const match = m.match(/(\w+)\s*\(/);
+      return match ? match[1] : '';
+    }).filter(Boolean));
+
+    // Return unique entities
+    return Array.from(new Set(entities));
+  }
+
+  /**
+   * Conservative summarization fallback (less aggressive compression)
+   * @param content - Content to summarize
+   * @param options - Compression options
+   * @returns Conservatively summarized content
+   * @private
+   */
+  private async _summarizeConservative(content: string, options: CompressionOptions): Promise<string> {
+    // Use the existing section-based approach with less aggressive compression
+    return this._summarizeSectionBased(content, {
+      ...options,
+      targetCompressionRatio: 0.7 // Less aggressive: retain 70% instead of 50%
+    });
+  }
+
+  /**
+   * Section-based summarization (fallback when LLM unavailable)
+   * @param content - Content to summarize
+   * @param options - Compression options
    * @returns Summarized content
    * @private
    */
-  private _summarize(content: string, options: CompressionOptions): string {
+  private _summarizeSectionBased(content: string, options: CompressionOptions): string {
     const maxTokens = options.maxTokens ?? 4000;
     const targetRatio = options.targetCompressionRatio ?? 0.5;
     const taskContext = options.taskContext ?? '';

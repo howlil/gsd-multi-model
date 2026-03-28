@@ -20,7 +20,7 @@ Read all files referenced by the invoking prompt's execution_context before star
 
 ```bash
 # Run health check
-HEALTH=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" doctor --json)
+HEALTH=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" doctor --json)
 ```
 
 **Check:**
@@ -53,20 +53,18 @@ Resolve before continuing with milestone initialization.
 
 ## 0a. Gather Initial Context (CONTEXT-01, CONTEXT-02)
 
-**Initialize ContextManager for context gathering:**
+**Context gathering is handled by ez-project-researcher:**
 
-```javascript
-const ContextManager = require('../bin/lib/context-manager.cjs');
-const contextManager = new ContextManager(process.cwd());
+```bash
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" init new-milestone
 ```
 
-**Request milestone-specific context:**
+This loads project context, STATE.md, and ROADMAP.md automatically.
 
-```javascript
-const context = await contextManager.requestContext({
-  files: ['.planning/PROJECT.md', '.planning/STATE.md', '.planning/ROADMAP.md'],
-  urls: []
-});
+**Context includes:**
+- `.planning/PROJECT.md` — Project description
+- `.planning/STATE.md` — Current position
+- `.planning/ROADMAP.md` — Phase structure
 ```
 
 **Agent can request additional context using:**
@@ -98,7 +96,7 @@ Check for MILESTONE-CONTEXT.md (from /ez:discuss-milestone)
 
 ```bash
 # Initialize milestone budget
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" cost-init \
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" cost-init \
   --milestone="v[X.Y]" \
   --budget-ceiling=50.00 \
   --alert-threshold=0.8
@@ -142,7 +140,7 @@ View anytime: /ez:cost
 
 **Commit metrics.json:**
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" commit "chore: initialize milestone budget" --files .planning/metrics.json
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" commit "chore: initialize milestone budget" --files .planning/metrics.json
 ```
 
 ---
@@ -167,7 +165,7 @@ node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" commit "chore: initialize milest
 
 ```bash
 # Create auto.lock
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" lock-create \
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" lock-create \
   --operation="new-milestone" \
   --milestone="v[X.Y]"
 ```
@@ -186,12 +184,12 @@ node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" lock-create \
 
 **Update heartbeat every 5 minutes:**
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" lock-heartbeat
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" lock-heartbeat
 ```
 
 **On completion:**
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" lock-release
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" lock-release
 ```
 
 **On crash/restart:**
@@ -248,12 +246,12 @@ Keep Accumulated Context section from previous milestone.
 Delete MILESTONE-CONTEXT.md if exists (consumed).
 
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" commit "docs: start milestone v[X.Y] [Name]" --files .planning/PROJECT.md .planning/STATE.md .planning/metrics.json
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" commit "docs: start milestone v[X.Y] [Name]" --files .planning/PROJECT.md .planning/STATE.md .planning/metrics.json
 ```
 
 **Update lock file state:**
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" lock-update --state="context_loaded"
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" lock-update --state="context_loaded"
 ```
 
 ---
@@ -261,7 +259,7 @@ node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" lock-update --state="context_loa
 ## 7. Load Context and Resolve Models
 
 ```bash
-INIT=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" init new-milestone)
+INIT=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" init new-milestone)
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 ```
 
@@ -279,15 +277,15 @@ AskUserQuestion: "Research the domain ecosystem for new features before defining
 
 ```bash
 # If "Research first": persist true
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" config-set workflow.research true
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" config-set workflow.research true
 
 # If "Skip research": persist false
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" config-set workflow.research false
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" config-set workflow.research false
 ```
 
 **Update lock file state:**
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" lock-update --state="research_decision"
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" lock-update --state="research_decision"
 ```
 
 **If "Research first":**
@@ -302,7 +300,7 @@ node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" lock-update --state="research_de
 ```
 
 ```bash
-mkdir -p .planning/research
+mkdir .planning/research
 ```
 
 **Spawn 4 parallel ez-project-researcher agents with FRESH CONTEXT (GSD-2 Pattern):**
@@ -391,7 +389,7 @@ Display key findings from SUMMARY.md:
 
 **Update lock file state:**
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" lock-update --state="research_complete"
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" lock-update --state="research_complete"
 ```
 
 **If "Skip research":** Continue to Step 9.
@@ -466,12 +464,12 @@ If "adjust": Return to scoping.
 
 **Commit requirements:**
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" commit "docs: define milestone v[X.Y] requirements" --files .planning/REQUIREMENTS.md
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" commit "docs: define milestone v[X.Y] requirements" --files .planning/REQUIREMENTS.md
 ```
 
 **Update lock file state:**
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" lock-update --state="requirements_defined"
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" lock-update --state="requirements_defined"
 ```
 
 ---
@@ -490,7 +488,7 @@ node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" lock-update --state="requirement
 
 ```bash
 # Start stuck watcher
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" stuck-watch start \
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" stuck-watch start \
   --operation="roadmap-creation" \
   --max-retries=1 \
   --timeout=300
@@ -594,12 +592,12 @@ Success criteria:
 
 **Commit roadmap** (after approval):
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" commit "docs: create milestone v[X.Y] roadmap ([N] phases)" --files .planning/ROADMAP.md .planning/STATE.md .planning/REQUIREMENTS.md
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" commit "docs: create milestone v[X.Y] roadmap ([N] phases)" --files .planning/ROADMAP.md .planning/STATE.md .planning/REQUIREMENTS.md
 ```
 
 **Update lock file state:**
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" lock-update --state="roadmap_created"
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" lock-update --state="roadmap_created"
 ```
 
 ---
@@ -609,7 +607,7 @@ node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" lock-update --state="roadmap_cre
 **Milestone initialization complete:**
 
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" lock-release
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" lock-release
 ```
 
 ---
@@ -620,7 +618,7 @@ node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" lock-release
 
 ```bash
 # Generate cost report
-COST_REPORT=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" cost-report \
+COST_REPORT=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" cost-report \
   --milestone="v[X.Y]" \
   --format=summary)
 ```

@@ -14,6 +14,7 @@
  * ```
  */
 
+import { encoding_for_model, TiktokenModel } from 'tiktoken';
 import type { TokenUsage } from '../ModelProviderAdapter.js';
 
 /**
@@ -99,6 +100,96 @@ export function extractTokenUsageWithPath(
     completionTokens,
     totalTokens
   };
+}
+
+/**
+ * Token Extractor Class with tiktoken integration
+ *
+ * Provides accurate token counting using tiktoken with fallback to character-based estimation.
+ * Includes Map-based caching for repeated content.
+ *
+ * @example
+ * ```typescript
+ * const extractor = new TokenExtractorClass('gpt-4');
+ * const count = extractor.countTokens('Hello, world!');
+ * ```
+ */
+export class TokenExtractorClass {
+  private readonly model: TiktokenModel;
+  private readonly cache: Map<string, number>;
+
+  /**
+   * Creates a new TokenExtractorClass instance
+   *
+   * @param model - The Tiktoken model to use (default: 'gpt-4')
+   */
+  constructor(model: TiktokenModel = 'gpt-4') {
+    this.model = model;
+    this.cache = new Map();
+  }
+
+  /**
+   * Count tokens in content using tiktoken
+   *
+   * Uses tiktoken for accurate token counting. Falls back to character-based estimation
+   * (4 chars/token) when tiktoken fails. Caches results for repeated content.
+   *
+   * @param content - The content to count tokens for
+   * @param model - Optional model override (uses constructor model if not provided)
+   * @returns The number of tokens in the content
+   *
+   * @example
+   * ```typescript
+   * const extractor = new TokenExtractorClass('gpt-4');
+   * const count = extractor.countTokens('Hello, world!');
+   * const customModelCount = extractor.countTokens('Hello, world!', 'gpt-3.5-turbo');
+   * ```
+   */
+  countTokens(content: string, model?: string): number {
+    const targetModel = model || this.model;
+    const cacheKey = `${targetModel}:${content.length}:${content.slice(0, 100)}`;
+
+    // Check cache first
+    const cached = this.cache.get(cacheKey);
+    if (cached !== undefined) {
+      return cached;
+    }
+
+    try {
+      // Use tiktoken for accurate counting
+      const encoder = encoding_for_model(targetModel as TiktokenModel);
+      const tokens = encoder.encode(content);
+      const count = tokens.length;
+      encoder.free();
+
+      // Cache the result
+      this.cache.set(cacheKey, count);
+      return count;
+    } catch (error) {
+      // Fallback: 4 chars/token estimate
+      const estimate = Math.ceil(content.length / 4);
+      this.cache.set(cacheKey, estimate);
+      return estimate;
+    }
+  }
+
+  /**
+   * Clear the token cache
+   *
+   * Useful for freeing memory or resetting cached values.
+   */
+  clearCache(): void {
+    this.cache.clear();
+  }
+
+  /**
+   * Get cache size
+   *
+   * @returns The number of entries in the cache
+   */
+  getCacheSize(): number {
+    return this.cache.size;
+  }
 }
 
 export default extractTokenUsage;

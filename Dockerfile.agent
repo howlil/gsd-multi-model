@@ -1,0 +1,140 @@
+# ============================================================================
+# EZ Agents - Agent Execution Container
+# ============================================================================
+# Sandboxed execution environment for agent code with resource isolation.
+# Supports CPU, memory, and time limits with network controls.
+#
+# Usage:
+#   docker build -f Dockerfile.agent -t ez-agents/agent-runner:latest .
+#   docker run --rm --cpus="1" --memory="1.5g" --network=none ez-agents/agent-runner
+# ============================================================================
+
+FROM node:20-alpine AS base
+
+# Install dependencies for native modules
+RUN apk add --no-cache python3 make g++ dumb-init
+
+# Set working directory
+WORKDIR /app
+
+# Security: Run as non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
+
+# ============================================================================
+# Base Configuration
+# ============================================================================
+# Resource limits (can be overridden at runtime)
+ENV NODE_OPTIONS=--max-old-space-size=1536
+ENV EZ_SANDBOX=true
+ENV EZ_AGENT_TYPE=executor
+ENV EZ_TASK_ID=unknown
+ENV EZ_TIMEOUT=60000
+
+# Security hardening
+ENV NODE_ENV=production
+ENV NPM_CONFIG_LOGLEVEL=warn
+
+# Copy package files
+COPY package*.json ./
+
+# ============================================================================
+# Dependencies Stage
+# ============================================================================
+FROM base AS dependencies
+
+# Install all dependencies (including devDependencies for testing)
+RUN npm ci --ignore-scripts
+
+# ============================================================================
+# Builder Stage
+# ============================================================================
+FROM base AS builder
+
+COPY --from=dependencies /app/node_modules ./node_modules
+COPY . .
+
+# Build the package
+RUN npm run build
+
+# ============================================================================
+# Production Stage
+# ============================================================================
+FROM base AS production
+
+# Install only production dependencies
+COPY package*.json ./
+RUN npm ci --only=production --ignore-scripts
+
+# Copy built artifacts
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/commands ./commands
+COPY --from=builder /app/agents ./agents
+COPY --from=builder /app/ez-agents ./ez-agents
+
+# Create workspace directory structure
+RUN mkdir /app/.planning/workspaces /app/.planning/secrets /app/.planning/logs && \
+    chown -R nodejs:nodejs /app
+
+# Switch to non-root user
+USER nodejs
+
+# Health check endpoint
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD node -e "console.log('healthy')" || exit 1
+
+# Default command (override with actual agent command)
+CMD ["node", "dist/index.js"]
+
+# ============================================================================
+# Staging/Test Stage (includes test dependencies)
+# ============================================================================
+FROM production AS staging
+
+USER root
+
+# Install test dependencies
+COPY package*.json ./
+RUN npm ci --ignore-scripts
+
+# Copy source files for testing
+COPY --from=builder /app/bin ./bin
+COPY --from=builder /app/tests ./tests
+COPY --from=builder /app/scripts ./scripts
+COPY --from=builder /app/vitest.config.ts ./
+COPY --from=builder /app/tsconfig.json ./
+
+# Restore non-root user
+USER nodejs
+
+# Default command for staging
+CMD ["npm", "run", "test"]
+
+# ============================================================================
+# Development Stage (with debugging tools)
+# ============================================================================
+FROM base AS development
+
+# Install development tools
+RUN apk add --no-cache curl vim git procps
+
+# Install all dependencies
+COPY package*.json ./
+RUN npm ci
+
+# Copy source files
+COPY . .
+
+# Create workspace directories
+RUN mkdir /app/.planning/workspaces /app/.planning/secrets /app/.planning/logs && \
+    chown -R nodejs:nodejs /app
+
+USER nodejs
+
+# Expose debug port
+EXPOSE 9229
+
+# Enable debugging
+ENV NODE_OPTIONS=--inspect=0.0.0.0:9229 --max-old-space-size=1536
+
+CMD ["npm", "run", "dev"]

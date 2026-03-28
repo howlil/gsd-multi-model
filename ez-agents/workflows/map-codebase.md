@@ -26,7 +26,7 @@ Documents are reference material for Claude when planning/executing. Always incl
 Load codebase mapping context:
 
 ```bash
-INIT=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" init map-codebase)
+INIT=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" init map-codebase)
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 ```
 
@@ -67,7 +67,7 @@ Continue to create_structure.
 Create .planning/codebase/ directory:
 
 ```bash
-mkdir -p .planning/codebase
+mkdir .planning/codebase
 ```
 
 **Expected output files:**
@@ -251,7 +251,7 @@ Continue to commit_codebase_map.
 Commit the codebase map:
 
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" commit "docs: map existing codebase" --files .planning/codebase/*.md
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" commit "docs: map existing codebase" --files .planning/codebase/*.md
 ```
 
 Continue to offer_next.

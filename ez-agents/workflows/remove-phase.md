@@ -29,7 +29,7 @@ Exit.
 Load phase operation context:
 
 ```bash
-INIT=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" init phase-op "${target}")
+INIT=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" init phase-op "${target}")
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 ```
 
@@ -80,13 +80,13 @@ Wait for confirmation.
 **Delegate the entire removal operation to ez-tools:**
 
 ```bash
-RESULT=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" phase remove "${target}")
+RESULT=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" phase remove "${target}")
 ```
 
 If the phase has executed plans (SUMMARY.md files), ez-tools will error. Use `--force` only if the user confirms:
 
 ```bash
-RESULT=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" phase remove "${target}" --force)
+RESULT=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" phase remove "${target}" --force)
 ```
 
 The CLI handles:
@@ -103,7 +103,7 @@ Extract from result: `removed`, `directory_deleted`, `renamed_directories`, `ren
 Stage and commit the removal:
 
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" commit "chore: remove phase {target} ({original-phase-name})" --files .planning/
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" commit "chore: remove phase {target} ({original-phase-name})" --files .planning/
 ```
 
 The commit message preserves the historical record of what was removed.

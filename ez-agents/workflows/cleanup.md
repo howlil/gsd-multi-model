@@ -104,7 +104,7 @@ If "Cancel": Stop.
 For each milestone, move phase directories:
 
 ```bash
-mkdir -p .planning/milestones/v{X.Y}-phases
+mkdir .planning/milestones/v{X.Y}-phases
 ```
 
 For each phase directory belonging to this milestone:
@@ -122,7 +122,7 @@ Repeat for all milestones in the cleanup set.
 Commit the changes:
 
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" commit "chore: archive phase directories from completed milestones" --files .planning/milestones/ .planning/phases/
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" commit "chore: archive phase directories from completed milestones" --files .planning/milestones/ .planning/phases/
 ```
 
 </step>

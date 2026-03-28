@@ -105,5 +105,80 @@
       "writable_paths": [".planning", "src", "tmp"],
       "cleanup_age_ms": 3600000
     }
+  },
+  "conflict_detection": {
+    "enabled": true,
+    "detection_scope": "file-level",
+    "detection_timing": "pre-write",
+    "resolution": "auto-fifo",
+    "escalation": "3-tier",
+    "alert_timing": "immediate",
+    "notification_type": "direct",
+    "alert_format": "warning",
+    "retention_days": 30
+  },
+  "context_sharing": {
+    "enabled": true,
+    "mechanism": "push-selective",
+    "broker": "p2p",
+    "format": "json",
+    "delta_sync": "timestamp",
+    "sync_timing": "batched-5min",
+    "conflict_resolution": "last-write-wins",
+    "delta_granularity": "per-task",
+    "subscription": "topics",
+    "subscription_mode": "automatic",
+    "subscription_priority": "fifo",
+    "subscription_scope": "task",
+    "validation": "trusted",
+    "access_control": "open",
+    "encryption": "plaintext",
+    "audit_logging": "exceptions",
+    "topic_extraction": {
+      "auto_extract": true,
+      "max_topics": 5,
+      "min_relevance": 0.3
+    }
+  },
+  "conflict_resolution": {
+    "enabled": true,
+    "negotiation_timeout_ms": 5000,
+    "auto_resolution_target": 0.95,
+    "strategies": [
+      "last-write-wins",
+      "merge",
+      "priority-based",
+      "operational-transform"
+    ],
+    "escalation_tiers": 4,
+    "retention_days": 90,
+    "priority_levels": {
+      "critical": 1,
+      "high": 2,
+      "normal": 3
+    }
+  },
+  "monitoring": {
+    "enabled": true,
+    "retention_days": 90,
+    "collection_frequency": "per-phase",
+    "alert_thresholds": {
+      "duration": {
+        "warning_hours": 2,
+        "critical_hours": 4
+      },
+      "cost": {
+        "warning_usd": 2.00,
+        "critical_usd": 4.00
+      },
+      "error_rate": {
+        "warning_percent": 5,
+        "critical_percent": 10
+      }
+    },
+    "sla": {
+      "duration_hours": 4,
+      "cost_usd": 1.00
+    }
   }
 }

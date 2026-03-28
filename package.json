@@ -104,6 +104,7 @@
     "eslint-plugin-sonarjs": "4.0.2",
     "eslint-plugin-tsdoc": "0.5.2",
     "expect-type": "1.3.0",
+    "fast-check": "3.0.0",
     "glob": "13.0.6",
     "husky": "9.1.7",
     "js-yaml": "4.1.1",
@@ -156,7 +157,13 @@
     "check:coupling": "madge --circular bin/lib/",
     "check:abstractions": "ts-prune",
     "check:all-metrics": "npm run lint && npm run check:duplicates && npm run check:coupling",
-    "prepare": "husky"
+    "prepare": "husky",
+    "gates:local": "node ez-agents/bin/lib/gate-executor.cjs --ci --cache",
+    "gates:status": "node ez-agents/bin/lib/gate-executor.cjs --status",
+    "gates:stats": "node ez-agents/bin/lib/gate-executor.cjs --stats",
+    "deps:audit": "tsx bin/dependency-audit.ts",
+    "deps:audit:json": "tsx bin/dependency-audit.ts --json",
+    "deps:check": "tsx bin/dependency-audit.ts --quiet"
   },
   "lint-staged": {
     "*.ts": [
@@ -168,6 +175,7 @@
   },
   "dependencies": {
     "micromatch": "4.0.5",
+    "tiktoken": "1.0.22",
     "zod": "4.3.6"
   }
 }

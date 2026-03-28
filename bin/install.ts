@@ -5,6 +5,10 @@ import * as path from 'path';
 import * as os from 'os';
 import * as readline from 'readline';
 import * as crypto from 'crypto';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Colors
 const cyan = '\x1b[36m';
@@ -1379,6 +1383,55 @@ function copyFlattenedCommands(srcDir, destDir, prefix, pathPrefix, runtime) {
   }
 }
 
+/**
+ * Copy EZ Agents skills to global skills directory
+ * Skills are installed to $HOME/.skills/ez-agents/ for universal access
+ * @param {string} srcDir - Source directory (ez-agents root)
+ * @param {boolean} isGlobal - Whether this is a global install
+ * @param {string} runtime - Runtime identifier
+ */
+function copySkills(srcDir: string, isGlobal: boolean, runtime: string): void {
+  // Only install skills for global installs
+  if (!isGlobal) {
+    console.log(`  ${yellow}⚠${reset} Skipping skills (local install)`);
+    return;
+  }
+
+  const homeDir = os.homedir().replace(/\\/g, '/');
+  const skillsDestDir = path.posix.join(homeDir, '.skills', 'ez-agents');
+  const srcSkillsDir = path.join(srcDir, 'skills');
+
+  console.log(`  Installing skills to ${cyan}${skillsDestDir}${reset}...`);
+
+  // Create skills directory
+  fs.mkdirSync(skillsDestDir, { recursive: true });
+
+  // Copy all skills from source
+  if (fs.existsSync(srcSkillsDir)) {
+    fs.cpSync(srcSkillsDir, skillsDestDir, {
+      recursive: true,
+      force: true
+    });
+
+    // Count installed skills
+    let skillCount = 0;
+    const categories = ['stack', 'architecture', 'domain', 'operational', 'governance', 'testing', 'observability', 'devops', 'security', 'ai', 'data', 'product'];
+
+    for (const category of categories) {
+      const categoryPath = path.join(skillsDestDir, category);
+      if (fs.existsSync(categoryPath)) {
+        const skills = fs.readdirSync(categoryPath, { withFileTypes: true })
+          .filter(d => d.isDirectory()).length;
+        skillCount += skills;
+      }
+    }
+
+    console.log(`  ${green}✓${reset} Installed ${skillCount} skills to ${skillsDestDir}`);
+  } else {
+    console.log(`  ${yellow}⚠${reset} Skills directory not found: ${srcSkillsDir}`);
+  }
+}
+
 function listCodexSkillNames(skillsDir, prefix = 'ez-') {
   if (!fs.existsSync(skillsDir)) return [];
   const entries = fs.readdirSync(skillsDir, { withFileTypes: true });
@@ -2623,6 +2676,9 @@ function install(isGlobal: boolean, runtime = 'claude'): { settingsPath: string 
   } else {
     failures.push('ez-agents');
   }
+
+  // Copy EZ Agents skills to global directory ($HOME/.skills/ez-agents/)
+  copySkills(src, isGlobal, runtime);
 
   // Copy agents to agents directory
   const agentsSrc = path.join(src, 'agents');

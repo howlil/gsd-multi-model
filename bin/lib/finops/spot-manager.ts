@@ -141,6 +141,10 @@ export class SpotManager {
    * @param recommendations - Recommendations to save
    */
   saveRecommendations(recommendations: SpotRecommendations): void {
+    const dir = path.dirname(this.recommendationsPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
     fs.writeFileSync(this.recommendationsPath, JSON.stringify(recommendations, null, 2), 'utf8');
   }
 }

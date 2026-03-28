@@ -1,5 +1,5 @@
 <purpose>
-Create executable phase prompts (PLAN.md files) for a roadmap phase with integrated research and verification. Default flow: Research (if needed) -> Plan -> Verify -> Done. Orchestrates ez-phase-researcher, ez-planner, and ez-plan-checker agents with a revision loop (max 3 iterations).
+Create executable phase prompts (PLAN.md files) for a roadmap phase with integrated research and verification. Default flow: Research (if needed) -> Plan -> Done. Orchestrates ez-phase-researcher and ez-planner agents with a revision loop (max 3 iterations).
 </purpose>
 
 <required_reading>
@@ -15,7 +15,7 @@ Read all files referenced by the invoking prompt's execution_context before star
 Load all context in one call (paths only to minimize orchestrator context):
 
 ```bash
-INIT=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" init plan-phase "$PHASE")
+INIT=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" init plan-phase "$PHASE")
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 ```
 
@@ -36,7 +36,7 @@ Extract `--prd <filepath>` from $ARGUMENTS. If present, set PRD_FILE to the file
 **If `phase_found` is false:** Validate phase exists in ROADMAP.md. If valid, create the phase directory using `phase_slug` and `padded_phase` from init:
 
 ```bash
-mkdir -p .planning/phases/${padded_phase}-${phase_slug}
+mkdir .planning/phases/${padded_phase}-${phase_slug}
 ```
 
 **Existing artifacts from init:** `has_research`, `has_plans`, `plan_count`.
@@ -45,7 +45,7 @@ mkdir -p .planning/phases/${padded_phase}-${phase_slug}
 Check for --no-auto in ARGUMENTS. If not present:
 
 ```bash
-SMART_ORCH=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" config-get smart_orchestration.enabled 2>/dev/null || echo "true")
+SMART_ORCH=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" config-get smart_orchestration.enabled 2>/dev/null || echo "true")
 ```
 If `SMART_ORCH` is `"false"` or `--no-auto` is in ARGUMENTS: skip, proceed to step 3.
 
@@ -66,7 +66,7 @@ If NO match OR CONTEXT.md already exists OR `--skip-discussion` present: skip si
 ## 3. Validate Phase
 
 ```bash
-PHASE_INFO=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" roadmap get-phase "${PHASE}")
+PHASE_INFO=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" roadmap get-phase "${PHASE}")
 ```
 
 **If `found` is false:** Error with available phases. **If `found` is true:** Extract `phase_number`, `phase_name`, `goal` from JSON.
@@ -168,7 +168,7 @@ Use full relative paths. Group by topic area.]
 
 5. Commit:
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" commit "docs(${padded_phase}): generate context from PRD" --files "${phase_dir}/${padded_phase}-CONTEXT.md"
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" commit "docs(${padded_phase}): generate context from PRD" --files "${phase_dir}/${padded_phase}-CONTEXT.md"
 ```
 
 6. Set `context_content` to the generated CONTEXT.md content and continue to step 5 (Handle Research).
@@ -215,7 +215,7 @@ Display banner:
 ### Spawn ez-phase-researcher
 
 ```bash
-PHASE_DESC=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" roadmap get-phase "${PHASE}" | jq -r '.section')
+PHASE_DESC=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" roadmap get-phase "${PHASE}" | jq -r '.section')
 ```
 
 Research prompt:
@@ -314,7 +314,7 @@ VALIDATION_EXISTS=$(ls "${PHASE_DIR}"/*-VALIDATION.md 2>/dev/null | head -1)
 
 If missing and Nyquist enabled — ask user:
 1. Re-run with research: `/ez:plan-phase {PHASE} --research`
-2. Disable Nyquist: `node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" config-set workflow.nyquist_validation false`
+2. Disable Nyquist: `node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" config-set workflow.nyquist_validation false`
 3. Continue anyway (plans fail Dimension 8)
 
 Proceed to Step 8 only if user selects 2 or 3.
@@ -415,65 +415,13 @@ Task(
 
 ## 9. Handle Planner Return
 
-- **`## PLANNING COMPLETE`:** Display plan count. If `--skip-verify` or `plan_checker_enabled` is false (from init): skip to step 13. Otherwise: step 10.
+- **`## PLANNING COMPLETE`:** Display plan count, proceed to step 11 (Present Final Status).
 - **`## CHECKPOINT REACHED`:** Present to user, get response, spawn continuation (step 12)
 - **`## PLANNING INCONCLUSIVE`:** Show attempts, offer: Add context / Retry / Manual
 
-## 10. Spawn ez-plan-checker Agent
+## 10. Revision Loop (Max 3 Iterations)
 
-Display banner:
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- EZ ► VERIFYING PLANS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-◆ Spawning plan checker...
-```
-
-Checker prompt:
-
-```markdown
-<verification_context>
-**Phase:** {phase_number}
-**Phase Goal:** {goal from ROADMAP}
-
-<files_to_read>
-- {PHASE_DIR}/*-PLAN.md (Plans to verify)
-- {roadmap_path} (Roadmap)
-- {requirements_path} (Requirements)
-- {context_path} (USER DECISIONS from /ez:discuss-phase)
-- {research_path} (Technical Research — includes Validation Architecture)
-</files_to_read>
-
-**Phase requirement IDs (MUST ALL be covered):** {phase_req_ids}
-
-**Project instructions:** Read ./CLAUDE.md if exists — verify plans honor project guidelines
-**Project skills:** Check .claude/skills/ or .agents/skills/ directory (if either exists) — verify plans account for project skill rules
-</verification_context>
-
-<expected_output>
-- ## VERIFICATION PASSED — all checks pass
-- ## ISSUES FOUND — structured issue list
-</expected_output>
-```
-
-```
-Task(
-  prompt=checker_prompt,
-  subagent_type="ez-plan-checker",
-  model="{checker_model}",
-  description="Verify Phase {phase} plans"
-)
-```
-
-## 11. Handle Checker Return
-
-- **`## VERIFICATION PASSED`:** Display confirmation, proceed to step 13.
-- **`## ISSUES FOUND`:** Display issues, check iteration count, proceed to step 12.
-
-## 12. Revision Loop (Max 3 Iterations)
-
-Track `iteration_count` (starts at 1 after initial plan + check).
+Track `iteration_count` (starts at 1 after initial plan).
 
 **If iteration_count < 3:**
 
@@ -491,11 +439,11 @@ Revision prompt:
 - {context_path} (USER DECISIONS from /ez:discuss-phase)
 </files_to_read>
 
-**Checker issues:** {structured_issues_from_checker}
+**Issues to address:** {issues_from_user_or_previous_check}
 </revision_context>
 
 <instructions>
-Make targeted updates to address checker issues.
+Make targeted updates to address issues.
 Do NOT replan from scratch unless issues are fundamental.
 Return what changed.
 </instructions>
@@ -510,7 +458,7 @@ Task(
 )
 ```
 
-After planner returns -> spawn checker again (step 10), increment iteration_count.
+After planner returns -> increment iteration_count, present updated plans for user review.
 
 **If iteration_count >= 3:**
 
@@ -518,11 +466,11 @@ Display: `Max iterations reached. {N} issues remain:` + issue list
 
 Offer: 1) Force proceed, 2) Provide guidance and retry, 3) Abandon
 
-## 13. Present Final Status
+## 11. Present Final Status
 
 Route to `<offer_next>` OR `auto_advance` depending on flags/config.
 
-## 14. Auto-Advance Check
+## 12. Auto-Advance Check
 
 Check for auto-advance trigger:
 
@@ -530,13 +478,13 @@ Check for auto-advance trigger:
 2. **Sync chain flag with intent** — if user invoked manually (no `--auto`), clear the ephemeral chain flag from any previous interrupted `--auto` chain. This does NOT touch `workflow.auto_advance` (the user's persistent settings preference):
    ```bash
    if [[ ! "$ARGUMENTS" =~ --auto ]]; then
-     node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" config-set workflow._auto_chain_active false 2>/dev/null
+     node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" config-set workflow._auto_chain_active false 2>/dev/null
    fi
    ```
 3. Read both the chain flag and user preference:
    ```bash
-   AUTO_CHAIN=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" config-get workflow._auto_chain_active 2>/dev/null || echo "false")
-   AUTO_CFG=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" config-get workflow.auto_advance 2>/dev/null || echo "false")
+   AUTO_CHAIN=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" config-get workflow._auto_chain_active 2>/dev/null || echo "false")
+   AUTO_CFG=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" config-get workflow.auto_advance 2>/dev/null || echo "false")
    ```
 
 **If `--auto` flag present OR `AUTO_CHAIN` is true OR `AUTO_CFG` is true:**

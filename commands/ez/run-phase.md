@@ -1,7 +1,7 @@
 ---
 name: ez:run-phase
-description: Run all phases iteratively with pause points for approval
-argument-hint: "[start-phase] [--no-discuss] [--no-verify] [--yolo]"
+description: Run all phases iteratively with pause points for approval. Discuss-phase runs in --auto mode by default for autonomous execution.
+argument-hint: "[start-phase] [--no-discuss] [--discuss-interactive] [--no-verify] [--yolo]"
 allowed-tools:
   - Read
   - Write
@@ -34,13 +34,17 @@ Execute all phases iteratively from a starting phase. For each phase: discuss �
 **Arguments:**
 - `start-phase` — Phase number to start from (default: first incomplete phase)
 - `--no-discuss` — Skip discuss-phase for all phases
+- `--discuss-interactive` — Run discuss-phase without --auto (default: --auto)
 - `--no-verify` — Skip verify-work for all phases
 - `--yolo` — No pause points, fully autonomous (use at own risk)
 
 **Flags:**
 - `--no-discuss` → Skip discuss-phase (langsung plan)
+- `--discuss-interactive` → Run discuss-phase with interactive questioning (default: --auto mode)
 - `--no-verify` → Skip verify-work (langsung phase berikutnya)
 - `--yolo` → No pause, fully autonomous (hati-hati!)
+
+**Default behavior:** discuss-phase runs with --auto flag for autonomous execution.
 
 **Pause Points (unless --yolo):**
 1. After discuss-phase: "Continue to plan?"
@@ -139,14 +143,14 @@ if [[ -f ".planning/phases/${PHASE_DIR}/CONTEXT.md" ]]; then
     header: "Context"
     question: "CONTEXT.md exists. Update or skip?"
     options:
-      - "Update context" — Run discuss-phase
+      - "Update context" — Run discuss-phase --auto
       - "Skip (use existing)" — Continue to plan
       - "View existing" — Read CONTEXT.md, then decide
 else
-  # No context, run discuss
+  # No context, run discuss --auto
 ```
 
-**If user chooses to discuss:**
+**If user chooses to discuss (or no CONTEXT.md exists):**
 
 ```
 Task(prompt="
@@ -155,6 +159,8 @@ Discuss Phase {N}: {PHASE_NAME}
 
 Extract implementation decisions that downstream agents need.
 Create CONTEXT.md with decisions that guide research and planning.
+
+**Mode:** --auto (Claude picks recommended defaults for autonomous execution)
 </objective>
 
 <files_to_read>
@@ -169,7 +175,7 @@ Phase {N}: {PHASE_GOAL}
 </phase_info>
 
 Write to: .planning/phases/{PHASE_DIR}/CONTEXT.md
-", subagent_type="ez-discuss-phase", model="{PLANNER_MODEL}", description="Discuss Phase {N}")
+", subagent_type="ez-discuss-phase", model="{PLANNER_MODEL}", description="Discuss Phase {N} --auto")
 ```
 
 **If `NO_DISCUSS` is true:** Skip to Step 2.
@@ -532,7 +538,7 @@ Continue waiting? (y/n)
 
 <examples>
 
-## Start from first incomplete phase
+## Start from first incomplete phase (default --auto mode)
 
 ```
 /ez:run-phase
@@ -542,6 +548,12 @@ Continue waiting? (y/n)
 
 ```
 /ez:run-phase 2
+```
+
+## Interactive discuss-phase (choose gray areas manually)
+
+```
+/ez:run-phase 3 --discuss-interactive
 ```
 
 ## Skip discussion (CONTEXT.md already exists)

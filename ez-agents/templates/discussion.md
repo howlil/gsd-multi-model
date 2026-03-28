@@ -1,7 +1,7 @@
 ---
 phase: {phase-number}-{phase-slug}
 status: open
-participants: [ez-requirements-agent, ez-tech-lead-agent, ez-observer-agent, ez-scrum-master-agent]
+participants: [ez-planner, ez-executor, ez-verifier]
 opened: {timestamp}
 consensus: pending
 ---
@@ -12,35 +12,27 @@ consensus: pending
 
 ---
 
-## Requirements Perspective (ez-requirements-agent)
+## Planning Perspective (ez-planner)
 
-> *Populated by ez-requirements-agent during phase kickoff*
+> *Populated by ez-planner during plan-phase*
 
-{Populated during gather-requirements or plan-phase kickoff}
-
----
-
-## Tech Lead Perspective (ez-tech-lead-agent)
-
-> *Populated by ez-tech-lead-agent during plan-phase review*
-
-{Populated during arch-review after plan creation}
+{Populated during plan-phase — task breakdown, dependencies, must_haves}
 
 ---
 
-## Observer Perspective (ez-observer-agent)
+## Execution Perspective (ez-executor)
 
-> *Populated by ez-observer-agent during execute-phase pre-flight*
+> *Populated by ez-executor during execute-phase pre-flight*
 
-{Populated during execute-phase pre-flight}
+{Populated during execute-phase pre-flight — feasibility check, risk assessment}
 
 ---
 
-## Scrum Master Perspective (ez-scrum-master-agent)
+## Verification Perspective (ez-verifier)
 
-> *Populated by ez-scrum-master-agent during phase kickoff*
+> *Populated by ez-verifier during plan review*
 
-{Populated during standup or phase kickoff}
+{Populated during plan review — goal-backward criteria, anti-pattern scan}
 
 ---
 

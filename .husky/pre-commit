@@ -1,10 +1,10 @@
 #!/usr/bin/env sh
 
 # EZ Agents Pre-commit Hook
-# Runs security gate only (fast path - 2s timeout)
+# Runs all 4 quality gates with 30s timeout for local execution
 
-echo "Running pre-commit checks..."
-echo "═══════════════════════════"
+echo "Running pre-commit quality gates..."
+echo "══════════════════════════════════"
 echo ""
 
 # Build hooks first
@@ -12,15 +12,20 @@ echo "✓ Building hooks..."
 npm run build:hooks || { echo "✗ Build failed. Commit aborted."; exit 1; }
 echo ""
 
-# Run security gate only (2s timeout)
-echo "✓ Running security gate (gate-04)..."
-node ez-agents/bin/lib/gate-executor.cjs --gate=gate-04 --timeout=2000 || {
-  echo "✗ Security gate failed. Commit aborted."
-  echo "  Use --no-verify to bypass (not recommended for security fixes)"
+# Run all quality gates (30s timeout for local)
+echo "✓ Running all quality gates (gate-01, gate-02, gate-03, gate-04)..."
+node ez-agents/bin/lib/gate-executor.cjs --ci --timeout=30000 || {
+  echo "✗ Quality gate failed. Commit aborted."
+  echo ""
+  echo "  To bypass this check (emergency only):"
+  echo "  git commit --no-verify -m \"your commit message\""
+  echo ""
+  echo "  Or use gate bypass with audit trail:"
+  echo "  node ez-agents/bin/lib/gate-executor.cjs --bypass \"your reason (min 10 chars)\" --gate <gate-id>"
   exit 1
 }
 echo ""
 
-echo "═══════════════════════════"
-echo "✓ Pre-commit security check passed!"
+echo "══════════════════════════════════"
+echo "✓ All pre-commit quality gates passed!"
 exit 0

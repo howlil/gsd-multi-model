@@ -59,7 +59,7 @@ Decimal phase directories use the full decimal number:
 ```bash
 SLUG=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" generate-slug "$DESCRIPTION" --raw)
 PHASE_DIR=".planning/phases/${DECIMAL_PHASE}-${SLUG}"
-mkdir -p "$PHASE_DIR"
+mkdir "$PHASE_DIR"
 ```
 
 Example: `.planning/phases/06.1-fix-critical-auth-bug/`

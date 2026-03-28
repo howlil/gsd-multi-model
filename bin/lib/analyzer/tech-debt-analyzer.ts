@@ -348,6 +348,46 @@ export class TechDebtAnalyzer {
   }
 
   /**
+   * Get tech debt ratio (hours fixing debt / total hours)
+   * @param debtHours - Hours spent fixing tech debt
+   * @param totalHours - Total development hours
+   * @returns Tech debt ratio percentage
+   */
+  getTechDebtRatio(debtHours: number, totalHours: number): number {
+    if (totalHours === 0) return 0;
+    return (debtHours / totalHours) * 100;
+  }
+
+  /**
+   * Get average age of debt markers
+   * @param markers - Array of debt markers with age
+   * @returns Average age in days
+   */
+  getAvgDebtAge(markers: DebtMarker[]): number {
+    if (markers.length === 0) return 0;
+
+    const totalAge = markers.reduce((sum, marker) => {
+      if (marker.age) {
+        // Parse age from string like "2 days", "1 week", etc.
+        const match = marker.age.match(/(\d+)/);
+        if (match) {
+          const days = parseInt(match[1]);
+          if (marker.age.includes('week')) {
+            return sum + (days * 7);
+          } else if (marker.age.includes('month')) {
+            return sum + (days * 30);
+          } else {
+            return sum + days;
+          }
+        }
+      }
+      return sum;
+    }, 0);
+
+    return Math.round(totalAge / markers.length);
+  }
+
+  /**
    * Get tech debt by file
    * @param findings - Aggregated findings
    * @returns Object mapping file paths to their issues

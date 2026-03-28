@@ -49,19 +49,19 @@ EOF
 run_qwen_test() {
     prompt="$1"
     timeout_sec="${2:-60}"
-    
+
     START=$(date +%s%3N)
-    
+
     # Run Qwen Code with timeout
     timeout "$timeout_sec" qwen --auth-type "$QWEN_AUTH_TYPE" -p "$prompt" > /tmp/qwen_output.txt 2>&1
     EXIT_CODE=$?
-    
+
     END=$(date +%s%3N)
     DURATION=$((END - START))
-    
+
     # Read output
     OUTPUT=$(cat /tmp/qwen_output.txt 2>/dev/null | tr -d '\n' | cut -c1-100)
-    
+
     # Return JSON
     echo "{\"durationMs\":$DURATION,\"exitCode\":$EXIT_CODE,\"output\":\"$OUTPUT\"}"
 }
@@ -73,7 +73,7 @@ run_qwen_test() {
 install_ez_agents() {
     version="$1"
     install_path="${2:-/app}"
-    
+
     if [ "$version" = "current" ]; then
         # Install from local source
         cd "$install_path"
@@ -110,7 +110,7 @@ calculate_average() {
         sum=$((sum + num))
         count=$((count + 1))
     done
-    
+
     if [ $count -gt 0 ]; then
         echo $((sum / count))
     else

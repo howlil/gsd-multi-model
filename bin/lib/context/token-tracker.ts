@@ -16,6 +16,7 @@
 
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { CompressionStats } from './context-slicer.js';
 
 /**
  * Token usage record for a single task
@@ -52,6 +53,14 @@ export interface PhaseTokenSummary {
 }
 
 /**
+ * Compression stats record with timestamp for metrics.json
+ */
+export interface CompressionStatsRecord extends CompressionStats {
+  /** ISO 8601 timestamp */
+  timestamp: string;
+}
+
+/**
  * Metrics data structure (matches .planning/metrics.json schema)
  */
 interface MetricsData {
@@ -70,6 +79,7 @@ interface MetricsData {
     by_provider: Record<string, unknown>;
   };
   tokenUsage?: TokenUsage[];
+  compressionStats?: CompressionStatsRecord[];
 }
 
 /**
@@ -195,6 +205,46 @@ export class TokenTracker {
   }
 
   /**
+   * Log compression statistics (append to existing metrics.json array)
+   *
+   * Zero marginal token cost — just push to existing array.
+   * Atomic write: writes to temp file, then renames (prevents corruption).
+   *
+   * @param stats - Compression statistics record
+   * @throws Error if file write fails
+   */
+  async logCompressionStats(stats: CompressionStats): Promise<void> {
+    const metrics = await this.readMetrics();
+
+    if (!metrics.compressionStats) {
+      metrics.compressionStats = [];
+    }
+
+    metrics.compressionStats.push({
+      ...stats,
+      timestamp: new Date().toISOString()
+    });
+
+    // Atomic write: write to temp file, then rename (prevents corruption)
+    const tempPath = this.metricsPath + '.tmp';
+    await fs.writeFile(tempPath, JSON.stringify(metrics, null, 2), 'utf-8');
+    await fs.rename(tempPath, this.metricsPath);
+  }
+
+  /**
+   * Get compression statistics by phase
+   *
+   * @param phaseNum - Phase number to filter by
+   * @returns Compression statistics records for phase
+   */
+  async getCompressionStatsByPhase(phaseNum: number): Promise<CompressionStatsRecord[]> {
+    const metrics = await this.readMetrics();
+    // Note: compression stats don't have phase field, so return all
+    // In future, could add phase tracking to CompressionStats
+    return metrics.compressionStats || [];
+  }
+
+  /**
    * Read metrics.json file
    *
    * Returns empty structure if file doesn't exist.
@@ -223,7 +273,8 @@ export class TokenTracker {
           total_cost_usd: 0.00,
           by_provider: {}
         },
-        tokenUsage: []
+        tokenUsage: [],
+        compressionStats: []
       };
       return emptyMetrics;
     }

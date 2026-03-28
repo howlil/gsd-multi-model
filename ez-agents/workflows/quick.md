@@ -3,9 +3,9 @@ Execute small, ad-hoc tasks with EZ Agents guarantees (atomic commits, STATE.md 
 
 With `--discuss` flag: lightweight discussion phase before planning. Surfaces assumptions, clarifies gray areas, captures decisions in CONTEXT.md so the planner treats them as locked.
 
-With `--full` flag: enables plan-checking (max 2 iterations) and post-execution verification for quality guarantees without full milestone ceremony.
+With `--full` flag: enables enhanced planning with revision support and post-execution verification for quality guarantees without full milestone ceremony.
 
-Flags are composable: `--discuss --full` gives discussion + plan-checking + verification.
+Flags are composable: `--discuss --full` gives discussion + enhanced planning + verification.
 </purpose>
 
 <required_reading>
@@ -68,7 +68,7 @@ If `$FULL_MODE` only:
 **Step 2: Initialize**
 
 ```bash
-INIT=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" init quick "$DESCRIPTION")
+INIT=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" init quick "$DESCRIPTION")
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 ```
 
@@ -83,7 +83,7 @@ Quick tasks can run mid-phase - validation only checks ROADMAP.md exists, not ph
 **Step 3: Create task directory**
 
 ```bash
-mkdir -p ${task_dir}
+mkdir ${task_dir}
 ```
 
 ---
@@ -94,7 +94,7 @@ Create the directory for this quick task:
 
 ```bash
 QUICK_DIR=".planning/quick/${quick_id}-${slug}"
-mkdir -p ${QUICK_DIR}
+mkdir ${QUICK_DIR}
 ```
 
 Report to user:
@@ -288,69 +288,34 @@ If plan not found, error: "Planner failed to create ${quick_id}-PLAN.md"
 
 ---
 
-**Step 5.5: Plan-checker loop (only when `$FULL_MODE`)**
+**Step 5.5: Enhanced Planning Review (only when `$FULL_MODE`)**
 
 Skip this step entirely if NOT `$FULL_MODE`.
 
-Display banner:
+After planner returns, present the plan to the user for review:
+
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- EZ Agents ► CHECKING PLAN
+ EZ Agents ► PLAN READY FOR REVIEW
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-◆ Spawning plan checker...
+Plan: ${QUICK_DIR}/${quick_id}-PLAN.md
+
+[Display plan summary or key tasks]
+
+───────────────────────────────────────────────────────────────
+
+Options:
+1. Proceed with execution
+2. Request revisions (describe what to change)
+3. Abort
 ```
-
-Checker prompt:
-
-```markdown
-<verification_context>
-**Mode:** quick-full
-**Task Description:** ${DESCRIPTION}
-
-<files_to_read>
-- ${QUICK_DIR}/${quick_id}-PLAN.md (Plan to verify)
-</files_to_read>
-
-**Scope:** This is a quick task, not a full phase. Skip checks that require a ROADMAP phase goal.
-</verification_context>
-
-<check_dimensions>
-- Requirement coverage: Does the plan address the task description?
-- Task completeness: Do tasks have files, action, verify, done fields?
-- Key links: Are referenced files real?
-- Scope sanity: Is this appropriately sized for a quick task (1-3 tasks)?
-- must_haves derivation: Are must_haves traceable to the task description?
-
-Skip: cross-plan deps (single plan), ROADMAP alignment
-${DISCUSS_MODE ? '- Context compliance: Does the plan honor locked decisions from CONTEXT.md?' : '- Skip: context compliance (no CONTEXT.md)'}
-</check_dimensions>
-
-<expected_output>
-- ## VERIFICATION PASSED — all checks pass
-- ## ISSUES FOUND — structured issue list
-</expected_output>
-```
-
-```
-Task(
-  prompt=checker_prompt,
-  subagent_type="ez-plan-checker",
-  model="{checker_model}",
-  description="Check quick plan: ${DESCRIPTION}"
-)
-```
-
-**Handle checker return:**
-
-- **`## VERIFICATION PASSED`:** Display confirmation, proceed to step 6.
-- **`## ISSUES FOUND`:** Display issues, check iteration count, enter revision loop.
 
 **Revision loop (max 2 iterations):**
 
-Track `iteration_count` (starts at 1 after initial plan + check).
+Track `iteration_count` (starts at 1 after initial plan).
 
-**If iteration_count < 2:**
+**If user requests revisions and iteration_count < 2:**
 
 Display: `Sending back to planner for revision... (iteration ${N}/2)`
 
@@ -364,12 +329,12 @@ Revision prompt:
 - ${QUICK_DIR}/${quick_id}-PLAN.md (Existing plan)
 </files_to_read>
 
-**Checker issues:** ${structured_issues_from_checker}
+**User feedback:** ${user_feedback}
 
 </revision_context>
 
 <instructions>
-Make targeted updates to address checker issues.
+Make targeted updates to address user feedback.
 Do NOT replan from scratch unless issues are fundamental.
 Return what changed.
 </instructions>
@@ -384,13 +349,11 @@ Task(
 )
 ```
 
-After planner returns → spawn checker again, increment iteration_count.
+After planner returns → present updated plan for user review, increment iteration_count.
 
 **If iteration_count >= 2:**
 
-Display: `Max iterations reached. ${N} issues remain:` + issue list
-
-Offer: 1) Force proceed, 2) Abort
+Display: `Max iterations reached. Proceeding with current plan.`
 
 ---
 
@@ -548,7 +511,7 @@ Build file list:
 - If `$FULL_MODE` and verification file exists: `${QUICK_DIR}/${quick_id}-VERIFICATION.md`
 
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" commit "docs(quick-${quick_id}): ${DESCRIPTION}" --files ${file_list}
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" commit "docs(quick-${quick_id}): ${DESCRIPTION}" --files ${file_list}
 ```
 
 Get final commit hash:

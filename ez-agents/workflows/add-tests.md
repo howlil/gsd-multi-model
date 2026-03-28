@@ -33,7 +33,7 @@ Exit.
 Load phase operation context:
 
 ```bash
-INIT=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" init phase-op "${PHASE_ARG}")
+INIT=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" init phase-op "${PHASE_ARG}")
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 ```
 
@@ -297,7 +297,7 @@ Create a test coverage report and present to user:
 
 Record test generation in project state:
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" state-snapshot
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" state-snapshot
 ```
 
 If there are passing tests to commit:

@@ -1,476 +1,304 @@
-# Skill Validation Rules
-
-**Phase:** 39
-**Plan:** 39-04
-**Requirement:** POOL-04
-
-This document defines validation rules for each skill in the Phase 35 Skill Registry. Each skill has:
-- **Best Practices** (must have) — Output should follow these practices
-- **Anti-Patterns** (must not have) — Output should avoid these patterns
-
----
-
-## Validation Severity Levels
-
-| Severity | Impact | Action |
-|----------|--------|--------|
-| **error** | Critical violation | Blocks handoff, requires fix |
-| **warning** | Best practice deviation | Logged, allows handoff |
-| **info** | Suggestion | Improvement recommendation |
-
----
-
-## Stack Skills
-
-### laravel_11_structure_skill_v2
-
-**Best Practices:**
-- `app/Models/` directory for Eloquent models
-- `app/Http/Controllers/` for controllers
-- `routes/api.php` for API routes
-- Service classes in `app/Services/`
-- Repository pattern in `app/Repositories/`
-
-**Anti-Patterns:**
-- Business logic in `routes/web.php`
-- Direct `DB::query()` calls in controllers
-- Fat controllers (>200 lines)
-- N+1 queries without eager loading
-
----
-
-### nextjs_app_router_skill
-
-**Best Practices:**
-- `app/` directory structure for routes
-- Server Components by default
-- `use client` directive for client components
-- Loading states with `loading.tsx`
-- Error boundaries with `error.tsx`
-
-**Anti-Patterns:**
-- `useState` in Server Components
-- Direct database calls in client components
-- Missing loading states
-- `window`/`document` access in Server Components
-
----
-
-### react_architecture_skill
-
-**Best Practices:**
-- Component composition over inheritance
-- Custom hooks for reusable logic
-- Prop drilling avoidance (Context or state management)
-- Keys on list items
-
-**Anti-Patterns:**
-- Direct DOM manipulation
-- `setState` in render
-- Missing keys in lists
-- Props mutation
-
----
-
-## Architecture Skills
-
-### modular_monolith_skill
-
-**Best Practices:**
-- Module boundaries clearly defined
-- Inter-module communication via interfaces
-- Shared kernel for common types
-- Module per business capability
-
-**Anti-Patterns:**
-- Circular dependencies between modules
-- Direct imports across module boundaries
-- Shared database tables between modules
-- God modules (>5000 lines)
-
----
-
-### microservices_architecture_skill
-
-**Best Practices:**
-- Service per business capability
-- Database per service
-- API Gateway for external communication
-- Event-driven communication between services
-
-**Anti-Patterns:**
-- Distributed monolith (tight coupling)
-- Shared database between services
-- Synchronous calls in critical paths
-- Missing circuit breakers
-
----
-
-### repository_pattern_skill
-
-**Best Practices:**
-- Interface for repository contract
-- Entity aggregation in repository
-- Unit of Work for transactions
-- Specification pattern for complex queries
-
-**Anti-Patterns:**
-- Leaking ORM specifics through interface
-- Multiple repositories per entity
-- Business logic in repository
-- Direct ORM usage outside repository
-
----
-
-### service_layer_pattern_skill
-
-**Best Practices:**
-- Business logic in service layer
-- Transaction management in services
-- Domain events from services
-- Dependency injection for dependencies
-
-**Anti-Patterns:**
-- Direct controller to repository calls
-- Multiple services modifying same entity
-- Circular service dependencies
-- God services (>1000 lines)
-
----
-
-### component_composition_skill
-
-**Best Practices:**
-- Small, focused components
-- Composition via children prop
-- Render props for flexibility
-- Compound components for complex UIs
-
-**Anti-Patterns:**
-- Large components (>300 lines)
-- Multiple responsibilities per component
-- Deep nesting (>5 levels)
-- Prop drilling through multiple levels
-
----
-
-### state_management_skill
-
-**Best Practices:**
-- Single source of truth
-- Immutable state updates
-- Derived state computed, not stored
-- Normalize nested state
-
-**Anti-Patterns:**
-- Duplicate state sources
-- Direct state mutation
-- Storing derived values
-- Excessive state slices
-
----
-
-## Domain Skills
-
-### authentication_jwt_skill
-
-**Best Practices:**
-- Password hashing with bcrypt/argon2
-- Token expiration configured
-- Refresh token rotation
-- Rate limiting on auth endpoints
-
-**Anti-Patterns:**
-- Hardcoded secrets
-- Tokens in localStorage
-- Missing rate limiting
-- Synchronous token generation
-- JWT without expiration
-
----
-
-### saas_multi_tenant_skill
-
-**Best Practices:**
-- Tenant isolation at database level
-- Tenant context in all queries
-- Tenant-aware caching
-- Row Level Security (RLS) for shared DB
-
-**Anti-Patterns:**
-- Missing tenant filter in queries
-- Shared cache keys between tenants
-- Tenant ID in client-side state only
-- Cross-tenant data access
-
----
-
-### ecommerce_product_catalog_skill
-
-**Best Practices:**
-- Product variants support
-- Inventory tracking
-- Price history tracking
-- Category hierarchy
-
-**Anti-Patterns:**
-- Hardcoded product types
-- Missing inventory checks
-- Price without currency
-- No soft delete for products
-
----
-
-### payment_processing_skill
-
-**Best Practices:**
-- Idempotent payment operations
-- Payment state machine
-- Webhook signature verification
-- PCI-DSS compliance measures
-
-**Anti-Patterns:**
-- Storing raw card numbers
-- Missing idempotency keys
-- No webhook retry handling
-- Synchronous payment processing
-
----
-
-### dashboard_layout_skill
-
-**Best Practices:**
-- Grid-based layout
-- Responsive breakpoints
-- Widget-based architecture
-- Lazy loading for charts
-
-**Anti-Patterns:**
-- Fixed pixel widths
-- All data loaded upfront
-- No loading states
-- Non-responsive design
-
----
-
-## Testing Skills
-
-### testing_strategy_skill
-
-**Best Practices:**
-- Test pyramid (70% unit, 20% integration, 10% E2E)
-- Test isolation (no shared state)
-- Descriptive test names
-- Arrange-Act-Assert pattern
-
-**Anti-Patterns:**
-- Test interdependencies
-- Testing implementation details
-- Missing assertions
-- Flaky tests
-
----
-
-### testing_unit_skill
-
-**Best Practices:**
-- One assertion per test
-- Mock external dependencies
-- Test edge cases
-- Fast execution (<10ms per test)
-
-**Anti-Patterns:**
-- Multiple assertions per test
-- Real database calls
-- Testing private methods
-- Slow tests (>100ms)
-
----
-
-### testing_integration_skill
-
-**Best Practices:**
-- Test API contracts
-- Use test database
-- Clean up after tests
-- Test error scenarios
-
-**Anti-Patterns:**
-- Testing against production
-- Missing test data cleanup
-- No error case testing
-- Flaky network dependencies
-
----
-
-## DevOps Skills
-
-### docker_containerization_skill
-
-**Best Practices:**
-- Multi-stage builds
-- Non-root user
-- `.dockerignore` file
-- Specific base image versions
-
-**Anti-Patterns:**
-- Running as root
-- Using `latest` tag
-- Large image size (>500MB)
-- Hardcoded secrets in Dockerfile
-
----
-
-### kubernetes_orchestration_skill
-
-**Best Practices:**
-- Resource limits defined
-- Health checks (liveness/readiness)
-- Pod disruption budgets
-- Horizontal Pod Autoscaler
-
-**Anti-Patterns:**
-- No resource limits
-- Missing health checks
-- Single replica deployments
-- Hardcoded configuration
-
----
-
-### cicd_pipeline_architecture_skill
-
-**Best Practices:**
-- Pipeline as code
-- Parallel test execution
-- Artifact versioning
-- Deployment gates
-
-**Anti-Patterns:**
-- Manual steps in CI
-- No test parallelization
-- Missing artifact versioning
-- Direct production deployments
-
----
-
-## Governance Skills
-
-### security_architecture_skill
-
-**Best Practices:**
-- Input validation on all endpoints
-- Output encoding
-- Authentication on protected routes
-- Authorization checks
-
-**Anti-Patterns:**
-- SQL injection vulnerabilities
-- XSS vulnerabilities
-- Missing authentication
-- Hardcoded credentials
-
----
-
-### accessibility_wcag_skill
-
-**Best Practices:**
-- Semantic HTML
-- ARIA labels where needed
-- Keyboard navigation
-- Color contrast compliance (WCAG 2.1 AA)
-
-**Anti-Patterns:**
-- Missing alt text
-- Non-semantic div soup
-- Mouse-only interactions
-- Low contrast text
-
----
-
-### api_rate_limiting_skill
-
-**Best Practices:**
-- Rate limit headers (`X-RateLimit-*`)
-- Sliding window algorithm
-- Different limits per endpoint
-- Graceful degradation
-
-**Anti-Patterns:**
-- No rate limit headers
-- Fixed window (allows bursts)
-- Same limit for all endpoints
-- Hard failures on limit exceeded
-
----
-
-## Validation Algorithm
-
-```javascript
-for (const skill of activatedSkills) {
-  const skillDef = VALIDATION_RULES[skill];
-
-  // Check best practices adherence
-  for (const practice of skillDef.best_practices) {
-    if (!outputMatchesPractice(output, practice)) {
-      violations.push({
-        skill: skill,
-        type: 'best_practice',
-        practice: practice,
-        severity: 'warning'
-      });
+<skill_validation_rules>
+  <metadata>
+    <version>1.0</version>
+    <purpose>Define validation rules for skill best practices and anti-patterns</purpose>
+    <reference>bin/lib/skill-consistency-validator.cjs</reference>
+  </metadata>
+
+  <validation_rule_format>
+    Each skill has:
+    - **Best Practices** — Must-have patterns (warning if missing)
+    - **Anti-Patterns** — Must-not-have patterns (error if detected)
+  </validation_rule_format>
+
+  <category name="Stack Skills">
+    <skill id="laravel_11_structure_skill_v2">
+      <best_practices>
+        - `app/Models/` directory for Eloquent models
+        - `app/Http/Controllers/` for controllers
+        - `routes/api.php` for API routes
+        - Service classes in `app/Services/`
+        - Repository pattern in `app/Repositories/`
+      </best_practices>
+
+      <anti_patterns>
+        <pattern severity="ERROR">Business logic in `routes/web.php`</pattern>
+        <pattern severity="ERROR">Direct `DB::query()` calls in controllers</pattern>
+        <pattern severity="WARNING">Fat controllers (&gt;200 lines)</pattern>
+      </anti_patterns>
+    </skill>
+
+    <skill id="nextjs_app_router_skill">
+      <best_practices>
+        - Server Components for data fetching
+        - Client Components for interactivity
+        - Route Handlers for API endpoints
+        - Proper use of `use client` directive
+      </best_practices>
+
+      <anti_patterns>
+        <pattern severity="ERROR">Using `getServerSideProps` with App Router</pattern>
+        <pattern severity="WARNING">Client Components where Server would suffice</pattern>
+      </anti_patterns>
+    </skill>
+
+    <skill id="express_js_architecture_skill">
+      <best_practices>
+        - Middleware pattern for cross-cutting concerns
+        - Router modularization
+        - Error handling middleware
+        - Async/await for async operations
+      </best_practices>
+
+      <anti_patterns>
+        <pattern severity="ERROR">Callback hell in route handlers</pattern>
+        <pattern severity="WARNING">Monolithic route files (&gt;500 lines)</pattern>
+      </anti_patterns>
+    </skill>
+  </category>
+
+  <category name="Architecture Skills">
+    <skill id="authentication_jwt_skill">
+      <best_practices>
+        - Password hashing with bcrypt/argon2
+        - Token expiration configured
+        - Refresh token rotation
+        - Rate limiting on auth endpoints
+      </best_practices>
+
+      <anti_patterns>
+        <pattern severity="ERROR">Hardcoded secrets in code</pattern>
+        <pattern severity="ERROR">Tokens stored in localStorage</pattern>
+        <pattern severity="WARNING">Missing rate limiting on auth endpoints</pattern>
+      </anti_patterns>
+    </skill>
+
+    <skill id="repository_pattern_skill">
+      <best_practices>
+        - Interface abstraction for repositories
+        - Single responsibility per repository
+        - Dependency injection for repository usage
+      </best_practices>
+
+      <anti_patterns>
+        <pattern severity="ERROR">Direct database access in controllers</pattern>
+        <pattern severity="WARNING">Repository doing business logic</pattern>
+      </anti_patterns>
+    </skill>
+
+    <skill id="microservices_architecture_skill">
+      <best_practices>
+        - Service isolation with bounded contexts
+        - API gateway for external access
+        - Inter-service communication via RPC or message queue
+      </best_practices>
+
+      <anti_patterns>
+        <pattern severity="ERROR">Shared database between services</pattern>
+        <pattern severity="ERROR">Synchronous coupling between critical services</pattern>
+        <pattern severity="WARNING">Missing circuit breakers</pattern>
+      </anti_patterns>
+    </skill>
+  </category>
+
+  <category name="Domain Skills">
+    <skill id="ecommerce_product_catalog_skill">
+      <best_practices>
+        - Product variants support
+        - Category hierarchy
+        - Search indexing
+        - Inventory tracking
+      </best_practices>
+
+      <anti_patterns>
+        <pattern severity="ERROR">Hardcoded product types</pattern>
+        <pattern severity="WARNING">Missing inventory synchronization</pattern>
+      </anti_patterns>
+    </skill>
+
+    <skill id="user_management_skill">
+      <best_practices>
+        - Email verification flow
+        - Password reset flow
+        - Account lockout after failed attempts
+        - Audit logging for sensitive actions
+      </best_practices>
+
+      <anti_patterns>
+        <pattern severity="ERROR">Plain text passwords</pattern>
+        <pattern severity="ERROR">Missing email verification</pattern>
+        <pattern severity="WARNING">No account lockout policy</pattern>
+      </anti_patterns>
+    </skill>
+  </category>
+
+  <category name="Operational Skills">
+    <skill id="testing_unit_skill">
+      <best_practices>
+        - Test file naming: `*.test.ts` or `*.spec.ts`
+        - Arrange-Act-Assert pattern
+        - Mock external dependencies
+        - Test edge cases
+      </best_practices>
+
+      <anti_patterns>
+        <pattern severity="ERROR">Tests with no assertions</pattern>
+        <pattern severity="ERROR">Testing implementation instead of behavior</pattern>
+        <pattern severity="WARNING">Tests dependent on execution order</pattern>
+      </anti_patterns>
+    </skill>
+
+    <skill id="testing_integration_skill">
+      <best_practices>
+        - Test database isolation
+        - API contract testing
+        - End-to-end flow testing
+        - Test data cleanup
+      </best_practices>
+
+      <anti_patterns>
+        <pattern severity="ERROR">Tests using production database</pattern>
+        <pattern severity="ERROR">Tests leaving data behind</pattern>
+        <pattern severity="WARNING">Flaky tests (non-deterministic)</pattern>
+      </anti_patterns>
+    </skill>
+
+    <skill id="ci_cd_github_actions_skill">
+      <best_practices>
+        - Workflow files in `.github/workflows/`
+        - Job separation (build, test, deploy)
+        - Caching for dependencies
+        - Environment-specific deployments
+      </best_practices>
+
+      <anti_patterns>
+        <pattern severity="ERROR">Hardcoded secrets in workflow</pattern>
+        <pattern severity="ERROR">Deploying on every commit to main</pattern>
+        <pattern severity="WARNING">Missing test job</pattern>
+      </anti_patterns>
+    </skill>
+  </category>
+
+  <category name="Governance Skills">
+    <skill id="api_rate_limiting_skill">
+      <best_practices>
+        - Rate limit headers in response
+        - Different limits for auth/non-auth users
+        - Graceful degradation
+        - Clear error messages
+      </best_practices>
+
+      <anti_patterns>
+        <pattern severity="ERROR">No rate limiting on public endpoints</pattern>
+        <pattern severity="ERROR">Rate limiting only on auth endpoints</pattern>
+        <pattern severity="WARNING">Missing rate limit headers</pattern>
+      </anti_patterns>
+    </skill>
+
+    <skill id="security_backend_skill">
+      <best_practices>
+        - Input validation on all endpoints
+        - SQL injection prevention
+        - XSS prevention
+        - CSRF protection
+        - Security headers
+      </best_practices>
+
+      <anti_patterns>
+        <pattern severity="ERROR">SQL query concatenation</pattern>
+        <pattern severity="ERROR">Missing input validation</pattern>
+        <pattern severity="ERROR">No HTTPS enforcement</pattern>
+        <pattern severity="WARNING">Missing security headers</pattern>
+      </anti_patterns>
+    </skill>
+  </category>
+
+  <validation_process>
+    <step name="Pre-Commit Validation">
+      Run before committing code:
+      
+      <command>node bin/lib/skill-consistency-validator.cjs --pre-commit</command>
+      
+      <checks>
+        - Best practices followed
+        - No ERROR anti-patterns
+        - Skill activation documented
+      </checks>
+    </step>
+
+    <step name="Phase Completion Validation">
+      Run at phase completion:
+      
+      <command>node bin/lib/skill-consistency-validator.cjs --phase {phase_number}</command>
+      
+      <checks>
+        - All skills validated
+        - Consistency across tasks
+        - No WARNING anti-patterns without justification
+      </checks>
+    </step>
+
+    <step name="Milestone Audit">
+      Run at milestone completion:
+      
+      <command>node bin/lib/skill-consistency-validator.cjs --milestone {milestone_version}</command>
+      
+      <checks>
+        - Full skill audit
+        - Cross-phase consistency
+        - Technical debt from anti-patterns documented
+      </checks>
+    </step>
+  </validation_process>
+
+  <severity_levels>
+    <level name="ERROR">
+      - Must fix before commit
+      - Blocks handoff
+      - Requires immediate attention
+      - Examples: Security vulnerabilities, data corruption risks
+    </level>
+
+    <level name="WARNING">
+      - Should fix soon
+      - Document if deferred
+      - Requires justification
+      - Examples: Code quality issues, missing best practices
+    </level>
+
+    <level name="INFO">
+      - Suggestion for improvement
+      - No action required
+      - Consider for future refactoring
+      - Examples: Optimization opportunities, style suggestions
+    </level>
+  </severity_levels>
+
+  <validation_report_format>
+    <format>
+```json
+{
+  "valid": true,
+  "phase": "{phase_number}",
+  "timestamp": "{ISO timestamp}",
+  "skillsValidated": {N},
+  "summary": {
+    "errors": 0,
+    "warnings": 0,
+    "info": 0
+  },
+  "findings": [
+    {
+      "severity": "ERROR|WARNING|INFO",
+      "skill": "{skill_id}",
+      "rule": "{rule_description}",
+      "location": "{file_path}:{line}",
+      "message": "{description}",
+      "fix": "{suggested fix}"
     }
-  }
-
-  // Check anti-patterns avoided
-  for (const antiPattern of skillDef.anti_patterns) {
-    if (outputContainsAntiPattern(output, antiPattern)) {
-      violations.push({
-        skill: skill,
-        type: 'anti_pattern',
-        antiPattern: antiPattern,
-        severity: 'error'
-      });
-    }
-  }
+  ]
 }
 ```
-
----
-
-## Integration with QA Agent
-
-The QA Agent runs skill consistency validation after task completion:
-
-1. **After task completes:** Run `validateOutput(output, activatedSkills)`
-2. **If errors found:** Block handoff, require fix
-3. **If warnings found:** Log and continue
-4. **Include validation report** in agent output
-
-```markdown
-### Verification Status
-- [ ] Self-check passed
-- [ ] Skills alignment verified
-- [ ] Skill consistency validation passed
-- [ ] Decision log complete
-```
-
----
-
-## Validation Report Format
-
-```markdown
-## Skill Consistency Validation Report
-
-**Status:** ✅ PASS / ❌ FAIL
-**Skills Validated:** N
-**Errors:** N
-**Warnings:** N
-
-### Violations
-
-#### Errors
-- **skill_id:** Anti-pattern detected: [description]
-
-#### Warnings
-- **skill_id:** Output does not follow best practice: [description]
-```
+    </format>
+  </validation_report_format>
+</skill_validation_rules>

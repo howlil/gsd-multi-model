@@ -49,7 +49,7 @@ The document should describe what you want to build.
 
 ```bash
 # Run health check
-HEALTH=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" doctor --json)
+HEALTH=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" doctor --json)
 ```
 
 **Check:**
@@ -82,31 +82,20 @@ Resolve before continuing with project initialization.
 
 ## 0a. Gather Initial Context (CONTEXT-01, CONTEXT-02)
 
-**Initialize ContextManager for context gathering:**
+**Context gathering is handled by ez-project-researcher:**
 
-```javascript
-const ContextManager = require('../bin/lib/context-manager.cjs');
-const contextManager = new ContextManager(process.cwd());
+```bash
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" init new-project
 ```
 
-**Request initial project context:**
-
-```javascript
-const context = await contextManager.requestContext({
-  files: ['README.md', 'package.json'],
-  urls: []
-});
-```
+**Context includes:**
+- `README.md` — Project description
+- `package.json` — Dependencies and scripts
+- `.planning/` — If exists, previous planning state
 
 **Agent can request additional context using:**
 - `ez-tools context read <pattern>` — Read local files
 - `ez-tools context fetch <url>` — Fetch URL content (requires user confirmation)
-
-**Update STATE.md with context sources:**
-
-```javascript
-await contextManager.updateStateMd();
-```
 
 **Continue to Setup (Step 1) with gathered context.**
 
@@ -117,7 +106,7 @@ await contextManager.updateStateMd();
 **Execute initialization with crash recovery:**
 
 ```bash
-INIT=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" init new-project)
+INIT=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" init new-project)
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 ```
 
@@ -129,7 +118,7 @@ Parse JSON for: `researcher_model`, `synthesizer_model`, `roadmapper_model`, `co
 
 ```bash
 # Create auto.lock
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" lock-create \
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" lock-create \
   --operation="new-project" \
   --project-path="$project_path"
 ```
@@ -149,7 +138,7 @@ node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" lock-create \
 **If `has_git` is false:** Initialize git:
 ```bash
 git init
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" lock-update --state="git_initialized"
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" lock-update --state="git_initialized"
 ```
 
 ---
@@ -177,7 +166,7 @@ Exit command.
 
 **Update lock file state:**
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" lock-update --state="brownfield_check_complete"
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" lock-update --state="brownfield_check_complete"
 ```
 
 ---
@@ -282,19 +271,19 @@ Create `.planning/config.json` with mode set to "yolo":
 **Commit config.json:**
 
 ```bash
-mkdir -p .planning
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" commit "chore: add project config" --files .planning/config.json
+mkdir .planning
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" commit "chore: add project config" --files .planning/config.json
 ```
 
 **Persist auto-advance chain flag to config (survives context compaction):**
 
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" config-set workflow._auto_chain_active true
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" config-set workflow._auto_chain_active true
 ```
 
 **Update lock file state:**
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" lock-update --state="config_complete"
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" lock-update --state="config_complete"
 ```
 
 Proceed to Step 4 (skip Steps 3 and 5).
@@ -359,7 +348,7 @@ Loop until "Create PROJECT.md" selected.
 
 **Update lock file state:**
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" lock-update --state="questioning_complete"
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" lock-update --state="questioning_complete"
 ```
 
 ---
@@ -446,13 +435,13 @@ Do not compress. Capture everything gathered.
 **Commit PROJECT.md:**
 
 ```bash
-mkdir -p .planning
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" commit "docs: initialize project" --files .planning/PROJECT.md
+mkdir .planning
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" commit "docs: initialize project" --files .planning/PROJECT.md
 ```
 
 **Update lock file state:**
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" lock-update --state="project_defined"
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" lock-update --state="project_defined"
 ```
 
 ---
@@ -594,14 +583,14 @@ Create `.planning/config.json` with all settings:
 **Commit config.json:**
 
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" commit "chore: add project config" --files .planning/config.json
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" commit "chore: add project config" --files .planning/config.json
 ```
 
 **Note:** Run `/ez:settings` anytime to update these preferences.
 
 **Update lock file state:**
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" lock-update --state="config_complete"
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" lock-update --state="config_complete"
 ```
 
 ## 5.5. Resolve Model Profile
@@ -634,7 +623,7 @@ Researching [domain] ecosystem...
 
 Create research directory:
 ```bash
-mkdir -p .planning/research
+mkdir .planning/research
 ```
 
 **Determine milestone context:**
@@ -746,7 +735,7 @@ Files: `.planning/research/`
 
 **Update lock file state:**
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" lock-update --state="research_complete"
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" lock-update --state="research_complete"
 ```
 
 **If "Skip research":** Continue to Step 7.
@@ -884,12 +873,12 @@ If "adjust": Return to scoping.
 
 **Commit requirements:**
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" commit "docs: define project requirements" --files .planning/REQUIREMENTS.md
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" commit "docs: define project requirements" --files .planning/REQUIREMENTS.md
 ```
 
 **Update lock file state:**
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" lock-update --state="requirements_defined"
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" lock-update --state="requirements_defined"
 ```
 
 ---
@@ -909,7 +898,7 @@ Display stage banner:
 
 ```bash
 # Start stuck watcher
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" stuck-watch start \
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" stuck-watch start \
   --operation="roadmap-creation" \
   --max-retries=1 \
   --timeout=300
@@ -1010,12 +999,12 @@ Success criteria:
 
 **Commit roadmap** (after approval):
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" commit "docs: create project roadmap ([N] phases)" --files .planning/ROADMAP.md .planning/STATE.md .planning/REQUIREMENTS.md
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" commit "docs: create project roadmap ([N] phases)" --files .planning/ROADMAP.md .planning/STATE.md .planning/REQUIREMENTS.md
 ```
 
 **Update lock file state:**
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" lock-update --state="roadmap_created"
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" lock-update --state="roadmap_created"
 ```
 
 ---
@@ -1025,7 +1014,7 @@ node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" lock-update --state="roadmap_cre
 **Project initialization complete:**
 
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" lock-release
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" lock-release
 ```
 
 ---

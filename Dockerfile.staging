@@ -51,7 +51,7 @@ RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001
 
 # Create directory for Qwen credentials
-RUN mkdir -p /root/.qwen && chown -R nodejs:nodejs /root/.qwen
+RUN mkdir /root/.qwen && chown -R nodejs:nodejs /root/.qwen
 
 USER nodejs
 

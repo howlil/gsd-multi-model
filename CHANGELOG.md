@@ -387,7 +387,7 @@ If you were using these commands directly (unlikely):
 
 ### 🧹 CLEANUP
 
-**Workflow Cleanup (v6.0.1):**
+**Workflow Cleanup (v5.0.1):**
 
 **Removed Unused Workflows:**
 - `resume-session.md` — Session manager tidak digunakan, `resume-project.md` yang aktif
@@ -475,7 +475,7 @@ node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" phase next-decimal 6
 
 ### 🧹 CLEANUP
 
-**Workflow Cleanup (v6.0.1):**
+**Workflow Cleanup (v5.0.1):**
 
 **Removed Duplicate Workflows:**
 - `discovery-phase.md` — Duplicate of discuss-phase.md (both gather phase context)
@@ -495,7 +495,7 @@ node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" phase next-decimal 6
 
 ---
 
-**Dead Code Cleanup (v6.0.1):**
+**Dead Code Cleanup (v5.0.1):**
 
 **Removed Unused Commands:**
 - `commands/deploy.ts` — Phase 19 placeholder, not used

@@ -31,6 +31,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { AgentMesh } from '../orchestration/AgentMesh.js';
 import { ContextShareManager } from '../orchestration/context-share-manager.js';
+import { StatePersistence, CheckpointService } from './persistence.js';
+import { StateJournal } from './state-journal.js';
 
 // ─── Type Definitions ────────────────────────────────────────────────────────
 
@@ -131,6 +133,9 @@ export class StateManager extends EventEmitter {
   private readonly contextShare: ContextShareManager;
   private readonly statePath: string;
   private readonly checkpointIntervalMs: number;
+  private readonly persistence: StatePersistence;
+  private readonly checkpointService: CheckpointService;
+  private readonly journal: StateJournal;
   private globalState: GlobalState;
   private syncStats: SyncStats;
   private checkpointInterval: NodeJS.Timeout | null;
@@ -155,6 +160,16 @@ export class StateManager extends EventEmitter {
     this.contextShare = contextShare;
     this.statePath = statePath;
     this.checkpointIntervalMs = checkpointIntervalMs;
+    this.persistence = new StatePersistence(statePath);
+
+    // Initialize checkpoint service
+    const checkpointDir = path.join(path.dirname(statePath), 'checkpoints');
+    this.checkpointService = new CheckpointService(checkpointDir);
+
+    // Initialize journal with path in same directory as state file
+    const journalPath = path.join(path.dirname(statePath), 'state-journal.jsonl');
+    this.journal = new StateJournal(journalPath);
+    
     this.globalState = this.initializeGlobalState();
     this.syncStats = this.initializeSyncStats();
     this.subscribedAgents = new Set();
@@ -168,6 +183,9 @@ export class StateManager extends EventEmitter {
 
     // Subscribe to mesh messages
     this.subscribeToMesh();
+
+    // Emit persistence-initialized event
+    this.emit('persistence-initialized');
   }
 
   /**
@@ -345,6 +363,20 @@ export class StateManager extends EventEmitter {
 
         this.globalState.taskStates.set(taskId, newState);
         await this.broadcastState(newState);
+        
+        // Create journal entry for state creation
+        const createEntry = this.journal.createEntry('create', agentId, {
+          taskId,
+          phase: newState.phase,
+          newState: {
+            status: newState.status,
+            agent: newState.agent,
+            metadata: newState.metadata
+          },
+          vectorClock: Object.fromEntries(newState.version.vectorClock)
+        });
+        await this.journal.append(createEntry);
+        
         this.updateSyncStats(startTime, true);
         this.emit('state-updated', { taskId, state: newState, agentId });
         return true;
@@ -367,6 +399,26 @@ export class StateManager extends EventEmitter {
 
       this.globalState.taskStates.set(taskId, updatedState);
       await this.broadcastState(updatedState);
+      
+      // Create journal entry for state update
+      const updateEntry = this.journal.createEntry('update', agentId, {
+        taskId,
+        phase: updatedState.phase,
+        previousState: {
+          status: existingState.status,
+          agent: existingState.agent,
+          metadata: existingState.metadata
+        },
+        newState: {
+          status: updatedState.status,
+          agent: updatedState.agent,
+          metadata: updatedState.metadata,
+          output: updatedState.output
+        },
+        vectorClock: Object.fromEntries(updatedState.version.vectorClock)
+      });
+      await this.journal.append(updateEntry);
+      
       this.updateSyncStats(startTime, true);
 
       this.emit('state-updated', { taskId, state: updatedState, agentId });
@@ -459,23 +511,21 @@ export class StateManager extends EventEmitter {
   /**
    * Create checkpoint for crash recovery
    *
-   * Persists current global state to disk.
+   * Persists current global state to disk using the persistence layer.
    * Emits 'checkpoint-created' event on success.
    */
   private async createCheckpoint(): Promise<void> {
     const checkpointId = `checkpoint-${Date.now()}`;
 
-    const checkpoint = {
-      id: checkpointId,
-      timestamp: Date.now(),
-      globalState: this.serializeGlobalState(),
-      syncStats: this.syncStats
-    };
+    // Use persistence layer to write state
+    const success = await this.persistence.writeState(this.globalState);
 
-    await this.persistCheckpoint(checkpoint);
-
-    this.globalState.checkpointId = checkpointId;
-    this.emit('checkpoint-created', { checkpointId });
+    if (success) {
+      this.globalState.checkpointId = checkpointId;
+      this.emit('checkpoint-created', { checkpointId });
+    } else {
+      this.emit('checkpoint-failed', { checkpointId });
+    }
   }
 
   /**
@@ -608,25 +658,23 @@ export class StateManager extends EventEmitter {
   /**
    * Recover from checkpoint
    *
-   * Loads the last checkpoint and restores global state.
+   * Loads the last checkpoint from disk using the persistence layer
+   * and restores global state.
    * Emits 'recovery-complete' on success, 'recovery-failed' on error.
    *
    * @returns Promise resolving to true on success, false on failure
    */
   async recoverFromCheckpoint(): Promise<boolean> {
     try {
-      const checkpoint = await this.loadLastCheckpoint();
+      const state = await this.persistence.readState();
 
-      if (!checkpoint) {
+      if (!state) {
         return false;
       }
 
-      const checkpointData = checkpoint as { id: string; globalState: string; syncStats: SyncStats };
+      this.globalState = state;
 
-      this.globalState = this.deserializeGlobalState(checkpointData.globalState);
-      this.syncStats = checkpointData.syncStats;
-
-      this.emit('recovery-complete', { checkpointId: checkpointData.id });
+      this.emit('recovery-complete', { checkpointId: state.checkpointId });
       return true;
     } catch (error) {
       this.emit('recovery-failed', { error });
@@ -701,6 +749,59 @@ export class StateManager extends EventEmitter {
   }
 
   /**
+   * Create checkpoint for task completion
+   *
+   * @param taskId - Task identifier
+   * @param agentId - Agent identifier
+   * @returns Promise resolving to checkpoint ID
+   */
+  async createTaskCheckpoint(taskId: string, agentId: string): Promise<string> {
+    const taskState = this.globalState.taskStates.get(taskId);
+    if (!taskState) {
+      throw new Error(`Task ${taskId} not found`);
+    }
+
+    const checkpointId = await this.checkpointService.createCheckpoint(
+      this.globalState,
+      {
+        id: `task-checkpoint-${taskId}-${Date.now()}`,
+        timestamp: Date.now(),
+        taskId,
+        agentId,
+        reason: 'task-complete',
+        phase: taskState.phase,
+        plan: taskState.plan
+      }
+    );
+
+    this.emit('task-checkpoint-created', { checkpointId, taskId, agentId });
+    return checkpointId;
+  }
+
+  /**
+   * Create checkpoint for phase completion
+   *
+   * @param phase - Phase number
+   * @param agentId - Agent identifier
+   * @returns Promise resolving to checkpoint ID
+   */
+  async createPhaseCheckpoint(phase: number, agentId: string): Promise<string> {
+    const checkpointId = await this.checkpointService.createCheckpoint(
+      this.globalState,
+      {
+        id: `phase-checkpoint-${phase}-${Date.now()}`,
+        timestamp: Date.now(),
+        phase,
+        agentId,
+        reason: 'phase-complete'
+      }
+    );
+
+    this.emit('phase-checkpoint-created', { checkpointId, phase, agentId });
+    return checkpointId;
+  }
+
+  /**
    * Stop the checkpoint timer
    *
    * Call this when shutting down the StateManager.
@@ -710,6 +811,9 @@ export class StateManager extends EventEmitter {
       clearInterval(this.checkpointInterval);
       this.checkpointInterval = null;
     }
+
+    // Stop journal flush timer
+    this.journal.stop();
   }
 }
 

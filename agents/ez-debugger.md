@@ -791,7 +791,7 @@ ls .planning/debug/*.md 2>/dev/null | grep -v resolved
 **ALWAYS use the Write tool to create files** — never use `Bash(cat << 'EOF')` or heredoc commands for file creation.
 
 1. Generate slug from user input (lowercase, hyphens, max 30 chars)
-2. `mkdir -p .planning/debug`
+2. `mkdir .planning/debug`
 3. Create file with initial state:
    - status: gathering
    - trigger: verbatim $ARGUMENTS
@@ -961,7 +961,7 @@ Only run this step when checkpoint response confirms the fix works end-to-end.
 Update status to "resolved".
 
 ```bash
-mkdir -p .planning/debug/resolved
+mkdir .planning/debug/resolved
 mv .planning/debug/{slug}.md .planning/debug/resolved/
 ```
 
@@ -1174,6 +1174,258 @@ Check for mode flags in prompt context:
 - Investigate, fix, and verify
 
 </modes>
+
+<production_debugging>
+## Production Debugging
+
+**When to use:** Debugging issues in production environment (post-deployment).
+
+### Log Analysis
+
+**Access production logs:**
+
+```bash
+# Vercel
+vercel logs --prod --since 1h | grep -i error | tail -50
+
+# Railway
+railway logs --prod | grep -i error | tail -50
+
+# Fly.io
+fly logs --app {app-name} | grep -i error | tail -50
+
+# Heroku
+heroku logs --tail --app {app-name} | grep -i error | tail -50
+```
+
+**Common error patterns to search:**
+
+```bash
+# Error types
+grep -E "Error:|Exception|Fatal|Crash" logs.txt
+
+# HTTP errors
+grep -E "HTTP (4[0-9]{2}|5[0-9]{2})" logs.txt
+
+# Database errors
+grep -E "database|connection|query|timeout|deadlock" logs.txt
+
+# Authentication errors
+grep -E "unauthorized|401|403|token|session|auth" logs.txt
+
+# Memory/performance
+grep -E "memory|heap|timeout|slow|lag" logs.txt
+```
+
+**Log aggregation patterns:**
+
+```bash
+# Group errors by type
+grep -i error logs.txt | sort | uniq -c | sort -rn | head -20
+
+# Extract stack traces
+grep -A 10 "Error:" logs.txt | head -50
+
+# Find first occurrence
+grep -n "Error:" logs.txt | head -1
+```
+
+### Performance Profiling
+
+**Lighthouse for performance issues:**
+
+```bash
+# Run Lighthouse audit
+lighthouse "${DEPLOY_URL}" --output=json --output-path=./perf-report.json
+
+# Extract key metrics
+node -e "
+  const report = require('./perf-report.json');
+  const audits = report.audits;
+  
+  console.log('=== Performance Metrics ===');
+  console.log('FCP (First Contentful Paint):', audits['first-contentful-paint'].displayValue);
+  console.log('LCP (Largest Contentful Paint):', audits['largest-contentful-paint'].displayValue);
+  console.log('TTI (Time to Interactive):', audits['interactive'].displayValue);
+  console.log('TBT (Total Blocking Time):', audits['total-blocking-time'].displayValue);
+  console.log('CLS (Cumulative Layout Shift):', audits['cumulative-layout-shift'].displayValue);
+  
+  console.log('\\n=== Opportunities ===');
+  audits['opportunities'].details.items.forEach(opp => {
+    console.log('-', opp.title, ':', opp.displayValue);
+  });
+"
+```
+
+**Chrome DevTools for debugging:**
+
+```bash
+# Open Chrome DevTools → Performance tab
+# Record page load → Analyze:
+# 1. Main thread activity
+# 2. FPS drops
+# 3. Long tasks (>50ms)
+# 4. Layout thrashing
+```
+
+**Common performance issues:**
+
+| Issue | Symptoms | Fix |
+|-------|----------|-----|
+| **Large bundles** | Slow initial load, high LCP | Code splitting, lazy loading |
+| **Unoptimized images** | Slow LCP, high data usage | Image optimization, WebP |
+| **Render blocking** | High FCP, slow visual load | Defer non-critical CSS/JS |
+| **Memory leaks** | App slows over time | Fix useEffect cleanup, remove listeners |
+| **Excessive re-renders** | UI lag, high CPU | React.memo, useMemo, useCallback |
+| **Slow API calls** | Loading spinners, high TTI | Caching, SWR/React Query, pagination |
+
+### Production Incident Response
+
+**Incident severity classification:**
+
+| Severity | Description | Response Time |
+|----------|-------------|---------------|
+| **P0 - Critical** | Service down, data loss | Immediate (<15 min) |
+| **P1 - High** | Major feature broken | <1 hour |
+| **P2 - Medium** | Minor feature broken | <4 hours |
+| **P3 - Low** | Cosmetic issue, minor bug | Next sprint |
+
+**Incident response playbook:**
+
+```markdown
+# Incident Response Playbook
+
+## Step 1: Assess Severity
+- [ ] What's the impact? (users affected, revenue impact)
+- [ ] Is the service up or down?
+- [ ] Is data at risk?
+- [ ] Classify: P0 / P1 / P2 / P3
+
+## Step 2: Gather Information
+- [ ] Check error logs (last 1 hour)
+- [ ] Check recent deployments (last 24 hours)
+- [ ] Check monitoring dashboards
+- [ ] Check user reports (support tickets, social media)
+
+## Step 3: Triage
+- [ ] Identify affected components
+- [ ] Identify root cause hypothesis
+- [ ] Determine if rollback needed
+
+## Step 4: Communicate
+- [ ] Notify team (Slack, email)
+- [ ] Update status page (if customer-facing)
+- [ ] Set up incident war room
+
+## Step 5: Fix or Rollback
+- [ ] If rollback: `node ez-tools.cjs deploy rollback`
+- [ ] If fix: Follow debugging process, deploy hotfix
+- [ ] Verify fix in production
+
+## Step 6: Post-Mortem
+- [ ] Document timeline
+- [ ] Identify root cause
+- [ ] List action items to prevent recurrence
+- [ ] Schedule follow-up review
+```
+
+### Incident Report Template
+
+```markdown
+# Incident Report: {incident_name}
+
+**Incident ID:** INC-{YYYYMMDD}-{NN}
+**Date:** {date}
+**Severity:** P0 / P1 / P2 / P3
+**Status:** {investigating | identified | monitoring | resolved}
+
+## Summary
+{One paragraph describing the incident}
+
+## Impact
+- **Users Affected:** {number or %}
+- **Revenue Impact:** {estimate if applicable}
+- **Duration:** {start_time} - {end_time} ({duration})
+
+## Timeline
+
+| Time (UTC) | Event |
+|------------|-------|
+| 10:00 | Incident started (later identified) |
+| 10:15 | Alert triggered |
+| 10:20 | Team notified, investigation started |
+| 10:35 | Root cause identified: {cause} |
+| 10:45 | Fix deployed |
+| 11:00 | Incident resolved, monitoring |
+
+## Root Cause
+{Detailed explanation of what caused the incident}
+
+## Resolution
+{What was done to fix the issue}
+
+## Prevention
+Action items to prevent recurrence:
+
+- [ ] {action item 1}
+- [ ] {action item 2}
+- [ ] {action item 3}
+
+## Lessons Learned
+- {lesson 1}
+- {lesson 2}
+```
+
+### Debugging Production-Specific Issues
+
+**Database connection issues:**
+
+```bash
+# Check connection pool
+grep -E "pool|connection|timeout" logs.txt | tail -20
+
+# Check for slow queries
+grep -E "slow query|query took|timeout" logs.txt
+
+# Fix: Increase pool size, add connection retry
+```
+
+**Memory leaks:**
+
+```bash
+# Check memory usage in logs
+grep -E "memory|heap|RSS|malloc" logs.txt
+
+# Node.js heap analysis
+node --inspect app.js  # Then use Chrome DevTools Memory profiler
+
+# Fix: Check useEffect cleanup, remove event listeners, clear intervals
+```
+
+**Race conditions:**
+
+```bash
+# Look for concurrent access patterns
+grep -E "concurrent|race|deadlock|lock" logs.txt
+
+# Check for async/await issues
+grep -B 2 -A 2 "Promise|async|await" logs.txt
+
+# Fix: Add proper locking, use transactions, ensure proper async/await
+```
+
+**Caching issues:**
+
+```bash
+# Check cache hit/miss ratios
+grep -E "cache|hit|miss|stale" logs.txt
+
+# Check for stale data complaints
+grep -E "stale|outdated|old|not updated" logs.txt
+
+# Fix: Invalidate cache on writes, add cache versioning
+```
+</production_debugging>
 
 <success_criteria>
 - [ ] Debug file created IMMEDIATELY on command

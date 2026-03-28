@@ -34,6 +34,7 @@ jobs:
         run: npm run build:hooks
 
       - name: Run Quality Gates
+        id: gates
         run: node ez-agents/bin/lib/gate-executor.cjs --ci --cache --timeout=30000
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -46,28 +47,28 @@ jobs:
           script: |
             const fs = require('fs');
             const path = require('path');
-            
+
             try {
               const resultsPath = path.join(process.cwd(), 'gate-results.json');
               if (fs.existsSync(resultsPath)) {
                 const gateResults = JSON.parse(fs.readFileSync(resultsPath, 'utf8'));
-                
+
                 let comment = '## Quality Gate Results ';
                 const failedGates = gateResults.filter(r => !r.passed);
                 comment += failedGates.length > 0 ? '❌' : '✅';
                 comment += '\n\n';
-                
+
                 comment += '| Gate | Status | Errors |\n';
                 comment += '|------|--------|--------|\n';
-                
+
                 gateResults.forEach(result => {
                   const status = result.passed ? '✅' : '❌';
                   comment += `| ${result.name} | ${status} | ${result.errors?.length || 0} |\n`;
                 });
-                
+
                 if (failedGates.length > 0) {
                   comment += '\n<details>\n<summary>Error Details</summary>\n\n';
-                  
+
                   failedGates.forEach(gate => {
                     comment += `### ${gate.name} Errors\n\n`;
                     gate.errors?.forEach((error, i) => {
@@ -75,16 +76,20 @@ jobs:
                     });
                     comment += '\n';
                   });
-                  
+
                   comment += '</details>\n';
                 }
-                
+
                 comment += '\n---\n\n';
-                comment += '**Bypass this check:**\n';
+                comment += '**Bypass this check (emergency only):**\n';
                 comment += '```bash\n';
-                comment += "git commit -m \"feat: add feature --bypass 'your justification here (min 10 chars)'\"\n";
+                comment += "git commit --no-verify -m \"your commit message\"\n";
+                comment += '```\n\n';
+                comment += 'Or use gate bypass with audit trail:\n';
+                comment += '```bash\n';
+                comment += "node ez-agents/bin/lib/gate-executor.cjs --bypass 'your reason (min 10 chars)' --gate <gate-id>\n";
                 comment += '```\n';
-                
+
                 await github.rest.issues.createComment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
@@ -95,3 +100,11 @@ jobs:
             } catch (error) {
               console.error('Failed to post PR comment:', error);
             }
+
+      - name: Upload Gate Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate-results
+          path: gate-results.json
+          retention-days: 30

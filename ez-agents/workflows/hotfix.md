@@ -31,7 +31,7 @@ CURRENT_BRANCH=$(git branch --show-current)
 CURRENT_VERSION=$(node -e "console.log(require('./package.json').version)" 2>/dev/null || echo "0.0.0")
 
 # Load tier from config
-TIER=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" config-get release.tier 2>/dev/null || echo "mvp")
+TIER=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" config-get release.tier 2>/dev/null || echo "mvp")
 
 # Last tag
 LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "none")
@@ -49,7 +49,7 @@ git status --short
 
 ```bash
 # Get hotfix branch name
-HOTFIX_BRANCH=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" hotfix-branch-name "${NAME}")
+HOTFIX_BRANCH=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" hotfix-branch-name "${NAME}")
 # Returns: hotfix/{name-slug}
 
 # Branch from main (or last release tag if available)
@@ -91,7 +91,7 @@ Suggest next patch version: increment patch number (1.2.3 → 1.2.4).
 ```bash
 # Confirm on hotfix branch
 CURRENT_BRANCH=$(git branch --show-current)
-EXPECTED_BRANCH=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" hotfix-branch-name "${NAME}")
+EXPECTED_BRANCH=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" hotfix-branch-name "${NAME}")
 
 if [ "$CURRENT_BRANCH" != "$EXPECTED_BRANCH" ]; then
   echo "ERROR: Not on hotfix branch. Expected: ${EXPECTED_BRANCH}, got: ${CURRENT_BRANCH}"
@@ -115,7 +115,7 @@ echo "${VERSION}" | grep -E "^[0-9]+\.[0-9]+\.[0-9]+$"
 ### 3c. Run security gates
 
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" release security-gates
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" release security-gates
 ```
 
 **If secrets found:** Error — "Remove secrets before completing hotfix"
@@ -132,7 +132,7 @@ npm test 2>/dev/null || yarn test 2>/dev/null || echo "WARNING: No test command 
 ### 3e. Load tier and git strategy
 
 ```bash
-TIER=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" config-get release.tier 2>/dev/null || echo "mvp")
+TIER=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" config-get release.tier 2>/dev/null || echo "mvp")
 ```
 
 Determine sync target:

@@ -30,7 +30,7 @@ fi
 Bootstrap via milestone-level init:
 
 ```bash
-INIT=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" init milestone-op)
+INIT=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" init milestone-op)
 ```
 
 Parse JSON for: `milestone_version`, `milestone_name`, `phase_count`, `completed_phases`, `roadmap_exists`, `state_exists`, `commit_docs`.
@@ -60,7 +60,7 @@ If `FROM_PHASE` is set, display: `Starting from phase ${FROM_PHASE}`
 Run phase discovery:
 
 ```bash
-ROADMAP=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" roadmap analyze)
+ROADMAP=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" roadmap analyze)
 ```
 
 Parse the JSON `phases` array.
@@ -99,7 +99,7 @@ Exit cleanly.
 **Fetch details for each phase:**
 
 ```bash
-DETAIL=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" roadmap get-phase ${PHASE_NUM})
+DETAIL=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" roadmap get-phase ${PHASE_NUM})
 ```
 
 Extract `phase_name`, `goal`, `success_criteria`, `task_count` from each. Store for use in execute_phase and transition messages.
@@ -127,7 +127,7 @@ Where N = current phase number (from the ROADMAP, e.g., 6), T = total milestone 
 Check if CONTEXT.md already exists for this phase:
 
 ```bash
-PHASE_STATE=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" init phase-op ${PHASE_NUM})
+PHASE_STATE=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" init phase-op ${PHASE_NUM})
 ```
 
 Parse `has_context` from JSON.
@@ -145,7 +145,7 @@ Proceed to 3b.
 After smart_discuss completes, verify context was written:
 
 ```bash
-PHASE_STATE=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" init phase-op ${PHASE_NUM})
+PHASE_STATE=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" init phase-op ${PHASE_NUM})
 ```
 
 Check `has_context`. If false → go to handle_blocker: "Smart discuss for phase ${PHASE_NUM} did not produce CONTEXT.md."
@@ -161,7 +161,7 @@ Verify plan produced output — re-run `init phase-op` and check `has_plans`. If
 **Get task list for loop:**
 
 ```bash
-PLANS=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" phase-list-plans ${PHASE_NUM})
+PLANS=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" phase-list-plans ${PHASE_NUM})
 ```
 
 Parse JSON for: `plans` array with `plan_number`, `plan_name`, `task_description`, `status` for each plan.
@@ -204,7 +204,7 @@ Skill(skill="ez:execute-phase", args="${PHASE_NUM} --plan ${plan.plan_number} --
 **3c-iii. Verify task completion:**
 
 ```bash
-TASK_STATUS=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" phase-get-task-status ${PHASE_NUM} ${plan.plan_number})
+TASK_STATUS=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" phase-get-task-status ${PHASE_NUM} ${plan.plan_number})
 ```
 
 Parse `status` from JSON (values: "complete", "in_progress", "blocked", "failed").
@@ -226,7 +226,7 @@ Parse `status` from JSON (values: "complete", "in_progress", "blocked", "failed"
 **3c-iv. After each task completes, update phase progress:**
 
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" phase-update-progress ${PHASE_NUM}
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" phase-update-progress ${PHASE_NUM}
 ```
 
 **End loop** (continue to next plan in plan_list)
@@ -255,7 +255,7 @@ VERIFY_STATUS=$(grep "^status:" "${PHASE_DIR}"/*-VERIFICATION.md 2>/dev/null | h
 Where `PHASE_DIR` comes from the `init phase-op` call already made in step 3a. If the variable is not in scope, re-fetch:
 
 ```bash
-PHASE_STATE=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" init phase-op ${PHASE_NUM})
+PHASE_STATE=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" init phase-op ${PHASE_NUM})
 ```
 
 Parse `phase_dir` from the JSON.
@@ -316,7 +316,7 @@ Verify gap plans were created — re-run `init phase-op ${PHASE_NUM}` and check 
 **Re-execute ALL gap tasks in loop:**
 
 ```bash
-GAP_PLANS=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" phase-list-plans ${PHASE_NUM} --gap-only)
+GAP_PLANS=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" phase-list-plans ${PHASE_NUM} --gap-only)
 ```
 
 For each gap plan in GAP_PLANS:
@@ -357,7 +357,7 @@ Run smart discuss for the current phase. Proposes grey area answers in batch tab
 **Inputs:** `PHASE_NUM` from execute_phase. Run init to get phase paths:
 
 ```bash
-PHASE_STATE=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" init phase-op ${PHASE_NUM})
+PHASE_STATE=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" init phase-op ${PHASE_NUM})
 ```
 
 Parse from JSON: `phase_dir`, `phase_slug`, `padded_phase`, `phase_name`.
@@ -446,7 +446,7 @@ Read the 3-5 most relevant files to understand existing patterns.
 **Get phase details:**
 
 ```bash
-DETAIL=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" roadmap get-phase ${PHASE_NUM})
+DETAIL=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" roadmap get-phase ${PHASE_NUM})
 ```
 
 Extract `goal`, `requirements`, `success_criteria`, `task_count` from the JSON response.
@@ -618,7 +618,7 @@ Write the file.
 **Commit:**
 
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" commit "docs(${PADDED_PHASE}): smart discuss context" --files "${phase_dir}/${padded_phase}-CONTEXT.md"
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" commit "docs(${PADDED_PHASE}): smart discuss context" --files "${phase_dir}/${padded_phase}-CONTEXT.md"
 ```
 
 Display confirmation:
@@ -637,7 +637,7 @@ Decisions captured: {count} across {area_count} areas
 After each phase completes (ALL tasks executed), re-read ROADMAP.md to catch phases inserted mid-execution (decimal phases like 5.1):
 
 ```bash
-ROADMAP=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" roadmap analyze)
+ROADMAP=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" roadmap analyze)
 ```
 
 Re-filter incomplete phases using the same logic as discover_phases:

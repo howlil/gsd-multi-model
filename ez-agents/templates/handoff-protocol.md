@@ -1,16 +1,11 @@
-# Handoff Protocol Template
+<handoff_protocol>
+  <metadata>
+    <version>1.0</version>
+    <purpose>Standardized handoff protocol for transferring skills and context between agents</purpose>
+    <reference>bin/lib/skill-handoff.cjs</reference>
+  </metadata>
 
-**Phase:** 39
-**Plan:** 39-05
-**Requirement:** POOL-05, ORCH-07
-
-This template defines the standardized handoff protocol for transferring skills and context between agents.
-
----
-
-## Skill Handoff Record Format
-
-```markdown
+  <handoff_record_format>
 ## Skill Handoff Record
 
 **From Agent:** {agent-name}
@@ -20,275 +15,213 @@ This template defines the standardized handoff protocol for transferring skills 
 **Timestamp:** {ISO timestamp}
 
 ### Context Transferred
-- **Project State:** {STATE.md snapshot reference}
-- **Decisions Made:** {DECISIONS.md entries}
-- **Skills Active:** [list of skill IDs]
-- **Artifacts Produced:** [file paths]
+- Project state: {STATE.md snapshot reference}
+- Decisions made: {DECISIONS.md entries}
+- Skills active: [list of skill IDs]
+- Artifacts produced: [file paths]
 
 ### Continuity Requirements
-- **Must Maintain:** {specific patterns/approaches}
-- **Must Not Change:** {locked decisions}
-- **Must Validate:** {specific checks}
+- Must maintain: {specific patterns/approaches}
+- Must not change: {locked decisions}
+- Must validate: {specific checks}
 
 ### Handoff Checkpoint
 **Type:** {checkpoint-type: sequential|parallel|interrupted}
 **Status:** {ready-for-handoff|pending|blocked}
 **Verification:** {self-check results}
+  </handoff_record_format>
 
-### Skill Transfer
-- **Inherited Skills:** [skills from previous agent]
-- **Recommended Skills:** [skills for next agent]
-- **Consistent Skills:** [skills used consistently in project]
-```
+  <handoff_types>
+    <type name="Sequential Handoff">
+      <description>Standard flow where agents work in sequence</description>
+      
+      <flow>Architect → Backend → Frontend → QA → DevOps</flow>
+      
+      <use_cases>
+        - Feature development from design to deployment
+        - Phase execution with clear stage boundaries
+      </use_cases>
+      
+      <example>
+Architect designs authentication → Backend implements → Frontend integrates → QA tests
+      </example>
+    </type>
 
----
+    <type name="Parallel Handoff">
+      <description>Multiple agents work on same feature with shared context</description>
+      
+      <flow>Backend + Frontend work simultaneously</flow>
+      
+      <use_cases>
+        - Full-stack feature development
+        - Independent components that can be developed in parallel
+      </use_cases>
+      
+      <example>
+Backend creates API endpoints while Frontend builds UI components
+Both agents share API contract documentation
+      </example>
+    </type>
 
-## Handoff Types
+    <type name="Interrupted Handoff">
+      <description>Agent A stops at checkpoint, Agent B continues</description>
+      
+      <flow>Agent A → (interruption) → Agent B</flow>
+      
+      <use_cases>
+        - Agent unavailable
+        - Priority change
+        - Recovery from failure
+      </use_cases>
+      
+      <example>
+Backend Agent starts implementation but gets blocked on auth
+DevOps Agent continues with CI/CD setup while waiting
+      </example>
+    </type>
+  </handoff_types>
 
-### Sequential Handoff
+  <continuity_requirements>
+    <section name="Must Maintain">
+      Patterns and approaches that must continue:
+      
+      <format>
+- Must maintain: Repository pattern for data access
+- Must maintain: JWT authentication with refresh rotation
+- Must maintain: Modular monolith architecture
+      </format>
+    </section>
 
-Standard flow: Architect → Backend → Frontend → QA → DevOps
+    <section name="Must Not Change">
+      Locked decisions from previous agent:
+      
+      <format>
+- Must not change: Database schema (PostgreSQL with specific tables)
+- Must not change: Authentication approach (JWT, not sessions)
+- Must not change: API versioning strategy (URL-based)
+      </format>
+    </section>
 
-**Characteristics:**
-- Clear handoff boundaries
-- Complete context transfer
-- Validation before handoff
+    <section name="Must Validate">
+      Checks receiving agent must perform:
+      
+      <format>
+- Must validate: All API endpoints return consistent error format
+- Must validate: Frontend handles all API error cases
+- Must validate: Tests cover critical user flows
+      </format>
+    </section>
+  </continuity_requirements>
 
-**Example:**
-```markdown
-## Handoff: Architect Agent → Backend Agent
+  <examples>
+    <example id="1" name="Architect → Backend (User Authentication)">
+      <from>ez-architect-agent</from>
+      <to>ez-backend-agent</to>
+      <task>Implement user authentication</task>
+      
+      <context_transferred>
+- Project state: STATE.md snapshot at 2026-03-21T10:00:00Z
+- Decisions: JWT auth, PostgreSQL, Redis for token blacklist
+- Skills: modular_monolith, authentication_jwt, postgresql_schema
+- Artifacts: ARCHITECTURE.md, API-CONTRACTS.md
+      </context_transferred>
+      
+      <continuity_requirements>
+- Must maintain: JWT authentication approach
+- Must maintain: Modular structure
+- Must implement: Token blacklist
+- Must not change: Database choice (PostgreSQL)
+      </continuity_requirements>
+      
+      <skill_activation>
+To Backend: Activate skills: laravel_11, api_design_rest, authentication_jwt, redis_caching, testing_unit
+      </skill_activation>
+    </example>
 
-**Phase:** 39
-**Task:** User Authentication Feature
-**Type:** sequential
+    <example id="2" name="Backend → Frontend (User Dashboard)">
+      <from>ez-backend-agent</from>
+      <to>ez-frontend-agent</to>
+      <task>Build user dashboard</task>
+      
+      <context_transferred>
+- API contracts: /api/v1/users, /api/v1/dashboard
+- Data models: User, Dashboard, Metrics
+- Authentication: JWT required on all endpoints
+      </context_transferred>
+      
+      <continuity_requirements>
+- Must use: Provided API contracts
+- Must implement: Auth flow with token refresh
+- Must match: Data models in frontend state
+      </continuity_requirements>
+      
+      <skill_activation>
+To Frontend: Activate skills: nextjs_app_router, state_management, api_integration, authentication_jwt, testing_component
+      </skill_activation>
+    </example>
 
-### From Architect Agent
-**Decisions:**
-1. JWT-based authentication
-2. PostgreSQL for user data
-3. Redis for token blacklist
+    <example id="3" name="Frontend → QA (Dashboard Testing)">
+      <from>ez-frontend-agent</from>
+      <to>ez-qa-agent</to>
+      <task>Test dashboard functionality</task>
+      
+      <context_transferred>
+- Components: DashboardLayout, MetricCard, Chart
+- User flows: Login, View dashboard, Refresh data
+- Edge cases: Empty state, Loading state, Error state
+      </context_transferred>
+      
+      <continuity_requirements>
+- Must test: All user flows documented
+- Must verify: Accessibility compliance (WCAG 2.1 AA)
+- Must validate: Error handling on all API calls
+      </continuity_requirements>
+      
+      <skill_activation>
+To QA: Activate skills: testing_playwright, accessibility_testing, api_testing, regression_testing, quality_gates
+      </skill_activation>
+    </example>
+  </examples>
 
-**Skills Applied:**
-- modular_monolith_pattern_skill_v1
-- authentication_jwt_skill_v1
-- postgresql_schema_design_skill_v1
+  <validation>
+    <pre_handoff_checklist>
+      Sending agent must verify:
+      <check>All artifacts committed</check>
+      <check>Decision log complete</check>
+      <check>Skills documented</check>
+      <check>Continuity requirements clear</check>
+      <check>Self-check passed</check>
+    </pre_handoff_checklist>
 
-**Artifacts:**
-- ARCHITECTURE.md
-- API-CONTRACTS.md
-- DB-SCHEMA.md
+    <post_handoff_checklist>
+      Receiving agent must verify:
+      <check>All context received</check>
+      <check>Continuity requirements understood</check>
+      <check>Skills activated appropriately</check>
+      <check>Ready to continue work</check>
+    </post_handoff_checklist>
+  </validation>
 
-### To Backend Agent
-**Must Implement:**
-- JWT auth endpoints (login, register, refresh, logout)
-- Password hashing with bcrypt
-- Token blacklist in Redis
-
-**Skills Activated:**
-- laravel_11_structure_skill_v2 (stack)
-- api_design_rest_skill_v1 (architecture)
-- authentication_jwt_skill_v1 (domain — inherited)
-- redis_caching_pattern_skill_v1 (infrastructure)
-- testing_unit_phpunit_skill_v1 (operational)
-
-**Continuity Requirements:**
-- Must follow JWT approach from Architect decision
-- Must use modular structure
-- Must implement token blacklist
-```
-
-### Parallel Handoff
-
-Backend + Frontend work on same feature with shared context
-
-**Characteristics:**
-- Shared context between agents
-- Coordinated implementation
-- Regular sync points
-
-**Example:**
-```markdown
-## Handoff: Architect Agent → Backend + Frontend Agents (Parallel)
-
-**Phase:** 39
-**Task:** Dashboard Feature
-**Type:** parallel
-
-### Shared Context
-**Architecture:**
-- Client-server architecture
-- WebSocket for real-time updates
-- Zustand for state management
-
-**API Contracts:**
-- GET /api/dashboard/metrics
-- GET /api/dashboard/charts
-- WebSocket: dashboard-updates
-
-### Backend Agent Responsibilities
-- Implement API endpoints
-- Set up WebSocket server
-- Data aggregation logic
-
-### Frontend Agent Responsibilities
-- Build dashboard components
-- Set up Zustand store
-- WebSocket client integration
-
-### Coordination Points
-- API contract alignment
-- Data model consistency
-- Error handling patterns
-```
-
-### Interrupted Handoff
-
-Agent A stops at checkpoint, Agent B continues (recovery)
-
-**Characteristics:**
-- Recovery from interruption
-- Complete state capture
-- Clear resumption point
-
-**Example:**
-```markdown
-## Handoff: Backend Agent → Frontend Agent (Interrupted)
-
-**Phase:** 39
-**Task:** User Profile Feature
-**Type:** interrupted
-
-### Interruption Point
-**Stopped At:** API implementation complete, tests pending
-**Reason:** Blocker - external API dependency
-
-### State Captured
-**Completed:**
-- User model created
-- API endpoints implemented
-- Database migrations run
-
-**Pending:**
-- Unit tests (blocked by external API)
-- Integration tests
-
-### Resumption
-**Frontend Agent Can:**
-- Start UI implementation with mock data
-- Use API contracts for integration
-- Implement error states
-
-**Continuity:**
-- Must use implemented API endpoints
-- Must handle loading/error states
-- Must match data models
-```
-
----
-
-## Continuity Requirements Format
-
-```markdown
-### Continuity Requirements
-
-**Must Maintain:**
-- [Pattern/approach that must continue]
-- [Example: JWT authentication approach]
-
-**Must Not Change:**
-- [Locked decision that cannot be changed]
-- [Example: PostgreSQL as database]
-
-**Must Validate:**
-- [Specific checks receiving agent must perform]
-- [Example: API contract compliance]
-```
-
----
-
-## Skill Memory Format
-
-Skill memory tracks skills used across the project for consistency:
-
-```javascript
+  <skill_memory>
+    Skills used in project are tracked for consistency:
+    
+    <format>
+```json
 {
   "projectId": "project-xyz",
-  "skills": [
+  "skillMemory": [
     {
       "phase": "39",
-      "task": "user-auth",
-      "skills": [
-        {"id": "laravel_11_structure_skill_v2", "category": "Stack"},
-        {"id": "authentication_jwt_skill_v1", "category": "Domain"}
-      ],
+      "task": "auth-implementation",
+      "skills": ["authentication_jwt_skill", "laravel_11_structure_skill_v2"],
       "timestamp": "2026-03-21T10:00:00Z",
       "agent": "ez-backend-agent"
     }
-  ],
-  "lastUpdated": "2026-03-21T10:00:00Z"
+  ]
 }
 ```
-
----
-
-## Handoff Validation
-
-Before handoff, validate:
-
-```javascript
-const validation = validateHandoff(handoff);
-
-if (!validation.valid) {
-  // Block handoff
-  console.error('Handoff blocked:', validation.violations);
-  return;
-}
-
-if (validation.warnings.length > 0) {
-  // Log warnings
-  console.warn('Handoff warnings:', validation.warnings);
-}
-
-// Proceed with handoff
-```
-
-**Validation Checks:**
-- [ ] fromAgent specified
-- [ ] toAgent specified
-- [ ] Skills active transferred
-- [ ] Artifacts listed
-- [ ] Continuity requirements specified
-- [ ] Checkpoint status is READY
-
----
-
-## Integration with Context Manager
-
-The Context Manager agent manages handoffs:
-
-1. **Creates handoff records** using `createHandoff()`
-2. **Tracks skill memory** using `recordSkillUsage()`
-3. **Ensures continuity** by validating requirements
-4. **Updates STATE.md** with handoff status
-
----
-
-## Handoff Checklist
-
-Before initiating handoff:
-
-- [ ] All artifacts produced and committed
-- [ ] Decision log complete
-- [ ] Skills documented (3-7 activated)
-- [ ] Verification status complete
-- [ ] Continuity requirements defined
-- [ ] Handoff record created
-- [ ] Validation passed
-
-After handoff complete:
-
-- [ ] Receiving agent acknowledges receipt
-- [ ] Skills transferred successfully
-- [ ] Context understood
-- [ ] Continuity requirements accepted
-- [ ] Task execution begins
+    </format>
+    
+    <purpose>Ensure consistent skill usage across phases for coherence.</purpose>
+  </skill_memory>
+</handoff_protocol>

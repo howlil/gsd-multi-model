@@ -12,8 +12,8 @@ Read all files referenced by the invoking prompt's execution_context before star
 Ensure config exists and load current state:
 
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" config-ensure-section
-INIT=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" state load)
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" config-ensure-section
+INIT=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" state load)
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 ```
 
@@ -144,7 +144,7 @@ AskUserQuestion([
 If "Yes": write the same config object (minus project-specific fields like `brave_search`) to `~/.ez/defaults.json`:
 
 ```bash
-mkdir -p ~/.ez
+mkdir ~/.ez
 ```
 
 Write `~/.ez/defaults.json` with:

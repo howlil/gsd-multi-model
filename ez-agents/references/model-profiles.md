@@ -11,13 +11,9 @@ Model profiles control which Claude model each EZ Agents agent uses. This allows
 | ez-executor | opus | sonnet | sonnet |
 | ez-phase-researcher | opus | sonnet | haiku |
 | ez-project-researcher | opus | sonnet | haiku |
-| ez-research-synthesizer | sonnet | sonnet | haiku |
 | ez-debugger | opus | sonnet | sonnet |
 | ez-codebase-mapper | sonnet | haiku | haiku |
 | ez-verifier | sonnet | sonnet | haiku |
-| ez-plan-checker | sonnet | sonnet | haiku |
-| ez-integration-checker | sonnet | sonnet | haiku |
-| ez-nyquist-auditor | sonnet | sonnet | haiku |
 
 ## Profile Philosophy
 
@@ -80,14 +76,23 @@ Per-project default: Set in `.planning/config.json`:
 **Why Opus for ez-planner?**
 Planning involves architecture decisions, goal decomposition, and task design. This is where model quality has the highest impact.
 
+**Why Opus for ez-debugger?**
+Debugging requires deep reasoning about complex issues, root cause analysis, and scientific hypothesis testing.
+
 **Why Sonnet for ez-executor?**
 Executors follow explicit PLAN.md instructions. The plan already contains the reasoning; execution is implementation.
+
+**Why Sonnet for ez-roadmapper?**
+Roadmapping balances strategic thinking with structured output. Sonnet handles requirement decomposition well.
 
 **Why Sonnet (not Haiku) for verifiers in balanced?**
 Verification requires goal-backward reasoning - checking if code *delivers* what the phase promised, not just pattern matching. Sonnet handles this well; Haiku may miss subtle gaps.
 
 **Why Haiku for ez-codebase-mapper?**
 Read-only exploration and pattern extraction. No reasoning required, just structured output from file contents.
+
+**Why Haiku for ez-phase-researcher and ez-project-researcher?**
+Research involves gathering information from documented sources (Context7, official docs). This is retrieval and synthesis, not deep reasoning.
 
 **Why `inherit` instead of passing `opus` directly?**
 Claude Code's `"opus"` alias maps to a specific model version. Organizations may block older opus versions while allowing newer ones. EZ Agents returns `"inherit"` for opus-tier agents, causing them to use whatever opus version the user has configured in their session. This avoids version conflicts and silent fallbacks to Sonnet.

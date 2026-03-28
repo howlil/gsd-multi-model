@@ -8,7 +8,7 @@ Orchestrate tier-aware production releases. Validates state, runs security gates
 Check for --no-auto in ARGUMENTS. If present, skip this section and proceed to step 1.
 
 ```bash
-SMART_ORCH=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" config-get smart_orchestration.enabled 2>/dev/null || echo "true")
+SMART_ORCH=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" config-get smart_orchestration.enabled 2>/dev/null || echo "true")
 ```
 If `SMART_ORCH` is `"false"`: skip, proceed to step 1.
 
@@ -56,7 +56,7 @@ Exit.
 
 **Load tier config:**
 ```bash
-TIER_CONFIG=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" tier-config "${TARGET_TIER}" 2>/dev/null)
+TIER_CONFIG=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" tier-config "${TARGET_TIER}" 2>/dev/null)
 ```
 
 Display banner:
@@ -129,7 +129,7 @@ Load checklist template from `~/.claude/ez-agents/templates/release-checklist.md
 Run automated checks for the target tier:
 
 ```bash
-node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" release check-tier "${TARGET_TIER}"
+node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" release check-tier "${TARGET_TIER}"
 ```
 
 Display checklist results with pass/fail/skip for each item.

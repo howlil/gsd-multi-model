@@ -11,11 +11,11 @@ Read all files referenced by the invoking prompt's execution_context before star
 <auto_invoke>
 Check for --no-auto in ARGUMENTS. If not present, also check:
 ```bash
-SMART_ORCH=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" config-get smart_orchestration.enabled 2>/dev/null || echo "true")
+SMART_ORCH=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" config-get smart_orchestration.enabled 2>/dev/null || echo "true")
 ```
 If `SMART_ORCH` is not `"false"` and `--no-auto` is not in ARGUMENTS:
 ```bash
-HEALTH=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" health --json 2>/dev/null)
+HEALTH=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" health --json 2>/dev/null)
 ```
 - If FAIL: display a warning in the output report but do NOT stop (progress continues)
 - If PASS: silent (do not show to user)
@@ -25,7 +25,7 @@ HEALTH=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" health --json 2>/dev/nu
 **Load progress context (paths only):**
 
 ```bash
-INIT=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" init progress)
+INIT=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" init progress)
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 ```
 
@@ -54,8 +54,8 @@ If missing both ROADMAP.md and PROJECT.md: suggest `/ez:new-project`.
 **Use structured extraction from ez-tools:**
 
 Instead of reading full files, use targeted tools to get only the data needed for the report:
-- `ROADMAP=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" roadmap analyze)`
-- `STATE=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" state-snapshot)`
+- `ROADMAP=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" roadmap analyze)`
+- `STATE=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" state-snapshot)`
 
 This minimizes orchestrator context usage.
 </step>
@@ -64,7 +64,7 @@ This minimizes orchestrator context usage.
 **Get comprehensive roadmap analysis (replaces manual parsing):**
 
 ```bash
-ROADMAP=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" roadmap analyze)
+ROADMAP=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" roadmap analyze)
 ```
 
 This returns structured JSON with:
@@ -83,7 +83,7 @@ Use this instead of manually reading/parsing ROADMAP.md.
 - Find the 2-3 most recent SUMMARY.md files
 - Use `summary-extract` for efficient parsing:
   ```bash
-  node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" summary-extract <path> --fields one_liner
+  node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" summary-extract <path> --fields one_liner
   ```
 - This shows "what we've been working on"
   </step>
@@ -102,7 +102,7 @@ Use this instead of manually reading/parsing ROADMAP.md.
 
 ```bash
 # Get formatted progress bar
-PROGRESS_BAR=$(node "$HOME/.claude/ez-agents/bin/ez-tools.cjs" progress bar --raw)
+PROGRESS_BAR=$(node "$HOME/.claude/ez-agents/dist/bin/ez-tools.js" progress bar --raw)
 ```
 
 Present:

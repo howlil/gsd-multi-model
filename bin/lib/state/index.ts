@@ -6,6 +6,7 @@
  * - StateValidator: Schema validation for state objects
  * - StateConflictResolver: Advanced conflict resolution with multi-strategy approach
  * - StateConflictLog: Audit logging with 90-day retention
+ * - StateJournal: Append-only journal for state changes (audit trail, replay)
  * - State types: TaskState, GlobalState, PhaseState, etc.
  */
 
@@ -21,6 +22,10 @@ export type {
 
 // StateManager class
 export { StateManager } from './state-manager.js';
+
+// StateJournal class (Phase 42.7)
+export { StateJournal } from './state-journal.js';
+export type { JournalEntry, JournalConfig, JournalFilter, JournalStats, JournalEntryType } from './state-journal.js';
 
 // StateValidator class
 export { StateValidator, type ValidationResult } from './state-validator.js';

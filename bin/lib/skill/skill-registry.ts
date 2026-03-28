@@ -18,6 +18,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import * as os from 'os';
 import { extractFrontmatter } from '../planning/index.js';
 import { defaultLogger as logger } from '../logger/index.js';
 
@@ -113,12 +114,16 @@ export class SkillRegistry {
   /**
    * Create a SkillRegistry instance
    * @param options - Registry options
-   * @param options.globalPath - Global skills directory (default: skills/)
+   * @param options.globalPath - Global skills directory (default: $HOME/.skills/ez-agents/ or EZ_AGENTS_SKILLS_PATH)
    * @param options.localPath - Local project skills directory (default: .planning/skills)
    */
   constructor(options: { globalPath?: string; localPath?: string } = {}) {
+    // Default global skills path: $HOME/.skills/ez-agents/ or EZ_AGENTS_SKILLS_PATH env var
+    const homeDir = os.homedir();
+    const defaultGlobalPath = process.env.EZ_AGENTS_SKILLS_PATH || path.join(homeDir, '.skills', 'ez-agents');
+
     this.globalSkillsPath =
-      options.globalPath || path.join(__dirname, '../../skills');
+      options.globalPath || defaultGlobalPath;
     this.localSkillsPath = options.localPath || '.planning/skills';
     this.skills = new Map();
     this.loaded = false;

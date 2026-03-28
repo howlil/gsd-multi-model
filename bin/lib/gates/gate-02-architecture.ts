@@ -79,7 +79,7 @@ export const gateContextSchema = z.object({
     /** Patterns used */
     patterns: z.array(z.string()).optional(),
     /** Justification for complex patterns */
-    justifications: z.record(z.string()).optional(),
+    justifications: z.record(z.string(), z.string()).optional(),
   }).optional(),
   /** Simple flags for common patterns */
   hasRepositoryPattern: z.boolean().optional(),
